@@ -1,3 +1,4 @@
+import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClearCart } from "@/app/order-success/clear-cart";
@@ -25,48 +26,122 @@ export default async function OrderSuccessPage({ params }: Props) {
   const steps = buildCustomerOrderSteps();
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
+    <div style={{ maxWidth: 760, margin: "0 auto" }}>
       <ClearCart />
-      <div className="rounded-lg border border-emerald-200 bg-white p-8 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">Заказ создан</p>
-        <h1 className="mt-2 text-3xl font-black text-zinc-950">{order.orderNumber}</h1>
-        <p className="mt-3 text-zinc-600">
+
+      <div
+        className="glass-strong"
+        style={{ padding: 36, borderRadius: 28 }}
+      >
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 14px",
+            borderRadius: 999,
+            background: "rgba(34,221,136,0.18)",
+            color: "#0e6b3a",
+            fontSize: 12,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+          }}
+        >
+          <CheckCircle2 size={16} aria-hidden /> Заказ создан
+        </span>
+        <h1 style={{ marginTop: 14, fontSize: 32, fontWeight: 900, letterSpacing: "-0.01em", color: "var(--text)" }}>
+          {order.orderNumber}
+        </h1>
+        <p style={{ marginTop: 12, color: "var(--text-2)", lineHeight: 1.6 }}>
           Спасибо за заявку. Менеджер свяжется с вами, подтвердит наличие у поставщика, доставку под заказ 7 дней и детали получения.
         </p>
-        <div className="mt-6 divide-y divide-zinc-100">
-          {order.items.map((item) => (
-            <div key={item.id} className="flex justify-between gap-4 py-3 text-sm">
+
+        <div style={{ marginTop: 22 }}>
+          {order.items.map((item, index) => (
+            <div
+              key={item.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 12,
+                padding: "12px 0",
+                borderTop: index === 0 ? "none" : "1px solid rgba(255,255,255,0.5)",
+                fontSize: 14,
+                color: "var(--text-2)",
+              }}
+            >
               <span>
-                SKU {item.sku} · {item.name} x {item.quantity}
-                <span className="mt-1 block text-xs text-emerald-700">Доставка под заказ 7 дней</span>
+                SKU {item.sku} · {item.name} × {item.quantity}
+                <span style={{ marginTop: 4, display: "block", fontSize: 12, color: "#0e6b3a" }}>
+                  Доставка под заказ 7 дней
+                </span>
               </span>
-              <strong>{formatRub(Number(item.total))}</strong>
+              <strong style={{ color: "var(--text)" }}>{formatRub(Number(item.total))}</strong>
             </div>
           ))}
         </div>
-        <div className="mt-6 flex items-center justify-between rounded-md bg-stone-50 p-4">
-          <span className="font-semibold">Итого</span>
-          <span className="text-2xl font-black">{formatRub(Number(order.total))}</span>
+
+        <div
+          style={{
+            marginTop: 18,
+            padding: 16,
+            borderRadius: 18,
+            background: "rgba(255,255,255,0.5)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontWeight: 700, color: "var(--text-2)" }}>Итого</span>
+          <span style={{ fontSize: 26, fontWeight: 900, color: "var(--text)" }}>{formatRub(Number(order.total))}</span>
         </div>
-        <div className="mt-6 rounded-lg border border-zinc-200 bg-stone-50 p-4">
-          <h2 className="text-lg font-bold text-zinc-950">Что дальше</h2>
-          <div className="mt-4 grid gap-3">
+
+        <div className="glass" style={{ marginTop: 22, padding: 20, borderRadius: 20 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>Что дальше</h2>
+          <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
             {steps.map((step, index) => (
-              <div key={step.title} className="grid grid-cols-[28px_minmax(0,1fr)] gap-3 text-sm">
-                <span className="flex size-7 items-center justify-center rounded-full bg-teal-700 text-xs font-bold text-white">{index + 1}</span>
+              <div
+                key={step.title}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "32px minmax(0, 1fr)",
+                  gap: 12,
+                  fontSize: 14,
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: "linear-gradient(135deg,#75a2ff,#426dff)",
+                    color: "#fff",
+                    fontSize: 13,
+                    fontWeight: 800,
+                  }}
+                >
+                  {index + 1}
+                </span>
                 <span>
-                  <strong className="block text-zinc-950">{step.title}</strong>
-                  <span className="mt-1 block leading-5 text-zinc-600">{step.description}</span>
+                  <strong style={{ display: "block", color: "var(--text)" }}>{step.title}</strong>
+                  <span style={{ marginTop: 4, display: "block", lineHeight: 1.5, color: "var(--text-mute)" }}>
+                    {step.description}
+                  </span>
                 </span>
               </div>
             ))}
           </div>
         </div>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/catalog" className="inline-flex h-11 items-center rounded-lg bg-teal-700 px-5 text-sm font-semibold text-white hover:bg-teal-800">
+
+        <div style={{ marginTop: 22, display: "flex", flexWrap: "wrap", gap: 10 }}>
+          <Link href="/catalog" className="btn btn-primary">
             Вернуться в каталог
           </Link>
-          <a href={phoneHref(storefront.phones[0])} className="inline-flex h-11 items-center rounded-lg border border-zinc-200 px-5 text-sm font-semibold text-zinc-800 hover:border-teal-200 hover:text-teal-800">
+          <a href={phoneHref(storefront.phones[0])} className="btn btn-soft">
             Позвонить менеджеру
           </a>
         </div>
