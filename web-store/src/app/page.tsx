@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { Coffee } from "@/components/art/coffee";
 import { Fridge } from "@/components/art/fridge";
+import { GlassProductCard } from "@/components/glass-product-card";
 import { getHomeSnapshot } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -34,8 +35,9 @@ async function loadHome() {
 const RU_NUMBER = new Intl.NumberFormat("ru-RU");
 
 export default async function Home() {
-  const { categories } = await loadHome();
+  const { categories, products } = await loadHome();
   const featuredCategories = categories.slice(0, 6);
+  const popularProducts = products.slice(0, 8);
 
   return (
     <>
@@ -193,6 +195,25 @@ export default async function Home() {
           </div>
         </div>
       </div>
+
+      {popularProducts.length > 0 && (
+        <>
+          <div className="section-head">
+            <div>
+              <h2>Популярные товары</h2>
+              <div className="meta">Готовы к заказу — доставим по Крыму и новым регионам</div>
+            </div>
+            <Link className="right" href="/catalog">
+              Смотреть каталог <ArrowRight size={16} aria-hidden />
+            </Link>
+          </div>
+          <div className="product-grid">
+            {popularProducts.map((product) => (
+              <GlassProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="trust">
         <div className="trust-card">
