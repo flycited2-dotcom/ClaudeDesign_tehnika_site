@@ -24,11 +24,27 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4" role="region" aria-label={`Галерея товара ${name}`}>
-      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-md bg-zinc-100">
+    <div role="region" aria-label={`Галерея товара ${name}`}>
+      <div
+        style={{
+          position: "relative",
+          aspectRatio: "4 / 3",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          borderRadius: 18,
+          background: "rgba(255,255,255,0.55)",
+          border: "1px solid var(--glass-stroke)",
+        }}
+      >
         {activeImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={activeImage.src} alt={activeImage.alt} className="h-full w-full object-contain" />
+          <img
+            src={activeImage.src}
+            alt={activeImage.alt}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
         ) : (
           <ProductImageFallback />
         )}
@@ -38,20 +54,62 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
             <button
               type="button"
               onClick={showPrevious}
-              className="absolute left-3 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-800 shadow-sm transition hover:bg-white"
               aria-label="Предыдущее фото"
+              style={{
+                position: "absolute",
+                left: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 40,
+                height: 40,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.85)",
+                border: "1px solid var(--glass-stroke)",
+                color: "var(--text)",
+                boxShadow: "var(--shadow-card)",
+              }}
             >
-              <ChevronLeft className="size-5" aria-hidden />
+              <ChevronLeft size={20} aria-hidden />
             </button>
             <button
               type="button"
               onClick={showNext}
-              className="absolute right-3 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-800 shadow-sm transition hover:bg-white"
               aria-label="Следующее фото"
+              style={{
+                position: "absolute",
+                right: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                width: 40,
+                height: 40,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: 999,
+                background: "rgba(255,255,255,0.85)",
+                border: "1px solid var(--glass-stroke)",
+                color: "var(--text)",
+                boxShadow: "var(--shadow-card)",
+              }}
             >
-              <ChevronRight className="size-5" aria-hidden />
+              <ChevronRight size={20} aria-hidden />
             </button>
-            <div className="absolute bottom-3 right-3 rounded-full bg-zinc-950/80 px-3 py-1 text-xs font-semibold text-white">
+            <div
+              style={{
+                position: "absolute",
+                bottom: 12,
+                right: 12,
+                padding: "4px 12px",
+                borderRadius: 999,
+                background: "rgba(16,32,74,0.78)",
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
               {activeIndex + 1} / {images.length}
             </div>
           </>
@@ -59,25 +117,43 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
       </div>
 
       {hasManyImages ? (
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        <div style={{ marginTop: 16, display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
           {images.map((image, index) => (
             <button
               key={image.id}
               type="button"
               onClick={() => setActiveIndex(index)}
-              className={`flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-white transition ${
-                index === activeIndex ? "border-teal-700 ring-2 ring-teal-100" : "border-zinc-200 hover:border-teal-300"
-              }`}
               aria-label={`Показать фото ${index + 1}`}
+              style={{
+                flexShrink: 0,
+                width: 76,
+                height: 76,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.55)",
+                border:
+                  index === activeIndex
+                    ? "2px solid var(--accent)"
+                    : "1px solid var(--glass-stroke)",
+                boxShadow: index === activeIndex ? "var(--shadow-blue)" : "none",
+                transition: "border .2s ease",
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={image.src} alt="" className="h-full w-full object-contain" />
+              <img src={image.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
             </button>
           ))}
         </div>
       ) : null}
 
-      {hasManyImages ? <p className="mt-3 text-sm text-zinc-500">В карточке {images.length} фото товара.</p> : null}
+      {hasManyImages ? (
+        <p style={{ marginTop: 10, fontSize: 13, color: "var(--text-mute)" }}>
+          В карточке {images.length} фото товара.
+        </p>
+      ) : null}
     </div>
   );
 }

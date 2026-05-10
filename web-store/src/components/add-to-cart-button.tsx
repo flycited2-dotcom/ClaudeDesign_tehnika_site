@@ -27,10 +27,21 @@ export function AddToCartButton({
         setAdded(true);
         window.setTimeout(() => setAdded(false), 1600);
       }}
-      className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-500"
+      className={"btn btn-primary" + (compact ? " btn-sm" : "")}
+      style={{
+        width: "100%",
+        opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
     >
-      <ShoppingCart className="size-4" aria-hidden />
-      {compact ? (added ? "В корзине" : "Купить") : added ? "Добавлено" : `В корзину${quantity > 1 ? ` x${quantity}` : ""}`}
+      <ShoppingCart size={compact ? 14 : 16} aria-hidden />
+      {compact
+        ? added
+          ? "В корзине"
+          : "Купить"
+        : added
+        ? "Добавлено"
+        : `В корзину${quantity > 1 ? ` × ${quantity}` : ""}`}
     </button>
   );
 }
