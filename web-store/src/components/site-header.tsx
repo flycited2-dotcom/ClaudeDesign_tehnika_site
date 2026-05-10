@@ -2,6 +2,7 @@
 
 import {
   ArrowLeftRight,
+  ArrowRight,
   ChevronDown,
   Heart,
   Menu,
@@ -9,18 +10,92 @@ import {
   Search,
   ShoppingCart,
   User,
+  X,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { formatRub } from "@/lib/format";
 import { storefront } from "@/lib/storefront";
 import { useCart } from "@/lib/use-cart";
 
 type Role = "b2c" | "b2b" | "gov";
 
+type Suggestion = {
+  id: string;
+  slug: string;
+  name: string;
+  vendor: string | null;
+  price: number;
+  image: string | null;
+};
+
+const POPULAR = ["холодильник", "стиральная машина", "Bosch", "до 50 000 ₽", "встраиваемая"];
+
 export function SiteHeader() {
+  const router = useRouter();
   const [role, setRole] = useState<Role>("b2c");
   const [mobOpen, setMobOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
   const cartCount = useCart().reduce((sum, item) => sum + item.quantity, 0);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onClick = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSearchOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [searchOpen]);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      if (trimmed.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+      fetch(`/api/search/suggest?q=${encodeURIComponent(trimmed)}`, { signal: controller.signal })
+        .then((response) => (response.ok ? response.json() : { products: [] }))
+        .then((data: { products?: Suggestion[] }) => {
+          setSuggestions(data.products ?? []);
+        })
+        .catch(() => {
+          /* aborted or network */
+        });
+    }, 220);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [query]);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setSearchOpen(false);
+    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+  }
+
+  function pickSuggestion(suggestion: Suggestion) {
+    setSearchOpen(false);
+    setQuery("");
+    router.push(`/product/${suggestion.slug}`);
+  }
 
   return (
     <>
@@ -36,25 +111,13 @@ export function SiteHeader() {
           <a href="#">Помощь</a>
           <span>Режим:</span>
           <div className="role-switch">
-            <button
-              type="button"
-              className={role === "b2c" ? "on" : ""}
-              onClick={() => setRole("b2c")}
-            >
+            <button type="button" className={role === "b2c" ? "on" : ""} onClick={() => setRole("b2c")}>
               Розница
             </button>
-            <button
-              type="button"
-              className={role === "b2b" ? "on" : ""}
-              onClick={() => setRole("b2b")}
-            >
+            <button type="button" className={role === "b2b" ? "on" : ""} onClick={() => setRole("b2b")}>
               Опт
             </button>
-            <button
-              type="button"
-              className={role === "gov" ? "on" : ""}
-              onClick={() => setRole("gov")}
-            >
+            <button type="button" className={role === "gov" ? "on" : ""} onClick={() => setRole("gov")}>
               Госзакупки
             </button>
           </div>
@@ -86,12 +149,99 @@ export function SiteHeader() {
           <ChevronDown size={16} aria-hidden />
         </Link>
 
-        <form action="/search" className="hdr-search-wrap">
-          <div className="hdr-search">
-            <Search size={18} aria-hidden />
-            <input name="q" type="search" placeholder="Холодильник, Bosch, до 50 000 ₽…" />
-          </div>
-        </form>
+        <div className="hdr-search-wrap" ref={searchRef}>
+          <form action="/search" onSubmit={handleSubmit}>
+            <div className={"hdr-search " + (searchOpen ? "open" : "")} onClick={() => setSearchOpen(true)}>
+              <Search size={18} aria-hidden />
+              <input
+                name="q"
+                type="search"
+                autoComplete="off"
+                placeholder="Холодильник, Bosch, до 50 000 ₽…"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onFocus={() => setSearchOpen(true)}
+              />
+              {query && (
+                <button
+                  type="button"
+                  className="hdr-search-clear"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setQuery("");
+                  }}
+                  aria-label="Очистить"
+                >
+                  <X size={14} aria-hidden />
+                </button>
+              )}
+            </div>
+          </form>
+          {searchOpen && (
+            <div className="hdr-suggest">
+              {!query.trim() ? (
+                <>
+                  <div className="sg-h">Популярные запросы</div>
+                  <div className="sg-tags">
+                    {POPULAR.map((popular) => (
+                      <button
+                        key={popular}
+                        type="button"
+                        className="sg-tag"
+                        onClick={() => setQuery(popular)}
+                      >
+                        {popular}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : suggestions.length > 0 ? (
+                <>
+                  <div className="sg-h">Найдено {suggestions.length}</div>
+                  {suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.id}
+                      type="button"
+                      className="sg-item"
+                      onClick={() => pickSuggestion(suggestion)}
+                    >
+                      <span className="sg-item-art">
+                        {suggestion.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={suggestion.image} alt="" />
+                        ) : (
+                          <Search size={18} aria-hidden style={{ opacity: 0.4 }} />
+                        )}
+                      </span>
+                      <span className="sg-item-body">
+                        <span className="sg-item-brand">{suggestion.vendor ?? ""}</span>
+                        <span className="sg-item-name">{suggestion.name}</span>
+                      </span>
+                      <span className="sg-item-price">
+                        {suggestion.price ? formatRub(suggestion.price) : ""}
+                      </span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="sg-all"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+                    }}
+                  >
+                    Показать все результаты <ArrowRight size={14} aria-hidden />
+                  </button>
+                </>
+              ) : (
+                <div className="sg-empty">
+                  Ничего не нашли по «{query}»<br />
+                  <small>Попробуйте короче — например, «Bosch» или «холодильник»</small>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="head-actions">
           <Link href="/catalog" className="icon-btn" title="Избранное" aria-label="Избранное">
