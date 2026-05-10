@@ -73,91 +73,227 @@ export function CartClient() {
 
   if (!cart.length) {
     return (
-      <div className="rounded-lg border border-dashed border-zinc-300 bg-white p-10 text-center">
-        <h1 className="text-2xl font-black text-zinc-950">Корзина пустая</h1>
-        <p className="mt-2 text-zinc-500">Выберите товары в каталоге, добавьте их в корзину и оставьте контакты для подтверждения заказа.</p>
-        <Link href="/catalog" className="mt-6 inline-flex h-11 items-center rounded-lg bg-teal-700 px-5 text-sm font-semibold text-white hover:bg-teal-800">
-          В каталог
-        </Link>
-      </div>
+      <>
+        <div className="bread">
+          <Link href="/">Главная</Link>
+          <span>›</span>
+          <span>Корзина</span>
+        </div>
+        <div
+          className="glass"
+          style={{ padding: 48, textAlign: "center", borderRadius: 28, marginTop: 16 }}
+        >
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text)" }}>Корзина пустая</h1>
+          <p style={{ marginTop: 12, color: "var(--text-mute)", maxWidth: 480, margin: "12px auto 0" }}>
+            Выберите товары в каталоге, добавьте их в корзину и оставьте контакты для подтверждения заказа.
+          </p>
+          <Link href="/catalog" className="btn btn-primary" style={{ marginTop: 24, display: "inline-flex" }}>
+            В каталог
+          </Link>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-      <section className="rounded-lg border border-zinc-200 bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 p-4">
-          <div>
-            <h1 className="text-2xl font-black text-zinc-950">Корзина</h1>
-            <p className="mt-1 text-sm text-zinc-500">
-              {totalQuantity.toLocaleString("ru-RU")} шт. в заявке. Менеджер подтвердит цену и срок перед оплатой.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/catalog" className="inline-flex h-10 items-center rounded-lg border border-zinc-200 px-4 text-sm font-semibold hover:bg-zinc-50">
-              Продолжить покупки
-            </Link>
-            <button
-              className="inline-flex h-10 items-center rounded-lg border border-red-100 px-4 text-sm font-semibold text-red-700 hover:bg-red-50"
-              onClick={clearCart}
-            >
-              Очистить корзину
-            </button>
-          </div>
-        </div>
-        {cart.map((cartItem) => {
-          const item = quotedBySku.get(cartItem.sku);
-          return (
-            <div key={cartItem.sku} className="flex flex-wrap items-center gap-4 border-b border-zinc-100 p-4 last:border-b-0">
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-zinc-950">{item?.name ?? `SKU ${cartItem.sku}`}</p>
-                <p className="mt-1 text-sm text-zinc-500">SKU {cartItem.sku}</p>
-                <p className="mt-1 text-sm text-emerald-700">
-                  {fulfillment.stockLabel} · {fulfillment.deliveryShortLabel}
-                </p>
-              </div>
-              <div className="flex items-center rounded-lg border border-zinc-200">
-                <button className="p-2 hover:bg-zinc-50" onClick={() => updateQuantity(cartItem.sku, -1)} aria-label="Уменьшить">
-                  <Minus className="size-4" />
-                </button>
-                <span className="w-12 text-center text-sm font-semibold">{cartItem.quantity}</span>
-                <button className="p-2 hover:bg-zinc-50" onClick={() => updateQuantity(cartItem.sku, 1)} aria-label="Увеличить">
-                  <Plus className="size-4" />
-                </button>
-              </div>
-              <div className="w-32 text-right font-bold text-zinc-950">{item ? formatRub(item.total) : "..."}</div>
-              <button className="rounded-lg p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600" onClick={() => removeItem(cartItem.sku)} aria-label="Удалить">
-                <Trash2 className="size-4" />
+    <>
+      <div className="bread">
+        <Link href="/">Главная</Link>
+        <span>›</span>
+        <span>Корзина</span>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gap: 24,
+          gridTemplateColumns: "minmax(0, 1fr) 380px",
+          alignItems: "start",
+        }}
+        className="cart-layout"
+      >
+        <section className="glass" style={{ padding: 0, borderRadius: 24, overflow: "hidden" }}>
+          <div
+            style={{
+              padding: 24,
+              borderBottom: "1px solid rgba(255,255,255,0.5)",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 12,
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            <div>
+              <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text)" }}>Корзина</h1>
+              <p style={{ marginTop: 6, color: "var(--text-mute)", fontSize: 14 }}>
+                {totalQuantity.toLocaleString("ru-RU")} шт. в заявке. Менеджер подтвердит цену и срок перед оплатой.
+              </p>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <Link href="/catalog" className="btn btn-soft btn-sm">
+                Продолжить покупки
+              </Link>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={clearCart}>
+                <Trash2 size={14} aria-hidden />
+                Очистить
               </button>
             </div>
-          );
-        })}
-      </section>
+          </div>
+          {cart.map((cartItem, index) => {
+            const item = quotedBySku.get(cartItem.sku);
+            return (
+              <div
+                key={cartItem.sku}
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 16,
+                  padding: 20,
+                  borderTop: index === 0 ? "none" : "1px solid rgba(255,255,255,0.5)",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 700, color: "var(--text)" }}>{item?.name ?? `SKU ${cartItem.sku}`}</p>
+                  <p style={{ marginTop: 4, fontSize: 13, color: "var(--text-mute)" }}>SKU {cartItem.sku}</p>
+                  <p style={{ marginTop: 4, fontSize: 13, color: "#0e6b3a" }}>
+                    {fulfillment.stockLabel} · {fulfillment.deliveryShortLabel}
+                  </p>
+                </div>
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    background: "rgba(255,255,255,0.6)",
+                    border: "1px solid var(--glass-stroke)",
+                    borderRadius: 12,
+                  }}
+                >
+                  <button
+                    type="button"
+                    style={{ padding: 8, color: "var(--text)" }}
+                    onClick={() => updateQuantity(cartItem.sku, -1)}
+                    aria-label="Уменьшить"
+                  >
+                    <Minus size={14} aria-hidden />
+                  </button>
+                  <span style={{ width: 40, textAlign: "center", fontWeight: 700, fontSize: 14 }}>
+                    {cartItem.quantity}
+                  </span>
+                  <button
+                    type="button"
+                    style={{ padding: 8, color: "var(--text)" }}
+                    onClick={() => updateQuantity(cartItem.sku, 1)}
+                    aria-label="Увеличить"
+                  >
+                    <Plus size={14} aria-hidden />
+                  </button>
+                </div>
+                <div
+                  style={{
+                    width: 130,
+                    textAlign: "right",
+                    fontWeight: 800,
+                    fontSize: 16,
+                    color: "var(--text)",
+                  }}
+                >
+                  {item ? formatRub(item.total) : "..."}
+                </div>
+                <button
+                  type="button"
+                  style={{
+                    padding: 8,
+                    color: "var(--text-mute)",
+                    borderRadius: 10,
+                  }}
+                  onClick={() => removeItem(cartItem.sku)}
+                  aria-label="Удалить"
+                >
+                  <Trash2 size={16} aria-hidden />
+                </button>
+              </div>
+            );
+          })}
+        </section>
 
-      <aside className="h-fit rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <p className="text-sm font-bold uppercase tracking-wide text-zinc-500">Итого</p>
-        <div className="mt-3 text-3xl font-black text-zinc-950">{quote ? formatRub(quote.total) : "..."}</div>
-        <p className="mt-2 text-sm text-zinc-500">
-          Это заявка на заказ. Менеджер подтвердит наличие у поставщика, доставку под заказ 7 дней и итоговую стоимость.
-        </p>
-        <p className="mt-2 text-sm text-zinc-500">Оплата после подтверждения заказа.</p>
-        {error ? <p className="mt-3 rounded-md bg-amber-50 p-3 text-sm text-amber-900">{error}</p> : null}
-        {quote && !error ? (
-          <Link
-            href="/checkout"
-            className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-zinc-950 text-sm font-semibold text-white hover:bg-teal-800"
+        <aside
+          className="glass-strong"
+          style={{ padding: 24, borderRadius: 24, position: "sticky", top: 100 }}
+        >
+          <p
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: 1,
+              color: "var(--text-mute)",
+            }}
           >
-            Перейти к оформлению заявки
+            Итого
+          </p>
+          <div
+            style={{
+              marginTop: 10,
+              fontSize: 36,
+              fontWeight: 900,
+              letterSpacing: "-0.02em",
+              color: "var(--text)",
+            }}
+          >
+            {quote ? formatRub(quote.total) : "..."}
+          </div>
+          <p style={{ marginTop: 12, fontSize: 13, lineHeight: 1.5, color: "var(--text-mute)" }}>
+            Это заявка на заказ. Менеджер подтвердит наличие у поставщика, доставку под заказ 7 дней и итоговую стоимость.
+          </p>
+          <p style={{ marginTop: 6, fontSize: 13, color: "var(--text-mute)" }}>Оплата после подтверждения заказа.</p>
+          {error ? (
+            <p
+              style={{
+                marginTop: 14,
+                padding: 12,
+                borderRadius: 12,
+                background: "rgba(255,200,90,0.18)",
+                color: "#7a4a00",
+                fontSize: 13,
+              }}
+            >
+              {error}
+            </p>
+          ) : null}
+          {quote && !error ? (
+            <Link
+              href="/checkout"
+              className="btn btn-primary"
+              style={{ marginTop: 20, width: "100%" }}
+            >
+              Перейти к оформлению заявки
+            </Link>
+          ) : (
+            <span
+              className="btn btn-soft"
+              style={{ marginTop: 20, width: "100%", opacity: 0.7, cursor: "default" }}
+            >
+              Проверяем корзину
+            </span>
+          )}
+          <Link
+            href="/catalog"
+            style={{
+              display: "inline-flex",
+              justifyContent: "center",
+              width: "100%",
+              marginTop: 12,
+              fontSize: 14,
+              fontWeight: 700,
+              color: "var(--accent-2)",
+            }}
+          >
+            Добавить ещё товары
           </Link>
-        ) : (
-          <span className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-zinc-200 text-sm font-semibold text-zinc-500">
-            Проверяем корзину
-          </span>
-        )}
-        <Link href="/catalog" className="mt-3 inline-flex w-full justify-center text-sm font-semibold text-teal-800 hover:text-teal-950">
-          Добавить ещё товары
-        </Link>
-      </aside>
-    </div>
+        </aside>
+      </div>
+    </>
   );
 }
