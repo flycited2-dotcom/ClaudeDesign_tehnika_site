@@ -14,27 +14,81 @@ const links = [
 
 export function AdminShell({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[260px_1fr] lg:px-8">
-      <aside className="h-fit rounded-lg border border-zinc-200 bg-white p-3 shadow-sm">
-        <p className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-zinc-500">Админка</p>
-        <nav className="space-y-1">
+    <div
+      style={{
+        display: "grid",
+        gap: 24,
+        gridTemplateColumns: "260px minmax(0, 1fr)",
+        alignItems: "start",
+      }}
+    >
+      <aside className="glass" style={{ padding: 16, borderRadius: 22, position: "sticky", top: 100 }}>
+        <p
+          style={{
+            padding: "6px 12px",
+            fontSize: 11,
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            color: "var(--text-mute)",
+          }}
+        >
+          Админка
+        </p>
+        <nav style={{ display: "grid", gap: 2 }}>
           {links.map(([href, label, Icon]) => (
-            <Link key={href} href={href} className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-stone-100 hover:text-zinc-950">
-              <Icon className="size-4" aria-hidden />
-              {label}
+            <Link
+              key={href}
+              href={href}
+              className="f-row"
+              style={{ margin: 0, gap: 12 }}
+            >
+              <Icon size={16} aria-hidden />
+              <span style={{ flex: 1 }}>{label}</span>
             </Link>
           ))}
         </nav>
-        <form action={logoutAction} className="mt-4 border-t border-zinc-100 pt-3">
-          <button className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-semibold text-zinc-500 hover:bg-red-50 hover:text-red-700">
-            <LogOut className="size-4" aria-hidden />
-            Выйти
+        <form
+          action={logoutAction}
+          style={{
+            marginTop: 14,
+            paddingTop: 12,
+            borderTop: "1px solid rgba(255,255,255,0.5)",
+          }}
+        >
+          <button
+            type="submit"
+            className="f-row"
+            style={{
+              margin: 0,
+              gap: 12,
+              cursor: "pointer",
+              color: "var(--text-mute)",
+              border: 0,
+              background: "none",
+              width: "100%",
+              textAlign: "left",
+              font: "inherit",
+            }}
+          >
+            <LogOut size={16} aria-hidden />
+            <span style={{ flex: 1 }}>Выйти</span>
           </button>
         </form>
       </aside>
 
-      <section className="min-w-0">
-        <h1 className="mb-6 text-3xl font-black tracking-normal text-zinc-950">{title}</h1>
+      <section style={{ minWidth: 0 }}>
+        <h1
+          style={{
+            marginBottom: 24,
+            fontSize: 30,
+            fontWeight: 900,
+            letterSpacing: "-0.01em",
+            color: "var(--text)",
+          }}
+        >
+          {title}
+        </h1>
         {children}
       </section>
     </div>
