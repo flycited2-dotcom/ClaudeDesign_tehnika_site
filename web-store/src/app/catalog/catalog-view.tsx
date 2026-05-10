@@ -1,7 +1,7 @@
-import type { Product, ProductImage } from "@prisma/client";
-import { ArrowUpDown, ChevronDown, Image as ImageIcon, Phone, Search, ShieldCheck, SlidersHorizontal, Truck, X } from "lucide-react";
+import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
+import { ArrowUpDown, Check, ChevronDown, Search, X } from "lucide-react";
 import Link from "next/link";
-import { CatalogGrid } from "@/components/catalog-grid";
+import { GlassProductCard } from "@/components/glass-product-card";
 import { SearchableCheckboxList } from "@/components/searchable-checkbox-list";
 import {
   catalogAttributeFilterParam,
@@ -15,8 +15,6 @@ import type { CatalogBrandFilterOption } from "@/lib/catalog-brand-filters";
 import type { CategoryTreeItem, FlatCategory } from "@/lib/catalog-tree";
 import type { CatalogSort } from "@/lib/catalog-query";
 import { getCatalogSpecFilterLabel, type CatalogSpecFilterOption, type CatalogSpecFilterValue } from "@/lib/catalog-spec-filters";
-import { countActiveCatalogFilters } from "@/lib/catalog-ui";
-import { phoneHref, storefront } from "@/lib/storefront";
 
 const catalogSortLabels: Record<CatalogSort, string> = {
   popular: "Сначала рекомендуемые",
@@ -93,19 +91,15 @@ function CategoryBranch({
       <Link
         href={`/catalog/${category.slug}`}
         aria-current={active ? "page" : undefined}
-        className={[
-          "group flex items-start justify-between gap-3 rounded-md border-l-2 py-2 pr-2 text-sm font-medium hover:bg-stone-100",
-          active ? "border-teal-600 bg-teal-50 text-teal-900" : "border-transparent text-zinc-700",
-        ].join(" ")}
-        style={{ paddingLeft: `${8 + level * 12}px` }}
+        className={"f-row " + (active ? "on" : "")}
+        style={{ paddingLeft: `${10 + level * 14}px` }}
       >
-        <span className="min-w-0 flex-1 break-words leading-5">{category.name}</span>
-        <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
-          {category.productCount.toLocaleString("ru-RU")}
-        </span>
+        <span className="box">{active && <Check size={12} aria-hidden />}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>{category.name}</span>
+        <span className="cnt">{category.productCount.toLocaleString("ru-RU")}</span>
       </Link>
-      {expanded && category.children.length ? (
-        <div className="mt-1 space-y-1 border-l border-zinc-100 pl-2">
+      {expanded && category.children.length > 0 ? (
+        <div>
           {category.children.map((child) => (
             <CategoryBranch key={child.id} category={child} currentCategorySlug={currentCategorySlug} level={level + 1} />
           ))}
@@ -115,56 +109,66 @@ function CategoryBranch({
   );
 }
 
-function SearchPanel({
-  basePath,
-  currentQuery,
-  framed = true,
-}: {
-  basePath: string;
-  currentQuery?: string;
-  framed?: boolean;
-}) {
+function SearchPanel({ basePath, currentQuery }: { basePath: string; currentQuery?: string }) {
   return (
-    <div className={framed ? "rounded-lg border border-zinc-200 bg-white p-4" : ""}>
-      <p className="text-sm font-bold uppercase tracking-wide text-zinc-500">Поиск</p>
-      <form action={basePath} className="mt-3 flex items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-        <Search className="mr-2 size-4 text-zinc-400" aria-hidden />
-        <input
-          name="q"
-          defaultValue={currentQuery}
-          placeholder="Название, SKU, бренд"
-          className="min-w-0 flex-1 bg-transparent text-sm"
-        />
-      </form>
-    </div>
+    <form action={basePath} className="filters" style={{ marginBottom: 16 }}>
+      <h4>Поиск</h4>
+      <div className="f-section" style={{ paddingTop: 0, borderTop: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            background: "rgba(255,255,255,0.56)",
+            border: "1px solid var(--glass-stroke)",
+            borderRadius: 14,
+            height: 44,
+            padding: "0 14px",
+          }}
+        >
+          <Search size={16} aria-hidden style={{ opacity: 0.6 }} />
+          <input
+            name="q"
+            defaultValue={currentQuery}
+            placeholder="Название, SKU, бренд"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              border: 0,
+              background: "transparent",
+              outline: "none",
+              fontSize: 14,
+            }}
+          />
+        </div>
+      </div>
+    </form>
   );
 }
 
 function CategoriesPanel({
   categories,
   currentCategorySlug,
-  framed = true,
 }: {
   categories: CategoryTreeItem[];
   currentCategorySlug?: string;
-  framed?: boolean;
 }) {
+  const totalCount = categories.reduce((sum, category) => sum + category.productCount, 0);
   return (
-    <div className={framed ? "rounded-lg border border-zinc-200 bg-white p-4" : ""}>
-      {framed ? <p className="text-sm font-bold uppercase tracking-wide text-zinc-500">Категории</p> : null}
-      <div className="mt-3 max-h-[70vh] space-y-1 overflow-auto pr-1">
+    <div className="filters" style={{ marginBottom: 16 }}>
+      <h4>Категории</h4>
+      <div
+        className="f-section"
+        style={{ paddingTop: 0, borderTop: 0, maxHeight: "60vh", overflow: "auto" }}
+      >
         <Link
           href="/catalog"
           aria-current={!currentCategorySlug ? "page" : undefined}
-          className={[
-            "flex items-start justify-between gap-3 rounded-md px-2 py-2 text-sm font-medium hover:bg-stone-100",
-            !currentCategorySlug ? "bg-teal-50 text-teal-900" : "text-zinc-700",
-          ].join(" ")}
+          className={"f-row " + (!currentCategorySlug ? "on" : "")}
         >
-          <span className="min-w-0 flex-1 break-words leading-5">Все товары</span>
-          <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
-            {categories.reduce((sum, category) => sum + category.productCount, 0).toLocaleString("ru-RU")}
-          </span>
+          <span className="box">{!currentCategorySlug && <Check size={12} aria-hidden />}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>Все товары</span>
+          <span className="cnt">{totalCount.toLocaleString("ru-RU")}</span>
         </Link>
         {categories.map((category) => (
           <CategoryBranch key={category.id} category={category} currentCategorySlug={currentCategorySlug} />
@@ -190,7 +194,6 @@ function FiltersPanel({
   currentAttributeFilters = [],
   attributeRangeGroups,
   currentAttributeRangeFilters = [],
-  framed = true,
 }: {
   basePath: string;
   brands: CatalogBrandFilterOption[];
@@ -207,7 +210,6 @@ function FiltersPanel({
   currentAttributeFilters?: CatalogAttributeFilter[];
   attributeRangeGroups: CatalogAttributeRangeGroup[];
   currentAttributeRangeFilters?: CatalogAttributeRangeFilter[];
-  framed?: boolean;
 }) {
   const hasFilters = Boolean(
     currentBrands.length ||
@@ -232,261 +234,180 @@ function FiltersPanel({
   }, []);
 
   return (
-    <form action={basePath} className={framed ? "rounded-lg border border-zinc-200 bg-white p-4" : ""}>
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-bold uppercase tracking-wide text-zinc-500">Фильтры</p>
+    <form action={basePath} className="filters">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <h4 style={{ margin: 0 }}>Фильтры</h4>
         {hasFilters ? (
-          <Link href={basePath} className="text-xs font-semibold text-teal-800 hover:text-teal-950">
+          <Link href={basePath} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-2)" }}>
             Сбросить
           </Link>
         ) : null}
       </div>
       {currentQuery ? <input type="hidden" name="q" value={currentQuery} /> : null}
       {sort !== "popular" ? <input type="hidden" name="sort" value={sort} /> : null}
-      {brands.length ? (
-        <fieldset className="mt-4">
-          <legend className="text-sm font-semibold text-zinc-700">Бренды</legend>
-          <div className="mt-2">
-            <SearchableCheckboxList
-              name="brand"
-              options={brands.map((brand) => ({ value: brand.value, label: brand.value, count: brand.count }))}
-              selectedValues={currentBrands}
-              searchPlaceholder="Найти бренд"
-            />
-          </div>
-        </fieldset>
-      ) : null}
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <label className="block text-sm font-medium text-zinc-700">
-          Цена от
+
+      {brands.length > 0 && (
+        <div className="f-section">
+          <h4>Бренд</h4>
+          <SearchableCheckboxList
+            name="brand"
+            options={brands.map((brand) => ({ value: brand.value, label: brand.value, count: brand.count }))}
+            selectedValues={currentBrands}
+            searchPlaceholder="Найти бренд"
+          />
+        </div>
+      )}
+
+      <div className="f-section">
+        <h4>Цена, ₽</h4>
+        <div className="range-row">
           <input
+            className="input"
             name="minPrice"
             inputMode="numeric"
             defaultValue={minPrice ?? ""}
-            placeholder="0"
-            className="mt-2 h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm"
+            placeholder="от 0"
           />
-        </label>
-        <label className="block text-sm font-medium text-zinc-700">
-          Цена до
           <input
+            className="input"
             name="maxPrice"
             inputMode="numeric"
             defaultValue={maxPrice ?? ""}
-            placeholder="любая"
-            className="mt-2 h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm"
+            placeholder="до любая"
           />
+        </div>
+      </div>
+
+      <div className="f-section">
+        <h4>Наличие</h4>
+        <label className="f-row" style={{ cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            name="available"
+            value="1"
+            defaultChecked={onlyAvailable}
+            style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+          />
+          <span className="box" />
+          <span style={{ flex: 1 }}>Доступно к заказу</span>
+        </label>
+        <label className="f-row" style={{ cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            name="photo"
+            value="1"
+            defaultChecked={withPhoto}
+            style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+          />
+          <span className="box" />
+          <span style={{ flex: 1 }}>Только с фото</span>
         </label>
       </div>
-      <label className="mt-4 flex items-center gap-2 text-sm text-zinc-700">
-        <input name="available" value="1" type="checkbox" defaultChecked={onlyAvailable} className="size-4 accent-teal-700" />
-        Доступно к заказу
-      </label>
-      <label className="mt-3 flex items-center gap-2 text-sm text-zinc-700">
-        <input name="photo" value="1" type="checkbox" defaultChecked={withPhoto} className="size-4 accent-teal-700" />
-        Только с фото
-      </label>
-      {specFilterOptions.length ? (
-        <fieldset className="mt-4 border-t border-zinc-100 pt-4">
-          <legend className="text-sm font-semibold text-zinc-700">Характеристики</legend>
-          <div className="mt-3 grid gap-4">
+
+      {specFilterOptions.length > 0 && (
+        <div className="f-section">
+          <h4>Характеристики</h4>
+          <div style={{ display: "grid", gap: 16 }}>
             {specFilterGroups.map((group) => (
               <div key={group.label}>
-                <p className="text-xs font-bold uppercase tracking-wide text-zinc-400">{group.label}</p>
-                <div className="mt-2">
-                  <SearchableCheckboxList
-                    name="spec"
-                    options={group.options.map((option) => ({ value: option.key, label: option.label, count: option.count }))}
-                    selectedValues={currentSpecFilters}
-                    searchPlaceholder="Найти характеристику"
-                  />
-                </div>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-soft)", marginBottom: 8 }}>
+                  {group.label}
+                </p>
+                <SearchableCheckboxList
+                  name="spec"
+                  options={group.options.map((option) => ({ value: option.key, label: option.label, count: option.count }))}
+                  selectedValues={currentSpecFilters}
+                  searchPlaceholder="Найти характеристику"
+                />
               </div>
             ))}
           </div>
-        </fieldset>
-      ) : null}
-      {attributeFilterGroups.length ? (
-        <fieldset className="mt-4 border-t border-zinc-100 pt-4">
-          <legend className="text-sm font-semibold text-zinc-700">Параметры товаров</legend>
-          <div className="mt-3 grid gap-4">
+        </div>
+      )}
+
+      {attributeFilterGroups.length > 0 && (
+        <div className="f-section">
+          <h4>Параметры товаров</h4>
+          <div style={{ display: "grid", gap: 16 }}>
             {attributeFilterGroups.map((group) => (
               <div key={group.key}>
-                <p className="text-xs font-bold uppercase tracking-wide text-zinc-400">{group.label}</p>
-                <div className="mt-2">
-                  <SearchableCheckboxList
-                    name="attr"
-                    options={group.options}
-                    selectedValues={currentAttributeFilters.map(catalogAttributeFilterParam)}
-                    searchPlaceholder="Найти значение"
-                  />
-                </div>
+                <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-soft)", marginBottom: 8 }}>
+                  {group.label}
+                </p>
+                <SearchableCheckboxList
+                  name="attr"
+                  options={group.options}
+                  selectedValues={currentAttributeFilters.map(catalogAttributeFilterParam)}
+                  searchPlaceholder="Найти значение"
+                />
               </div>
             ))}
           </div>
-        </fieldset>
-      ) : null}
-      {attributeRangeGroups.length ? (
-        <fieldset className="mt-4 border-t border-zinc-100 pt-4">
-          <legend className="text-sm font-semibold text-zinc-700">Диапазоны</legend>
-          <div className="mt-3 grid gap-4">
+        </div>
+      )}
+
+      {attributeRangeGroups.length > 0 && (
+        <div className="f-section">
+          <h4>Диапазоны</h4>
+          <div style={{ display: "grid", gap: 12 }}>
             {attributeRangeGroups.map((group) => {
               const current = currentAttributeRangeFilters.find((filter) => filter.key === group.key);
               const unit = group.unit ? `, ${group.unit}` : "";
-
               return (
                 <div key={group.key}>
-                  <p className="text-xs font-bold uppercase tracking-wide text-zinc-400">
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: "var(--text-soft)", marginBottom: 6 }}>
                     {group.label}
                     {unit}
                   </p>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    <label className="block text-sm font-medium text-zinc-700">
-                      От
-                      <input
-                        name={`attrMin.${group.key}`}
-                        inputMode="decimal"
-                        defaultValue={current?.min ?? ""}
-                        placeholder={String(group.min)}
-                        className="mt-2 h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm"
-                      />
-                    </label>
-                    <label className="block text-sm font-medium text-zinc-700">
-                      До
-                      <input
-                        name={`attrMax.${group.key}`}
-                        inputMode="decimal"
-                        defaultValue={current?.max ?? ""}
-                        placeholder={String(group.max)}
-                        className="mt-2 h-10 w-full rounded-lg border border-zinc-200 bg-white px-3 text-sm"
-                      />
-                    </label>
+                  <div className="range-row">
+                    <input
+                      className="input"
+                      name={`attrMin.${group.key}`}
+                      inputMode="decimal"
+                      defaultValue={current?.min ?? ""}
+                      placeholder={`от ${group.min}`}
+                    />
+                    <input
+                      className="input"
+                      name={`attrMax.${group.key}`}
+                      inputMode="decimal"
+                      defaultValue={current?.max ?? ""}
+                      placeholder={`до ${group.max}`}
+                    />
                   </div>
                 </div>
               );
             })}
           </div>
-        </fieldset>
-      ) : null}
-      <button className="mt-4 h-10 w-full rounded-lg bg-zinc-950 text-sm font-semibold text-white hover:bg-teal-800">
+        </div>
+      )}
+
+      <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: 14, height: 44 }}>
         Применить
       </button>
     </form>
   );
 }
 
-function CatalogTrustStrip() {
-  return (
-    <div className="mb-6 grid gap-2 sm:grid-cols-3">
-      <div className="flex gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-sm text-emerald-900">
-        <Truck className="mt-0.5 size-5 shrink-0" aria-hidden />
-        <div>
-          <p className="font-semibold">Доставка по региону</p>
-          <p className="mt-1 text-xs leading-5">{storefront.region}</p>
-        </div>
-      </div>
-      <div className="flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-700">
-        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-teal-700" aria-hidden />
-        <div>
-          <p className="font-semibold text-zinc-950">Проверка заказа</p>
-          <p className="mt-1 text-xs leading-5">Менеджер подтвердит наличие, цену и срок.</p>
-        </div>
-      </div>
-      <a href={phoneHref(storefront.phones[0])} className="flex gap-3 rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-700 hover:border-teal-200 hover:text-teal-800">
-        <Phone className="mt-0.5 size-5 shrink-0 text-teal-700" aria-hidden />
-        <div>
-          <p className="font-semibold text-zinc-950">Связь с магазином</p>
-          <p className="mt-1 text-xs leading-5">{storefront.phones[0]}</p>
-        </div>
-      </a>
-    </div>
-  );
-}
-
-function QuickCategoryRail({
-  categories,
-  currentCategorySlug,
-}: {
-  categories: CategoryTreeItem[];
-  currentCategorySlug?: string;
-}) {
-  const visibleCategories = categories.slice(0, 10);
-  if (!visibleCategories.length) return null;
-
-  return (
-    <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
-      <Link
-        href="/catalog"
-        aria-current={!currentCategorySlug ? "page" : undefined}
-        className={[
-          "shrink-0 rounded-full border px-3 py-2 text-sm font-semibold",
-          !currentCategorySlug ? "border-teal-200 bg-teal-50 text-teal-900" : "border-zinc-200 bg-white text-zinc-700 hover:border-teal-200",
-        ].join(" ")}
-      >
-        Все товары
-      </Link>
-      {visibleCategories.map((category) => (
-        <Link
-          key={category.id}
-          href={`/catalog/${category.slug}`}
-          aria-current={category.slug === currentCategorySlug ? "page" : undefined}
-          className={[
-            "shrink-0 rounded-full border px-3 py-2 text-sm font-semibold",
-            category.slug === currentCategorySlug
-              ? "border-teal-200 bg-teal-50 text-teal-900"
-              : "border-zinc-200 bg-white text-zinc-700 hover:border-teal-200",
-          ].join(" ")}
-        >
-          {category.name}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function CatalogControls({
+function CatalogSortBar({
   basePath,
   state,
+  total,
 }: {
   basePath: string;
   state: CatalogUrlState & { sort: CatalogSort };
+  total: number;
 }) {
   return (
-    <div className="mb-5 grid gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:flex sm:flex-wrap sm:items-center sm:justify-between">
-      <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
-        <Link
-          href={catalogHref(basePath, { ...state, onlyAvailable: true, page: 1 })}
-          className={[
-            "inline-flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-sm font-semibold",
-            state.onlyAvailable ? "border-teal-200 bg-teal-50 text-teal-900" : "border-zinc-200 text-zinc-700 hover:border-teal-200",
-          ].join(" ")}
-        >
-          <ShieldCheck className="size-4" aria-hidden />
-          К заказу
-        </Link>
-        <Link
-          href={catalogHref(basePath, { ...state, withPhoto: true, page: 1 })}
-          className={[
-            "inline-flex h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-sm font-semibold",
-            state.withPhoto ? "border-teal-200 bg-teal-50 text-teal-900" : "border-zinc-200 text-zinc-700 hover:border-teal-200",
-          ].join(" ")}
-        >
-          <ImageIcon className="size-4" aria-hidden />
-          С фото
-        </Link>
-        <Link
-          href={catalogHref(basePath, { ...state, maxPrice: 10000, page: 1 })}
-          className={[
-            "inline-flex h-9 shrink-0 items-center rounded-full border px-3 text-sm font-semibold",
-            state.maxPrice === 10000 ? "border-teal-200 bg-teal-50 text-teal-900" : "border-zinc-200 text-zinc-700 hover:border-teal-200",
-          ].join(" ")}
-        >
-          До 10 000 ₽
-        </Link>
+    <div className="cat-toolbar">
+      <div className="left">
+        Найдено <b>{total.toLocaleString("ru-RU")}</b> товаров
       </div>
-
-      <form action={basePath} className="flex w-full min-w-0 items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 sm:w-auto sm:min-w-[260px]">
-        <ArrowUpDown className="size-4 shrink-0 text-zinc-500" aria-hidden />
+      <form
+        action={basePath}
+        className="left"
+        style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 10 }}
+      >
         {state.query ? <input type="hidden" name="q" value={state.query} /> : null}
         {state.brands?.map((brand) => <input key={brand} type="hidden" name="brand" value={brand} />)}
         {state.onlyAvailable ? <input type="hidden" name="available" value="1" /> : null}
@@ -494,24 +415,51 @@ function CatalogControls({
         {state.minPrice ? <input type="hidden" name="minPrice" value={state.minPrice} /> : null}
         {state.maxPrice ? <input type="hidden" name="maxPrice" value={state.maxPrice} /> : null}
         {state.specFilters?.map((filter) => <input key={filter} type="hidden" name="spec" value={filter} />)}
-        {state.attributeFilters?.map((filter) => <input key={catalogAttributeFilterParam(filter)} type="hidden" name="attr" value={catalogAttributeFilterParam(filter)} />)}
-        {state.attributeRangeFilters?.map((filter) => (
-          <span key={filter.key} className="hidden">
-            {filter.min !== undefined ? <input type="hidden" name="attrMin" value={`${filter.key}:${filter.min}`} /> : null}
-            {filter.max !== undefined ? <input type="hidden" name="attrMax" value={`${filter.key}:${filter.max}`} /> : null}
-          </span>
+        {state.attributeFilters?.map((filter) => (
+          <input key={catalogAttributeFilterParam(filter)} type="hidden" name="attr" value={catalogAttributeFilterParam(filter)} />
         ))}
-        <label className="sr-only" htmlFor="catalog-sort">
-          Сортировка
-        </label>
-        <select id="catalog-sort" name="sort" defaultValue={state.sort} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-zinc-800">
-          {Object.entries(catalogSortLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <button className="shrink-0 rounded-full bg-zinc-950 px-3 py-1 text-xs font-semibold text-white hover:bg-teal-800">Ок</button>
+        {state.attributeRangeFilters?.flatMap((filter) => {
+          const inputs: React.ReactNode[] = [];
+          if (filter.min !== undefined) {
+            inputs.push(
+              <input
+                key={`min-${filter.key}`}
+                type="hidden"
+                name="attrMin"
+                value={`${filter.key}:${filter.min}`}
+              />,
+            );
+          }
+          if (filter.max !== undefined) {
+            inputs.push(
+              <input
+                key={`max-${filter.key}`}
+                type="hidden"
+                name="attrMax"
+                value={`${filter.key}:${filter.max}`}
+              />,
+            );
+          }
+          return inputs;
+        })}
+        <span className="sort" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <ArrowUpDown size={14} aria-hidden />
+          <select
+            name="sort"
+            defaultValue={state.sort}
+            style={{ background: "transparent", border: 0, fontWeight: 700, color: "inherit", outline: "none" }}
+          >
+            {Object.entries(catalogSortLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={14} aria-hidden />
+        </span>
+        <button type="submit" className="btn btn-soft btn-sm">
+          Ок
+        </button>
       </form>
     </div>
   );
@@ -531,54 +479,31 @@ function ActiveFilterChips({
   attributeRangeGroups: CatalogAttributeRangeGroup[];
 }) {
   const specFilterLabels = new Map(specFilterOptions.map((option) => [option.key, option.label]));
-  const attributeFilterLabels = new Map(attributeFilterGroups.flatMap((group) => group.options.map((option) => [option.value, `${group.label}: ${option.label}`])));
+  const attributeFilterLabels = new Map(
+    attributeFilterGroups.flatMap((group) => group.options.map((option) => [option.value, `${group.label}: ${option.label}`])),
+  );
   const attributeRangeLabels = new Map(attributeRangeGroups.map((group) => [group.key, group]));
   const chips = [
     state.query
-      ? {
-          label: `Поиск: ${state.query}`,
-          href: catalogHref(basePath, { ...state, query: undefined, page: 1 }),
-        }
+      ? { label: `Поиск: ${state.query}`, href: catalogHref(basePath, { ...state, query: undefined, page: 1 }) }
       : null,
     ...(state.brands ?? []).map((brand) => ({
       label: `Бренд: ${brand}`,
-      href: catalogHref(basePath, {
-        ...state,
-        brands: state.brands?.filter((current) => current !== brand),
-        page: 1,
-      }),
+      href: catalogHref(basePath, { ...state, brands: state.brands?.filter((current) => current !== brand), page: 1 }),
     })),
     state.onlyAvailable
-      ? {
-          label: "Доступно к заказу",
-          href: catalogHref(basePath, { ...state, onlyAvailable: false, page: 1 }),
-        }
+      ? { label: "Доступно к заказу", href: catalogHref(basePath, { ...state, onlyAvailable: false, page: 1 }) }
       : null,
-    state.withPhoto
-      ? {
-          label: "С фото",
-          href: catalogHref(basePath, { ...state, withPhoto: false, page: 1 }),
-        }
-      : null,
+    state.withPhoto ? { label: "С фото", href: catalogHref(basePath, { ...state, withPhoto: false, page: 1 }) } : null,
     state.minPrice
-      ? {
-          label: `От ${state.minPrice.toLocaleString("ru-RU")} ₽`,
-          href: catalogHref(basePath, { ...state, minPrice: undefined, page: 1 }),
-        }
+      ? { label: `От ${state.minPrice.toLocaleString("ru-RU")} ₽`, href: catalogHref(basePath, { ...state, minPrice: undefined, page: 1 }) }
       : null,
     state.maxPrice
-      ? {
-          label: `До ${state.maxPrice.toLocaleString("ru-RU")} ₽`,
-          href: catalogHref(basePath, { ...state, maxPrice: undefined, page: 1 }),
-        }
+      ? { label: `До ${state.maxPrice.toLocaleString("ru-RU")} ₽`, href: catalogHref(basePath, { ...state, maxPrice: undefined, page: 1 }) }
       : null,
     ...(state.specFilters ?? []).map((filter) => ({
       label: specFilterLabels.get(filter) ?? getCatalogSpecFilterLabel(filter),
-      href: catalogHref(basePath, {
-        ...state,
-        specFilters: state.specFilters?.filter((current) => current !== filter),
-        page: 1,
-      }),
+      href: catalogHref(basePath, { ...state, specFilters: state.specFilters?.filter((current) => current !== filter), page: 1 }),
     })),
     ...(state.attributeFilters ?? []).map((filter) => {
       const value = catalogAttributeFilterParam(filter);
@@ -596,7 +521,6 @@ function ActiveFilterChips({
       const label = group?.label ?? filter.key;
       const unit = group?.unit ? ` ${group.unit}` : "";
       const rangeChips: Array<{ label: string; href: string }> = [];
-
       if (filter.min !== undefined) {
         rangeChips.push({
           label: `${label}: от ${filter.min.toLocaleString("ru-RU")}${unit}`,
@@ -617,32 +541,29 @@ function ActiveFilterChips({
           }),
         });
       }
-
       return rangeChips;
     }),
     state.sort !== "popular"
-      ? {
-          label: catalogSortLabels[state.sort],
-          href: catalogHref(basePath, { ...state, sort: "popular", page: 1 }),
-        }
+      ? { label: catalogSortLabels[state.sort], href: catalogHref(basePath, { ...state, sort: "popular", page: 1 }) }
       : null,
   ].filter(Boolean) as Array<{ label: string; href: string }>;
 
   if (!chips.length) return null;
 
   return (
-    <div className="mb-5 flex flex-wrap items-center gap-2">
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 16px" }}>
       {chips.map((chip) => (
         <Link
           key={chip.label}
           href={chip.href}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-zinc-100 px-3 text-xs font-semibold text-zinc-700 hover:bg-zinc-200"
+          className="btn btn-soft btn-sm"
+          style={{ paddingRight: 12, gap: 6 }}
         >
           {chip.label}
-          <X className="size-3.5" aria-hidden />
+          <X size={12} aria-hidden />
         </Link>
       ))}
-      <Link href={basePath} className="inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold text-teal-800 hover:bg-teal-50">
+      <Link href={basePath} className="btn btn-ghost btn-sm">
         Сбросить всё
       </Link>
     </div>
@@ -677,7 +598,7 @@ export function CatalogView({
 }: {
   title: string;
   categoryPath?: FlatCategory[];
-  products: Array<Product & { images?: ProductImage[] }>;
+  products: Array<Product & { images?: ProductImage[]; attributes?: ProductAttribute[] }>;
   total: number;
   page: number;
   perPage: number;
@@ -713,157 +634,108 @@ export function CatalogView({
     attributeFilters: currentAttributeFilters,
     attributeRangeFilters: currentAttributeRangeFilters,
   };
-  const activeFilterCount = countActiveCatalogFilters({
-    query: currentQuery,
-    brands: currentBrands,
-    onlyAvailable,
-    withPhoto,
-    minPrice,
-    maxPrice,
-    sort,
-    specFilters: currentSpecFilters,
-    attributeFilters: currentAttributeFilters,
-    attributeRangeFilters: currentAttributeRangeFilters,
-  });
-  const pageHref = (nextPage: number) => {
-    return catalogHref(basePath, { ...state, page: nextPage });
-  };
+  const pageHref = (nextPage: number) => catalogHref(basePath, { ...state, page: nextPage });
   const breadcrumbs = buildCatalogBreadcrumbItems(categoryPath);
 
   return (
-    <div className="mx-auto grid max-w-[1560px] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[340px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)] lg:px-8">
-      <section className="min-w-0 lg:order-2">
-        <nav className="mb-4 flex flex-wrap items-center gap-2 text-sm text-zinc-500" aria-label="Хлебные крошки">
-          {breadcrumbs.map((item, index) => (
-            <span key={`${item.href ?? item.label}-${index}`} className="inline-flex min-w-0 items-center gap-2">
-              {index > 0 ? <span className="text-zinc-300">/</span> : null}
-              {item.href && index < breadcrumbs.length - 1 ? (
-                <Link href={item.href} className="truncate font-semibold text-zinc-700 hover:text-teal-800">
-                  {item.label}
+    <>
+      <div className="bread">
+        {breadcrumbs.map((item, index) => (
+          <span key={`${item.href ?? item.label}-${index}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            {index > 0 ? <span>›</span> : null}
+            {item.href && index < breadcrumbs.length - 1 ? (
+              <Link href={item.href}>{item.label}</Link>
+            ) : (
+              <span>{item.label}</span>
+            )}
+          </span>
+        ))}
+      </div>
+
+      <div className="section-head" style={{ margin: "6px 4px 18px" }}>
+        <div>
+          <h2>{title}</h2>
+          <div className="meta">{total.toLocaleString("ru-RU")} товаров</div>
+        </div>
+      </div>
+
+      <div className="cat-layout">
+        <aside>
+          <SearchPanel basePath={basePath} currentQuery={currentQuery} />
+          <CategoriesPanel categories={categories} currentCategorySlug={currentCategorySlug} />
+          <FiltersPanel
+            basePath={basePath}
+            brands={brands}
+            currentBrands={currentBrands}
+            currentQuery={currentQuery}
+            onlyAvailable={onlyAvailable}
+            withPhoto={withPhoto}
+            minPrice={minPrice}
+            maxPrice={maxPrice}
+            sort={sort}
+            specFilterOptions={specFilterOptions}
+            currentSpecFilters={currentSpecFilters}
+            attributeFilterGroups={attributeFilterGroups}
+            currentAttributeFilters={currentAttributeFilters}
+            attributeRangeGroups={attributeRangeGroups}
+            currentAttributeRangeFilters={currentAttributeRangeFilters}
+          />
+        </aside>
+
+        <div>
+          <CatalogSortBar basePath={basePath} state={state} total={total} />
+          <ActiveFilterChips
+            basePath={basePath}
+            state={state}
+            specFilterOptions={specFilterOptions}
+            attributeFilterGroups={attributeFilterGroups}
+            attributeRangeGroups={attributeRangeGroups}
+          />
+
+          {error ? (
+            <div
+              className="glass"
+              style={{ padding: 16, marginBottom: 16, color: "var(--text-2)", borderRadius: 16 }}
+            >
+              {error}
+            </div>
+          ) : null}
+
+          {products.length > 0 ? (
+            <div className="product-grid">
+              {products.map((product) => (
+                <GlassProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="glass" style={{ padding: 32, textAlign: "center", borderRadius: 18 }}>
+              <p style={{ fontWeight: 700, fontSize: 18 }}>Товары не найдены</p>
+              <p style={{ marginTop: 8, color: "var(--text-mute)" }}>
+                Попробуйте изменить поиск, выбрать другой бренд или открыть весь каталог.
+              </p>
+            </div>
+          )}
+
+          {totalPages > 1 ? (
+            <div className="pager">
+              {page > 1 ? (
+                <Link href={pageHref(page - 1)} className="pager-link">
+                  ‹
                 </Link>
-              ) : (
-                <span className="truncate font-semibold text-zinc-950">{item.label}</span>
-              )}
-            </span>
-          ))}
-        </nav>
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-teal-700">Каталог</p>
-            <h1 className="mt-2 text-3xl font-black tracking-normal text-zinc-950">{title}</h1>
-            <p className="mt-2 text-sm text-zinc-500">Найдено товаров: {total}</p>
-          </div>
-        </div>
-
-        <CatalogTrustStrip />
-        <QuickCategoryRail categories={categories} currentCategorySlug={currentCategorySlug} />
-        <CatalogControls basePath={basePath} state={state} />
-        <ActiveFilterChips
-          basePath={basePath}
-          state={state}
-          specFilterOptions={specFilterOptions}
-          attributeFilterGroups={attributeFilterGroups}
-          attributeRangeGroups={attributeRangeGroups}
-        />
-
-        <div className="sticky top-16 z-30 mb-6 grid gap-2 bg-stone-50/95 py-2 backdrop-blur lg:hidden">
-          <details className="rounded-lg border border-zinc-200 bg-white shadow-sm">
-            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold uppercase tracking-wide text-zinc-700 [&::-webkit-details-marker]:hidden">
-              <span className="inline-flex items-center gap-2">
-                <SlidersHorizontal className="size-4" aria-hidden />
-                Фильтры
-                {activeFilterCount ? (
-                  <span className="inline-flex min-w-6 justify-center rounded-full bg-teal-700 px-2 py-0.5 text-xs font-bold text-white">
-                    {activeFilterCount}
-                  </span>
-                ) : null}
+              ) : null}
+              <span className="on">{page}</span>
+              <span style={{ color: "var(--text-mute)" }}>
+                из {totalPages}
               </span>
-              <ChevronDown className="size-4 shrink-0 text-zinc-400" aria-hidden />
-            </summary>
-            <div className="grid gap-5 border-t border-zinc-100 p-4">
-              <SearchPanel basePath={basePath} currentQuery={currentQuery} framed={false} />
-              <FiltersPanel
-                basePath={basePath}
-                brands={brands}
-                currentBrands={currentBrands}
-                currentQuery={currentQuery}
-                onlyAvailable={onlyAvailable}
-                withPhoto={withPhoto}
-                minPrice={minPrice}
-                maxPrice={maxPrice}
-                sort={sort}
-                specFilterOptions={specFilterOptions}
-                currentSpecFilters={currentSpecFilters}
-                attributeFilterGroups={attributeFilterGroups}
-                currentAttributeFilters={currentAttributeFilters}
-                attributeRangeGroups={attributeRangeGroups}
-                currentAttributeRangeFilters={currentAttributeRangeFilters}
-                framed={false}
-              />
+              {page < totalPages ? (
+                <Link href={pageHref(page + 1)} className="pager-link">
+                  ›
+                </Link>
+              ) : null}
             </div>
-          </details>
-          <details className="rounded-lg border border-zinc-200 bg-white shadow-sm">
-            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 text-sm font-bold uppercase tracking-wide text-zinc-700 [&::-webkit-details-marker]:hidden">
-              <span className="inline-flex items-center gap-2">
-                Категории
-                {currentCategorySlug ? <span className="size-2 rounded-full bg-teal-600" aria-hidden /> : null}
-              </span>
-              <ChevronDown className="size-4 shrink-0 text-zinc-400" aria-hidden />
-            </summary>
-            <div className="border-t border-zinc-100 p-4">
-              <CategoriesPanel categories={categories} currentCategorySlug={currentCategorySlug} framed={false} />
-            </div>
-          </details>
+          ) : null}
         </div>
-
-        {error ? (
-          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{error}</div>
-        ) : null}
-
-        <CatalogGrid products={products} />
-
-        {totalPages > 1 ? (
-          <div className="mt-8 flex items-center justify-center gap-2">
-            {page > 1 ? (
-              <Link href={pageHref(page - 1)} className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-zinc-50">
-                Назад
-              </Link>
-            ) : null}
-            <span className="text-sm text-zinc-500">
-              {page} / {totalPages}
-            </span>
-            {page < totalPages ? (
-              <Link href={pageHref(page + 1)} className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold hover:bg-zinc-50">
-                Дальше
-              </Link>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
-
-      <aside className="hidden lg:order-1 lg:block">
-        <div className="sticky top-24 space-y-6">
-        <SearchPanel basePath={basePath} currentQuery={currentQuery} />
-        <CategoriesPanel categories={categories} currentCategorySlug={currentCategorySlug} />
-        <FiltersPanel
-          basePath={basePath}
-          brands={brands}
-          currentBrands={currentBrands}
-          currentQuery={currentQuery}
-          onlyAvailable={onlyAvailable}
-          withPhoto={withPhoto}
-          minPrice={minPrice}
-          maxPrice={maxPrice}
-          sort={sort}
-          specFilterOptions={specFilterOptions}
-          currentSpecFilters={currentSpecFilters}
-          attributeFilterGroups={attributeFilterGroups}
-          currentAttributeFilters={currentAttributeFilters}
-          attributeRangeGroups={attributeRangeGroups}
-          currentAttributeRangeFilters={currentAttributeRangeFilters}
-        />
-        </div>
-      </aside>
-    </div>
+      </div>
+    </>
   );
 }
