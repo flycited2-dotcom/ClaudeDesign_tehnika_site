@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <!--
+    ============================================================
+    ГЛАВНАЯ СТРАНИЦА CLIMAT SIMF / МАГАЗИН БЫТОВОЙ ТЕХНИКИ
+    Стиль: Glassmorphism 2.0
+    Формат: один самодостаточный HTML-файл
+    Что внутри:
+      1. HTML-структура всей главной страницы
+      2. CSS-стили без внешних библиотек
+      3. Адаптивность под ПК / планшет / телефон
+      4. Подробные комментарии для разработчика
+    Как использовать:
+      - Сохранить файл как index.html
+      - Открыть в браузере
+      - Передать разработчику как визуально-структурный прототип
+    ============================================================
+  -->
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Climat Simf — техника для дома</title>
+
+  <style>
+    /*
+      ============================================================
+      1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДИЗАЙНА
+      ============================================================
+      Здесь собраны основные цвета, радиусы, тени и параметры.
+      Разработчику удобно менять стиль сайта из одного места.
+    */
+    :root {
+      --bg-main: #eef4ff;
+
+      --text-main: #10204a;
+      --text-muted: #5c6a8c;
+
+      --accent-blue: #4f7dff;
+      --accent-blue-dark: #2457e8;
+      --accent-violet: #8068ff;
+      --accent-peach: #ffd5c2;
+
+      --glass-bg: rgba(255, 255, 255, 0.32);
+      --glass-bg-strong: rgba(255, 255, 255, 0.48);
+      --glass-border: rgba(255, 255, 255, 0.62);
+
+      --shadow-soft: 0 24px 70px rgba(69, 91, 150, 0.18);
+      --shadow-blue: 0 18px 40px rgba(79, 125, 255, 0.32);
+
+      --radius-xl: 34px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+    }
+
+    /*
+      ============================================================
+      2. БАЗОВЫЙ RESET
+      ============================================================
+    */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      color: var(--text-main);
+
+      /*
+        Главный фон страницы:
+        - мягкий голубой свет слева
+        - теплый персиковый свет справа
+        - фиолетовое пятно внизу
+        Такой фон хорошо просвечивает через стеклянные блоки.
+      */
+      background:
+        radial-gradient(circle at 12% 18%, rgba(132, 174, 255, 0.50), transparent 34%),
+        radial-gradient(circle at 88% 12%, rgba(255, 196, 171, 0.72), transparent 36%),
+        radial-gradient(circle at 72% 68%, rgba(129, 106, 255, 0.30), transparent 32%),
+        linear-gradient(135deg, #edf4ff 0%, #f7f7ff 43%, #ffe7dc 100%);
+
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: 0;
+    }
+
+    /*
+      ============================================================
+      3. ОСНОВНОЙ КОНТЕЙНЕР
+      ============================================================
+      page ограничивает ширину макета, чтобы сайт не растягивался
+      слишком широко на больших мониторах.
+    */
+    .page {
+      width: min(1520px, calc(100% - 36px));
+      margin: 24px auto 36px;
+    }
+
+    /*
+      ============================================================
+      4. УНИВЕРСАЛЬНЫЙ GLASSMORPHISM-КЛАСС
+      ============================================================
+      Его можно добавлять почти к любому блоку:
+      header, hero, карточки, баннеры, footer.
+    */
+    .glass {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    /*
+      ============================================================
+      5. HEADER / ВЕРХНЕЕ МЕНЮ
+      ============================================================
+      Состав:
+      - логотип
+      - кнопка каталога
+      - навигация
+      - иконки поиска / избранного / корзины
+      - телефон
+    */
+    .header {
+      position: sticky;
+      top: 18px;
+      z-index: 50;
+
+      display: grid;
+      grid-template-columns: auto auto 1fr auto auto;
+      align-items: center;
+      gap: 26px;
+
+      min-height: 92px;
+      padding: 18px 28px;
+      border-radius: 24px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 0.92;
+      text-transform: uppercase;
+    }
+
+    .logo-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+
+      border-radius: 50%;
+      border: 3px solid rgba(38, 78, 174, 0.72);
+      color: var(--accent-blue-dark);
+      box-shadow: inset 0 0 18px rgba(79, 125, 255, 0.28);
+    }
+
+    .catalog-btn,
+    .primary-btn,
+    .secondary-btn,
+    .small-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+
+      border-radius: 16px;
+      color: #fff;
+      background: linear-gradient(135deg, #75a2ff 0%, #426dff 55%, #8c75ff 100%);
+      box-shadow:
+        inset 0 2px 10px rgba(255,255,255,0.58),
+        0 14px 32px rgba(75, 116, 255, 0.42);
+
+      transition: transform .25s ease, box-shadow .25s ease, opacity .25s ease;
+    }
+
+    .catalog-btn {
+      min-width: 210px;
+      height: 58px;
+      font-weight: 700;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: center;
+      gap: 42px;
+
+      color: #26385f;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .nav a {
+      opacity: .78;
+      transition: opacity .2s ease;
+    }
+
+    .nav a:hover {
+      opacity: 1;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .icon-btn {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+
+      border-radius: 16px;
+      background: rgba(255,255,255,0.36);
+      border: 1px solid rgba(255,255,255,0.72);
+      color: #172653;
+      box-shadow: inset 0 1px 8px rgba(255,255,255,.55);
+      position: relative;
+    }
+
+    .cart-dot {
+      position: absolute;
+      right: 10px;
+      top: 9px;
+
+      width: 10px;
+      height: 10px;
+      background: #4f7dff;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+
+    .phone {
+      padding-left: 26px;
+      border-left: 1px solid rgba(255,255,255,0.72);
+
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .phone span {
+      display: block;
+      margin-top: 4px;
+
+      color: var(--accent-blue-dark);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    /*
+      ============================================================
+      6. HERO / ГЛАВНЫЙ БАННЕР
+      ============================================================
+      Состав:
+      - крупный заголовок
+      - подзаголовок
+      - кнопка "В каталог"
+      - ссылка на видео
+      - визуал техники
+      - плавающие стеклянные преимущества
+    */
+    .hero {
+      position: relative;
+      min-height: 640px;
+      margin-top: 18px;
+
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      padding: 76px 80px;
+
+      display: grid;
+      grid-template-columns: 0.95fr 1.3fr;
+      align-items: center;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+
+      /*
+        ВАЖНО:
+        Фоновое фото взято как временная демонстрация.
+        На боевом сайте лучше заменить на собственный баннер
+        или картинку из CDN / uploads.
+      */
+      background:
+        linear-gradient(90deg, rgba(236, 244, 255, 0.95) 0%, rgba(239, 246, 255, 0.72) 39%, rgba(255, 218, 198, 0.44) 100%),
+        url("https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1800&q=85") center / cover;
+
+      z-index: -2;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 72% 48%, rgba(255,255,255,0.04), transparent 25%);
+      z-index: -1;
+    }
+
+    .hero-content {
+      max-width: 560px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-title {
+      font-size: clamp(44px, 5vw, 76px);
+      line-height: 0.98;
+      letter-spacing: -0.06em;
+      font-weight: 900;
+      margin-bottom: 30px;
+    }
+
+    .hero-title span {
+      background: linear-gradient(135deg, #286bff, #8d75ff 66%, #b594ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-subtitle {
+      max-width: 360px;
+      color: #24365e;
+      font-size: 25px;
+      line-height: 1.32;
+      margin-bottom: 42px;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .primary-btn {
+      min-width: 240px;
+      height: 72px;
+      font-size: 19px;
+      font-weight: 800;
+    }
+
+    .video-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+
+      font-weight: 800;
+      color: #314064;
+    }
+
+    .play {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+
+      border-radius: 50%;
+      background: rgba(255,255,255,.42);
+      border: 1px solid rgba(255,255,255,.8);
+      box-shadow: inset 0 1px 10px rgba(255,255,255,.75);
+    }
+
+    .hero-product {
+      position: relative;
+      min-height: 520px;
+    }
+
+    /*
+      Визуал техники.
+      Сейчас это демонстрационный слой из двух фоновых изображений.
+      В реальной верстке разработчик может заменить его на:
+      <img src="/images/hero-fridge.png">
+      <img src="/images/hero-coffee-machine.png">
+    */
+    .appliances {
+      position: absolute;
+      right: 20px;
+      bottom: -24px;
+
+      width: min(760px, 100%);
+      height: 560px;
+
+      background:
+        url("https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=650&q=85") right bottom / 320px auto no-repeat,
+        url("https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?auto=format&fit=crop&w=760&q=85") left bottom / 520px auto no-repeat;
+
+      filter: drop-shadow(0 34px 48px rgba(25, 41, 75, 0.28));
+      border-radius: 32px;
+    }
+
+    .feature-float {
+      position: absolute;
+      z-index: 4;
+
+      min-width: 190px;
+      min-height: 98px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+
+      padding: 22px 24px;
+      border-radius: 22px;
+
+      font-weight: 800;
+      color: #30405f;
+    }
+
+    .feature-float svg,
+    .benefit-icon svg {
+      flex: 0 0 auto;
+    }
+
+    .float-quality { top: 34px; left: 0; }
+    .float-warranty { top: 112px; right: 64px; }
+    .float-delivery { bottom: 90px; left: -62px; }
+    .float-installment { bottom: 44px; right: -6px; }
+
+    .float-installment strong {
+      font-size: 36px;
+      line-height: 1;
+    }
+
+    /*
+      ============================================================
+      7. СЕТКА КАТЕГОРИЙ
+      ============================================================
+      6 карточек:
+      - крупная бытовая техника
+      - мелкая бытовая техника
+      - электроника и гаджеты
+      - умный дом
+      - дом и сад
+      - климатическая техника
+    */
+    .section-grid {
+      margin-top: 30px;
+
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 18px;
+    }
+
+    .category-card {
+      min-height: 318px;
+      padding: 28px;
+      border-radius: var(--radius-lg);
+
+      position: relative;
+      overflow: hidden;
+
+      transition: transform .25s ease, background .25s ease, box-shadow .25s ease;
+    }
+
+    .category-card:hover {
+      transform: translateY(-8px) scale(1.015);
+      background: rgba(255,255,255,.54);
+      box-shadow: 0 30px 72px rgba(79, 125, 255, 0.22);
+    }
+
+    .category-card h3 {
+      font-size: 21px;
+      line-height: 1.22;
+      max-width: 170px;
+      letter-spacing: -0.03em;
+
+      position: relative;
+      z-index: 2;
+    }
+
+    /*
+      Временные emoji-иконки.
+      В боевой версии заменить на PNG/WebP изображения товаров без фона.
+    */
+    .category-img {
+      position: absolute;
+      right: 12px;
+      bottom: 24px;
+
+      width: 70%;
+      height: 145px;
+
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(255,255,255,.48), rgba(255,255,255,.08));
+
+      display: grid;
+      place-items: center;
+
+      font-size: 78px;
+      filter: drop-shadow(0 18px 22px rgba(25, 41, 75, 0.16));
+    }
+
+    .circle-arrow {
+      position: absolute;
+      left: 28px;
+      bottom: 28px;
+
+      width: 54px;
+      height: 54px;
+      display: grid;
+      place-items: center;
+
+      border-radius: 50%;
+      background: rgba(255,255,255,.52);
+      border: 1px solid rgba(255,255,255,.82);
+      font-size: 28px;
+      box-shadow: inset 0 1px 10px rgba(255,255,255,.72);
+    }
+
+    /*
+      ============================================================
+      8. ПРОМО-БЛОКИ
+      ============================================================
+      Слева: выбор недели.
+      Справа: умный дом.
+    */
+    .promo-grid {
+      margin-top: 30px;
+
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .weekly,
+    .smart-home {
+      min-height: 420px;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      position: relative;
+      padding: 42px;
+    }
+
+    .weekly {
+      color: #fff;
+      background:
+        radial-gradient(circle at 70% 35%, rgba(255,255,255,.38), transparent 20%),
+        linear-gradient(135deg, #89a8ff 0%, #a998ff 50%, #ffd0be 100%);
+    }
+
+    .weekly::before,
+    .weekly::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.42);
+      background: rgba(255,255,255,.14);
+      box-shadow: inset 0 0 28px rgba(255,255,255,.38);
+    }
+
+    .weekly::before {
+      width: 120px;
+      height: 120px;
+      right: 180px;
+      top: 34px;
+    }
+
+    .weekly::after {
+      width: 58px;
+      height: 58px;
+      right: 100px;
+      top: 54px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+
+      min-height: 38px;
+      padding: 0 18px;
+      border-radius: 13px;
+
+      background: rgba(255,255,255,.48);
+      color: #243763;
+      font-size: 14px;
+      font-weight: 900;
+      margin-bottom: 82px;
+
+      box-shadow: inset 0 1px 10px rgba(255,255,255,.6);
+    }
+
+    .weekly h2,
+    .smart-home h2 {
+      font-size: clamp(30px, 3vw, 44px);
+      line-height: 1.02;
+      letter-spacing: -0.05em;
+      margin-bottom: 18px;
+      max-width: 460px;
+    }
+
+    .weekly ul {
+      display: grid;
+      gap: 12px;
+      list-style: none;
+
+      margin: 24px 0 34px;
+
+      font-weight: 600;
+      opacity: .94;
+    }
+
+    .weekly-product {
+      position: absolute;
+      right: 52px;
+      bottom: 42px;
+
+      width: 300px;
+      height: 240px;
+      border-radius: 26px;
+
+      background:
+        linear-gradient(135deg, rgba(0,0,0,.22), rgba(255,255,255,.16)),
+        url("https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&w=700&q=85") center / cover;
+
+      box-shadow: 0 32px 60px rgba(55, 48, 123, 0.35);
+    }
+
+    .price {
+      display: flex;
+      align-items: baseline;
+      gap: 18px;
+
+      font-weight: 900;
+      font-size: 38px;
+      letter-spacing: -0.04em;
+      margin-bottom: 24px;
+    }
+
+    .price s {
+      font-size: 22px;
+      opacity: .54;
+      font-weight: 700;
+    }
+
+    .secondary-btn {
+      width: 170px;
+      height: 54px;
+
+      background: rgba(255,255,255,.24);
+      border: 1px solid rgba(255,255,255,.52);
+      box-shadow: inset 0 1px 10px rgba(255,255,255,.42);
+
+      font-weight: 800;
+    }
+
+    .smart-home {
+      color: #fff;
+      background:
+        radial-gradient(circle at 74% 34%, rgba(120, 154, 255, 0.45), transparent 20%),
+        linear-gradient(135deg, #4e87ff 0%, #2e45c6 48%, #5333a7 100%);
+    }
+
+    .smart-home p {
+      max-width: 360px;
+
+      font-size: 20px;
+      line-height: 1.42;
+      opacity: .92;
+      margin-bottom: 38px;
+    }
+
+    .phone-visual {
+      position: absolute;
+      right: 80px;
+      top: 54px;
+
+      width: 210px;
+      height: 350px;
+      border-radius: 34px;
+
+      transform: rotate(-13deg);
+
+      background: rgba(255,255,255,.22);
+      border: 8px solid rgba(255,255,255,.72);
+      box-shadow:
+        0 30px 60px rgba(11, 20, 70, 0.38),
+        inset 0 0 20px rgba(255,255,255,.28);
+
+      padding: 22px;
+    }
+
+    .phone-screen {
+      height: 100%;
+      border-radius: 24px;
+      padding: 20px;
+
+      background: rgba(49, 84, 190, .78);
+
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      align-content: start;
+    }
+
+    .app-tile {
+      height: 58px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.28);
+    }
+
+    .robot {
+      position: absolute;
+      right: 280px;
+      bottom: 62px;
+
+      width: 190px;
+      height: 72px;
+      border-radius: 50%;
+
+      background: linear-gradient(180deg, #23263d, #0b1028);
+      box-shadow:
+        0 24px 36px rgba(0,0,0,.28),
+        inset 0 4px 16px rgba(255,255,255,.18);
+    }
+
+    /*
+      ============================================================
+      9. ТРАСТ-БЛОК / ПРЕИМУЩЕСТВА
+      ============================================================
+      4 карточки:
+      - доставка
+      - гарантия
+      - сервис
+      - рассрочка
+    */
+    .benefits {
+      margin-top: 30px;
+
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .benefit-card {
+      min-height: 160px;
+      border-radius: var(--radius-lg);
+      padding: 28px;
+
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .benefit-icon {
+      width: 92px;
+      height: 92px;
+      border-radius: 28px;
+
+      display: grid;
+      place-items: center;
+
+      background: rgba(255,255,255,.28);
+      border: 1px solid rgba(255,255,255,.72);
+      box-shadow:
+        inset 0 1px 18px rgba(255,255,255,.62),
+        0 18px 30px rgba(79, 125, 255, .12);
+
+      color: #4f69aa;
+      font-size: 42px;
+    }
+
+    .benefit-card h3 {
+      font-size: 17px;
+      margin-bottom: 8px;
+    }
+
+    .benefit-card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    /*
+      ============================================================
+      10. ЧЕК-ЛИСТ ДЛЯ НОВОСЕЛА
+      ============================================================
+      Идея:
+      пользователь отмечает нужную технику,
+      сайт показывает итоговую сумму.
+      Здесь это статичный HTML-макет.
+      Разработчик может подключить JS / React-логику.
+    */
+    .checklist {
+      margin-top: 30px;
+      min-height: 280px;
+      border-radius: var(--radius-lg);
+      padding: 42px;
+
+      display: grid;
+      grid-template-columns: 220px 1fr 1fr 270px;
+      gap: 40px;
+      align-items: center;
+    }
+
+    .clipboard {
+      width: 180px;
+      height: 200px;
+      border-radius: 24px;
+
+      display: grid;
+      place-items: center;
+
+      color: #fff;
+      font-size: 86px;
+
+      background: rgba(255,255,255,.22);
+      border: 1px solid rgba(255,255,255,.72);
+      box-shadow: inset 0 0 30px rgba(255,255,255,.45);
+    }
+
+    .checklist h2 {
+      font-size: 36px;
+      letter-spacing: -0.04em;
+      margin-bottom: 18px;
+    }
+
+    .checklist p {
+      color: var(--text-muted);
+      font-size: 19px;
+      line-height: 1.42;
+      margin-bottom: 24px;
+    }
+
+    .small-btn {
+      min-width: 210px;
+      height: 56px;
+      font-weight: 800;
+    }
+
+    .check-items {
+      display: grid;
+      gap: 18px;
+    }
+
+    .check-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      align-items: center;
+      gap: 18px;
+
+      font-weight: 800;
+    }
+
+    .check-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+
+      display: grid;
+      place-items: center;
+
+      background: rgba(255,255,255,.62);
+      border: 1px solid rgba(255,255,255,.86);
+      color: #426dff;
+    }
+
+    .total-box {
+      min-height: 204px;
+      border-radius: 24px;
+      padding: 30px;
+
+      background: rgba(255, 255, 255, .30);
+      border: 1px solid rgba(255,255,255,.66);
+      box-shadow: inset 0 1px 18px rgba(255,255,255,.48);
+    }
+
+    .total-box p {
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+
+    .total-box strong {
+      display: block;
+      font-size: 38px;
+      letter-spacing: -0.04em;
+      margin-bottom: 22px;
+    }
+
+    /*
+      ============================================================
+      11. FOOTER / ПОДПИСКА
+      ============================================================
+    */
+    .footer-subscribe {
+      margin-top: 30px;
+      border-radius: var(--radius-lg);
+      min-height: 92px;
+      padding: 24px 40px;
+
+      display: grid;
+      grid-template-columns: 1fr minmax(360px, 520px) auto;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .subscribe-title {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+
+      font-weight: 800;
+      color: #23375e;
+    }
+
+    .email-form {
+      display: grid;
+      grid-template-columns: 1fr 170px;
+
+      border-radius: 16px;
+      overflow: hidden;
+
+      background: rgba(255,255,255,.56);
+      border: 1px solid rgba(255,255,255,.82);
+    }
+
+    .email-form input {
+      min-height: 56px;
+      border: 0;
+      outline: 0;
+      background: transparent;
+
+      padding: 0 24px;
+      font-size: 16px;
+      color: var(--text-main);
+    }
+
+    .email-form button {
+      color: #fff;
+      font-weight: 800;
+      background: linear-gradient(135deg, #75a2ff, #426dff);
+    }
+
+    .socials {
+      display: flex;
+      gap: 14px;
+    }
+
+    .social {
+      width: 44px;
+      height: 44px;
+      border-radius: 15px;
+
+      display: grid;
+      place-items: center;
+
+      background: rgba(255,255,255,.38);
+      border: 1px solid rgba(255,255,255,.74);
+
+      font-weight: 900;
+      color: #5c6a99;
+    }
+
+    /*
+      ============================================================
+      12. HOVER-ЭФФЕКТЫ
+      ============================================================
+    */
+    .catalog-btn:hover,
+    .primary-btn:hover,
+    .secondary-btn:hover,
+    .small-btn:hover {
+      transform: translateY(-3px);
+      box-shadow:
+        inset 0 2px 12px rgba(255,255,255,0.62),
+        0 20px 42px rgba(75, 116, 255, 0.46);
+    }
+
+    /*
+      ============================================================
+      13. АДАПТИВ: ПЛАНШЕТЫ
+      ============================================================
+    */
+    @media (max-width: 1200px) {
+      .header {
+        grid-template-columns: auto auto 1fr auto;
+      }
+
+      .phone {
+        display: none;
+      }
+
+      .nav {
+        gap: 22px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 56px;
+      }
+
+      .hero-product {
+        min-height: 430px;
+      }
+
+      .section-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .benefits {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .checklist {
+        grid-template-columns: 180px 1fr 1fr;
+      }
+
+      .total-box {
+        grid-column: 2 / 4;
+      }
+    }
+
+    /*
+      ============================================================
+      14. АДАПТИВ: МОБИЛЬНЫЕ
+      ============================================================
+    */
+    @media (max-width: 860px) {
+      .page {
+        width: min(100% - 24px, 720px);
+        margin-top: 12px;
+      }
+
+      .header {
+        position: relative;
+        top: 0;
+
+        grid-template-columns: 1fr auto;
+        gap: 16px;
+        padding: 18px;
+      }
+
+      .catalog-btn,
+      .nav {
+        display: none;
+      }
+
+      .header-actions {
+        justify-content: end;
+      }
+
+      .hero {
+        min-height: auto;
+        padding: 42px 24px;
+      }
+
+      .hero-subtitle {
+        font-size: 20px;
+      }
+
+      .primary-btn {
+        width: 100%;
+      }
+
+      .hero-product {
+        min-height: 360px;
+      }
+
+      .appliances {
+        right: -20px;
+        height: 360px;
+        background-size: 240px auto, 360px auto;
+      }
+
+      .feature-float {
+        min-width: 150px;
+        min-height: 76px;
+        padding: 16px;
+        font-size: 13px;
+      }
+
+      .float-quality { top: 20px; left: 6px; }
+      .float-warranty { top: 88px; right: 4px; }
+      .float-delivery { bottom: 40px; left: 4px; }
+      .float-installment { bottom: 10px; right: 0; }
+
+      .section-grid,
+      .promo-grid,
+      .benefits,
+      .checklist,
+      .footer-subscribe {
+        grid-template-columns: 1fr;
+      }
+
+      .category-card {
+        min-height: 250px;
+      }
+
+      .weekly,
+      .smart-home {
+        min-height: 500px;
+        padding: 30px;
+      }
+
+      .weekly-product {
+        right: 28px;
+        width: 250px;
+      }
+
+      .phone-visual {
+        right: 36px;
+        top: 210px;
+        width: 160px;
+        height: 270px;
+      }
+
+      .robot {
+        right: 170px;
+        bottom: 54px;
+        width: 150px;
+      }
+
+      .benefit-card {
+        grid-template-columns: 78px 1fr;
+      }
+
+      .benefit-icon {
+        width: 76px;
+        height: 76px;
+      }
+
+      .checklist {
+        padding: 28px;
+      }
+
+      .total-box {
+        grid-column: auto;
+      }
+
+      .footer-subscribe {
+        padding: 24px;
+      }
+
+      .email-form {
+        grid-template-columns: 1fr;
+      }
+
+      .email-form button {
+        min-height: 54px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!--
+    ============================================================
+    ОБЩАЯ СТРУКТУРА СТРАНИЦЫ
+    ============================================================
+    main.page
+      header.header
+      section.hero
+      section.section-grid
+      section.promo-grid
+      section.benefits
+      section.checklist
+      footer.footer-subscribe
+  -->
+
+  <main class="page">
+
+    <!-- ============================================================
+         HEADER: верхнее меню сайта
+         ============================================================ -->
+    <header class="header glass">
+
+      <!-- Логотип сайта -->
+      <a href="#" class="logo" aria-label="Climat Simf">
+        <span class="logo-mark">C</span>
+        <span>CLIMAT<br>SIMF</span>
+      </a>
+
+      <!-- Кнопка каталога -->
+      <a class="catalog-btn" href="#catalog">
+        Каталог товаров <span>⌄</span>
+      </a>
+
+      <!-- Основная навигация -->
+      <nav class="nav" aria-label="Главное меню">
+        <a href="#promo">Акции</a>
+        <a href="#delivery">Доставка и оплата</a>
+        <a href="#about">О компании</a>
+        <a href="#contacts">Контакты</a>
+      </nav>
+
+      <!-- Иконки действий -->
+      <div class="header-actions" aria-label="Действия">
+        <button class="icon-btn" aria-label="Поиск">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M11 19a8 8 0 1 1 5.292-14.002A8 8 0 0 1 11 19Zm10 2-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <button class="icon-btn" aria-label="Избранное">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+
+        <button class="icon-btn" aria-label="Корзина">
+          <span class="cart-dot"></span>
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none">
+            <path d="M6 6h15l-1.5 9h-12L6 6Zm0 0L5.2 3H2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="9" cy="20" r="1.5" fill="currentColor"/>
+            <circle cx="18" cy="20" r="1.5" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Телефон -->
+      <div class="phone">
+        +7 (978) 123-45-67
+        <span>Обратный звонок</span>
+      </div>
+    </header>
+
+    <!-- ============================================================
+         HERO: главный первый экран
+         ============================================================ -->
+    <section class="hero glass" aria-label="Главный баннер">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          Техника,<br>
+          которая<br>
+          <span>вдохновляет</span>
+        </h1>
+
+        <p class="hero-subtitle">
+          Современные решения для вашего дома
+        </p>
+
+        <div class="hero-actions">
+          <a class="primary-btn" href="#catalog">
+            В каталог <span>→</span>
+          </a>
+
+          <a class="video-link" href="#video">
+            <span class="play">▶</span>
+            Смотреть видео
+          </a>
+        </div>
+      </div>
+
+      <!-- Правая часть hero с техникой и стеклянными плашками -->
+      <div class="hero-product" aria-hidden="true">
+        <div class="appliances"></div>
+
+        <div class="feature-float float-quality glass">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+            <path d="M6 3h12l4 6-10 12L2 9l4-6Z" stroke="#5b78bd" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M2 9h20M8 3l-2 6 6 12 6-12-2-6" stroke="#5b78bd" stroke-width="1.5"/>
+          </svg>
+          <span>Премиальное<br>качество</span>
+        </div>
+
+        <div class="feature-float float-warranty glass">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" stroke="#fff" stroke-width="1.8"/>
+            <path d="m9 12 2 2 4-5" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Официальная<br>гарантия</span>
+        </div>
+
+        <div class="feature-float float-delivery glass">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="none">
+            <path d="M3 7h11v10H3V7Zm11 4h4l3 3v3h-7v-6Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/>
+            <circle cx="7" cy="19" r="2" stroke="#fff" stroke-width="1.8"/>
+            <circle cx="18" cy="19" r="2" stroke="#fff" stroke-width="1.8"/>
+          </svg>
+          <span>Быстрая<br>доставка</span>
+        </div>
+
+        <div class="feature-float float-installment glass">
+          <strong>0%</strong>
+          <span>Рассрочка<br>без переплат</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         CATALOG: плитка категорий
+         ============================================================ -->
+    <section id="catalog" class="section-grid" aria-label="Категории товаров">
+
+      <a class="category-card glass" href="#">
+        <h3>Крупная бытовая техника</h3>
+        <div class="category-img">🧺</div>
+        <span class="circle-arrow">→</span>
+      </a>
+
+      <a class="category-card glass" href="#">
+        <h3>Мелкая бытовая техника</h3>
+        <div class="category-img">🥤</div>
+        <span class="circle-arrow">→</span>
+      </a>
+
+      <a class="category-card glass" href="#">
+        <h3>Электроника и гаджеты</h3>
+        <div class="category-img">🎧</div>
+        <span class="circle-arrow">→</span>
+      </a>
+
+      <a class="category-card glass" href="#">
+        <h3>Умный дом</h3>
+        <div class="category-img">🔊</div>
+        <span class="circle-arrow">→</span>
+      </a>
+
+      <a class="category-card glass" href="#">
+        <h3>Дом и сад</h3>
+        <div class="category-img">🌿</div>
+        <span class="circle-arrow">→</span>
+      </a>
+
+      <a class="category-card glass" href="#">
+        <h3>Климатическая техника</h3>
+        <div class="category-img">❄️</div>
+        <span class="circle-arrow">→</span>
+      </a>
+    </section>
+
+    <!-- ============================================================
+         PROMO: рекламные баннеры
+         ============================================================ -->
+    <section id="promo" class="promo-grid" aria-label="Промо-блоки">
+
+      <!-- Баннер "Выбор недели" -->
+      <article class="weekly glass">
+        <span class="badge">Выбор недели</span>
+
+        <h2>Кофемашина Delonghi Dinamica Plus</h2>
+
+        <ul>
+          <li>◎ Идеальный эспрессо и капучино</li>
+          <li>◎ Сенсорное управление</li>
+          <li>◎ Автоматическая очистка</li>
+        </ul>
+
+        <div class="price">
+          79 990 ₽ <s>94 990 ₽</s>
+        </div>
+
+        <a class="secondary-btn" href="#">Подробнее</a>
+
+        <div class="weekly-product" aria-hidden="true"></div>
+      </article>
+
+      <!-- Баннер "Умный дом" -->
+      <article class="smart-home glass">
+        <h2>Умный дом<br>в одном касании</h2>
+
+        <p>
+          Управляйте техникой со смартфона из любой точки мира
+        </p>
+
+        <a class="secondary-btn" href="#">Подробнее</a>
+
+        <div class="phone-visual" aria-hidden="true">
+          <div class="phone-screen">
+            <div class="app-tile"></div>
+            <div class="app-tile"></div>
+            <div class="app-tile"></div>
+            <div class="app-tile"></div>
+            <div class="app-tile"></div>
+            <div class="app-tile"></div>
+          </div>
+        </div>
+
+        <div class="robot" aria-hidden="true"></div>
+      </article>
+    </section>
+
+    <!-- ============================================================
+         BENEFITS: блок доверия
+         ============================================================ -->
+    <section id="delivery" class="benefits" aria-label="Преимущества">
+
+      <article class="benefit-card glass">
+        <div class="benefit-icon">🚚</div>
+        <div>
+          <h3>Быстрая доставка</h3>
+          <p>Доставим ваш заказ в кратчайшие сроки</p>
+        </div>
+      </article>
+
+      <article class="benefit-card glass">
+        <div class="benefit-icon">🛡️</div>
+        <div>
+          <h3>Официальная гарантия</h3>
+          <p>Гарантия от производителя на всю технику</p>
+        </div>
+      </article>
+
+      <article class="benefit-card glass">
+        <div class="benefit-icon">⚙️</div>
+        <div>
+          <h3>Сервис и поддержка</h3>
+          <p>Профессиональная техническая поддержка</p>
+        </div>
+      </article>
+
+      <article class="benefit-card glass">
+        <div class="benefit-icon">💎</div>
+        <div>
+          <h3>Выгодная рассрочка</h3>
+          <p>Покупайте сейчас — платите потом</p>
+        </div>
+      </article>
+    </section>
+
+    <!-- ============================================================
+         CHECKLIST: чек-лист для новосела
+         ============================================================ -->
+    <section class="checklist glass" aria-label="Чек-лист для новосела">
+
+      <div class="clipboard" aria-hidden="true">☑</div>
+
+      <div>
+        <h2>Чек-лист для новосела</h2>
+        <p>
+          Отметьте нужные товары и узнайте общую стоимость
+        </p>
+        <a class="small-btn" href="#">Создать свой список</a>
+      </div>
+
+      <div class="check-items">
+        <div class="check-row">
+          <span class="check-icon">✓</span>
+          <span>Холодильник</span>
+          <strong>59 990 ₽</strong>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">✓</span>
+          <span>Стиральная машина</span>
+          <strong>39 990 ₽</strong>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">✓</span>
+          <span>Пылесос</span>
+          <strong>14 990 ₽</strong>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">✓</span>
+          <span>Микроволновая печь</span>
+          <strong>8 990 ₽</strong>
+        </div>
+      </div>
+
+      <aside class="total-box">
+        <p>Ваша сумма</p>
+        <strong>123 960 ₽</strong>
+        <a class="small-btn" href="#">Оформить заказ</a>
+      </aside>
+    </section>
+
+    <!-- ============================================================
+         FOOTER: подписка и соцсети
+         ============================================================ -->
+    <footer id="contacts" class="footer-subscribe glass">
+
+      <div class="subscribe-title">
+        <span class="icon-btn">✉</span>
+        <span>
+          Будьте в курсе новинок<br>
+          и эксклюзивных предложений
+        </span>
+      </div>
+
+      <form class="email-form">
+        <input type="email" placeholder="Ваш e-mail" aria-label="Ваш e-mail" />
+        <button type="submit">Подписаться</button>
+      </form>
+
+      <div class="socials" aria-label="Социальные сети">
+        <a class="social" href="#">VK</a>
+        <a class="social" href="#">TG</a>
+        <a class="social" href="#">◎</a>
+        <a class="social" href="#">▶</a>
+      </div>
+    </footer>
+
+  </main>
+</body>
+</html>

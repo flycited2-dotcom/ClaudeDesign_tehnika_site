@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "../styles/glass-template.css";
+
+@theme inline {
+  --font-sans: var(--font-inter), Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}

@@ -1,0 +1,152 @@
+export type CatalogAttributeValueType = "enum" | "number" | "boolean" | "text";
+export type CatalogAttributeControl = "checkbox" | "range" | "boolean";
+export type CatalogAttributeFamily =
+  | "universal"
+  | "computer"
+  | "tv"
+  | "climate"
+  | "garden"
+  | "electrical"
+  | "laundry"
+  | "refrigeration"
+  | "camera"
+  | "paper"
+  | "auto"
+  | "dishes"
+  | "furniture"
+  | "apparel"
+  | "appliance"
+  | "cleaning";
+
+export type CatalogAttributeDefinition = {
+  key: string;
+  label: string;
+  valueType: CatalogAttributeValueType;
+  control: CatalogAttributeControl;
+  unit?: string;
+  families?: CatalogAttributeFamily[];
+};
+
+export const catalogAttributeDefinitions = [
+  { key: "storage_type", label: "Тип накопителя", valueType: "enum", control: "checkbox", families: ["computer"] },
+  { key: "storage_capacity", label: "Объем накопителя", valueType: "number", control: "range", unit: "ГБ", families: ["computer"] },
+  { key: "ram", label: "Оперативная память", valueType: "number", control: "range", unit: "ГБ", families: ["computer"] },
+  { key: "screen_diagonal", label: "Диагональ", valueType: "number", control: "range", unit: "дюйм", families: ["tv", "computer"] },
+  { key: "resolution", label: "Разрешение", valueType: "enum", control: "checkbox", families: ["tv", "computer", "camera"] },
+  { key: "smart_tv", label: "Smart TV", valueType: "boolean", control: "checkbox", families: ["tv"] },
+  { key: "daily_capacity", label: "Производительность", valueType: "number", control: "range", unit: "л/сутки", families: ["climate"] },
+  { key: "tank_volume", label: "Объем бака", valueType: "number", control: "range", unit: "л", families: ["climate"] },
+  { key: "load_capacity", label: "Загрузка", valueType: "number", control: "range", unit: "кг", families: ["laundry"] },
+  { key: "drying_type", label: "Тип сушки", valueType: "enum", control: "checkbox", families: ["laundry"] },
+  { key: "installation_type", label: "Установка", valueType: "enum", control: "checkbox", families: ["laundry", "refrigeration"] },
+  { key: "inverter_motor", label: "Инверторный двигатель", valueType: "boolean", control: "checkbox", families: ["laundry", "refrigeration"] },
+  { key: "program_count", label: "Количество программ", valueType: "number", control: "range", unit: "программ", families: ["laundry"] },
+  { key: "spin_speed", label: "Скорость отжима", valueType: "number", control: "range", unit: "об/мин", families: ["laundry"] },
+  { key: "width_cm", label: "Ширина", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration"] },
+  { key: "height_cm", label: "Высота", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration"] },
+  { key: "depth_cm", label: "Глубина", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration"] },
+  { key: "energy_class", label: "Класс энергопотребления", valueType: "enum", control: "checkbox", families: ["laundry", "refrigeration"] },
+  { key: "fridge_no_frost", label: "No Frost", valueType: "boolean", control: "checkbox", families: ["refrigeration"] },
+  { key: "total_volume_l", label: "Общий объем", valueType: "number", control: "range", unit: "л", families: ["refrigeration"] },
+  { key: "freezer_volume_l", label: "Объем морозильной камеры", valueType: "number", control: "range", unit: "л", families: ["refrigeration"] },
+  { key: "freezer_position", label: "Расположение морозильника", valueType: "enum", control: "checkbox", families: ["refrigeration"] },
+  { key: "power_source", label: "Тип питания", valueType: "enum", control: "checkbox", families: ["garden"] },
+  { key: "vacuum_type", label: "Тип пылесоса", valueType: "enum", control: "checkbox", families: ["cleaning"] },
+  { key: "dust_collector", label: "Пылесборник", valueType: "enum", control: "checkbox", families: ["cleaning"] },
+  { key: "suction_power_w", label: "Мощность всасывания", valueType: "number", control: "range", unit: "Вт", families: ["cleaning"] },
+  { key: "cleaning_type", label: "Тип уборки", valueType: "enum", control: "checkbox", families: ["cleaning"] },
+  { key: "filter_type", label: "Фильтр", valueType: "enum", control: "checkbox", families: ["cleaning"] },
+  { key: "power_hp", label: "Мощность двигателя", valueType: "number", control: "range", unit: "л.с.", families: ["garden"] },
+  { key: "battery_voltage", label: "Напряжение аккумулятора", valueType: "number", control: "range", unit: "В", families: ["garden", "cleaning", "appliance"] },
+  { key: "battery_capacity", label: "Емкость аккумулятора", valueType: "number", control: "range", unit: "Ач", families: ["garden", "cleaning", "appliance"] },
+  { key: "electrical_product_type", label: "Тип электротовара", valueType: "enum", control: "checkbox", families: ["electrical"] },
+  { key: "cable_section", label: "Сечение кабеля", valueType: "number", control: "range", unit: "мм²", families: ["electrical"] },
+  { key: "cable_cores", label: "Количество жил", valueType: "number", control: "range", unit: "жил", families: ["electrical"] },
+  { key: "cable_length", label: "Длина", valueType: "number", control: "range", unit: "м", families: ["electrical"] },
+  { key: "voltage", label: "Напряжение", valueType: "number", control: "range", unit: "В", families: ["electrical", "garden", "climate", "appliance"] },
+  { key: "current_amp", label: "Ток", valueType: "number", control: "range", unit: "А", families: ["electrical"] },
+  { key: "power_w", label: "Мощность", valueType: "number", control: "range", unit: "Вт", families: ["electrical", "garden", "climate", "appliance", "cleaning"] },
+  { key: "ip_rating", label: "Степень защиты", valueType: "enum", control: "checkbox", families: ["electrical", "garden", "camera"] },
+  { key: "camera_lens_mm", label: "Фокусное расстояние", valueType: "number", control: "range", unit: "мм", families: ["camera"] },
+  { key: "paper_format", label: "Формат", valueType: "enum", control: "checkbox", families: ["paper"] },
+  { key: "paper_density", label: "Плотность", valueType: "number", control: "range", unit: "г/м²", families: ["paper"] },
+  { key: "paper_whiteness", label: "Белизна", valueType: "number", control: "range", unit: "%", families: ["paper"] },
+  { key: "sheet_count", label: "Количество листов", valueType: "number", control: "range", unit: "листов", families: ["paper"] },
+  { key: "tire_width", label: "Ширина шины", valueType: "number", control: "range", unit: "мм", families: ["auto"] },
+  { key: "tire_profile", label: "Профиль шины", valueType: "number", control: "range", unit: "%", families: ["auto"] },
+  { key: "rim_diameter", label: "Диаметр диска", valueType: "number", control: "range", unit: "R", families: ["auto"] },
+  { key: "tire_season", label: "Сезон", valueType: "enum", control: "checkbox", families: ["auto"] },
+  { key: "volume_l", label: "Объем", valueType: "number", control: "range", unit: "л", families: ["dishes", "climate", "refrigeration", "appliance", "cleaning"] },
+  { key: "diameter_cm", label: "Диаметр", valueType: "number", control: "range", unit: "см", families: ["dishes"] },
+  { key: "pieces_count", label: "Количество предметов", valueType: "number", control: "range", unit: "шт.", families: ["dishes"] },
+  { key: "material", label: "Материал", valueType: "enum", control: "checkbox", families: ["dishes", "furniture", "apparel"] },
+  { key: "size", label: "Размер", valueType: "enum", control: "checkbox", families: ["apparel"] },
+  { key: "color", label: "Цвет", valueType: "enum", control: "checkbox", families: ["universal"] },
+  { key: "processor_family", label: "Процессор", valueType: "enum", control: "checkbox", families: ["computer"] },
+  { key: "processor_model", label: "Модель процессора", valueType: "enum", control: "checkbox", families: ["computer"] },
+  { key: "gpu_family", label: "Видеокарта", valueType: "enum", control: "checkbox", families: ["computer"] },
+  { key: "interface", label: "Интерфейс", valueType: "enum", control: "checkbox", families: ["computer", "camera"] },
+] as const satisfies readonly CatalogAttributeDefinition[];
+
+export const catalogAttributeFacetKeys: string[] = catalogAttributeDefinitions.map((definition) => definition.key);
+
+export const catalogRangeAttributeKeys: string[] = catalogAttributeDefinitions
+  .filter((definition) => definition.control === "range")
+  .map((definition) => definition.key);
+
+const catalogAttributeDefinitionByKey = new Map<string, CatalogAttributeDefinition>(catalogAttributeDefinitions.map((definition) => [definition.key, definition]));
+
+export function getCatalogAttributeDefinition(key: string): CatalogAttributeDefinition | undefined {
+  return catalogAttributeDefinitionByKey.get(key);
+}
+
+function normalizeCategoryScope(value: string | null | undefined): string {
+  return (value ?? "").toLocaleLowerCase("ru-RU").replace(/ё/g, "е");
+}
+
+export function getCatalogAttributeFamilyForCategory({
+  categoryName,
+  categorySlug,
+}: {
+  categoryName?: string | null;
+  categorySlug?: string | null;
+}): CatalogAttributeFamily | null {
+  const text = `${normalizeCategoryScope(categoryName)} ${normalizeCategoryScope(categorySlug)}`;
+  if (!text.trim()) return null;
+
+  if (/сушильн|стиральн|sushil|stiral|washer|washing|dryer|laundry/.test(text)) return "laundry";
+  if (/холодильн|морозильн|holodil|morozil|refrigerator|fridge|freezer/.test(text)) return "refrigeration";
+  if (/телевиз|televiz/.test(text) || /(^|[^a-zа-я0-9])tv([^a-zа-я0-9]|$)/.test(text)) return "tv";
+  if (/компьютер|ноутбук|планшет|монитор|процессор|kompyut|noutbuk|planshet|laptop|computer|notebook|monitor/.test(text)) return "computer";
+  if (/пылесос|пылеудален|уборк|pylesos|pyleudal|ubork|vacuum|cleaning/.test(text)) return "cleaning";
+  if (/мелк.*техник|бытов.*техник|кухонн.*техник|melkaya.*tehnika|bytovaya.*tehnika|kuhonn.*tehnika|appliance/.test(text)) return "appliance";
+  if (/кабел|провод|электр|розетк|выключател|светильник|ламп|щит|kabel|provod|elektr|rozetk|vykl|svetil|cable|wire|electric/.test(text)) return "electrical";
+  if (/сад|огород|снегоубор|газон|мотоблок|триммер|культиватор|sad|ogorod|snegoub|gazon|motoblok|trimmer|kultivator|dacha|garden/.test(text)) return "garden";
+  if (/кондиционер|сплит|осушител|увлажнител|очистител|климат|kondits|split|osush|uvlazhn|ochist|climat|conditioner|humidifier|dehumidifier/.test(text)) return "climate";
+  if (/камер|фотоаппарат|объектив|kamer|fotoapparat|obektiv|camera|video/.test(text)) return "camera";
+  if (/бумаг|картон|канцеляр|bumag|karton|kantcel|paper|cardboard/.test(text)) return "paper";
+  if (/шин|покрыш|автошин|колес|диск|shin|pokrysh|avtoshin|koles|tire|tyre/.test(text)) return "auto";
+  if (/посуд|бокал|чашк|тарелк|кастрюл|сковород|стакан|posud|bokal|chashk|tarelk|kastryul|skovorod|stakan|dishes|glass/.test(text)) return "dishes";
+  if (/мебел|стол|стул|шкаф|диван|кровать|матрас|mebel|shkaf|divan|krovat|matras|furniture/.test(text)) return "furniture";
+  if (/одежд|обув|кроссов|ботин|куртк|плать|брюк|odezhd|obuv|krossov|botin|kurtk|plat|bryuk|apparel|shoe|sneaker/.test(text)) return "apparel";
+
+  return null;
+}
+
+export function getCatalogAttributeKeysForCategory({
+  categoryName,
+  categorySlug,
+}: {
+  categoryName?: string | null;
+  categorySlug?: string | null;
+}): string[] {
+  const family = getCatalogAttributeFamilyForCategory({ categoryName, categorySlug });
+  if (!family) return catalogAttributeFacetKeys;
+
+  return catalogAttributeDefinitions
+    .filter((definition) => {
+      const families: readonly CatalogAttributeFamily[] = definition.families ?? ["universal"];
+      return families.includes("universal") || families.includes(family);
+    })
+    .map((definition) => definition.key);
+}

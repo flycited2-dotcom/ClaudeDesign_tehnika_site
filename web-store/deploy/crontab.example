@@ -1,0 +1,12 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Nightly catalog sync. ITP limits: categories/products once per day.
+10 3 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:categories >> /var/log/climat-simf-sync.log 2>&1
+25 3 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:products >> /var/log/climat-simf-sync.log 2>&1
+
+# Prices/stocks can be refreshed several times a day, staying below 10 calls/hour.
+15 8,12,16,20 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:prices >> /var/log/climat-simf-sync.log 2>&1
+
+# Image metadata sync is intentionally separate and can be enabled after catalog validation.
+45 4 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:images >> /var/log/climat-simf-sync.log 2>&1

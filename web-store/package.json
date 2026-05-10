@@ -1,0 +1,45 @@
+{
+  "name": "web-store",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:deploy": "python -m unittest scripts.deploy_vps_test",
+    "deploy:vps": "python scripts/deploy_vps.py",
+    "prisma:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "sync:categories": "tsx scripts/sync-categories.ts",
+    "sync:products": "tsx scripts/sync-products.ts",
+    "sync:prices": "tsx scripts/sync-prices.ts",
+    "sync:images": "tsx scripts/sync-images.ts",
+    "sync:attributes": "tsx scripts/sync-product-attributes.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.14.0",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.5"
+  }
+}

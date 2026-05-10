@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"C:\\\\Users\\\\user\\\\Documents\\\\GitHub\\\\Codex\\\\Telegram_Sales_meneger\\\\web-store\\\\.git\" 2>&1 | head -3; ls \"C:\\\\Users\\\\user\\\\Documents\\\\GitHub\\\\Codex\\\\Telegram_Sales_meneger\\\\web-store\" -la 2>&1 | head -20)",
+      "PowerShell(robocopy $src $dst /E /XD node_modules .next /XF dev-server.out.log dev-server.err.log /NFL /NDL /NP /R:1 /W:1)",
+      "PowerShell($src = \"C:\\\\Users\\\\user\\\\Documents\\\\GitHub\\\\Codex\\\\Telegram_Sales_meneger\\\\web-store\")",
+      "PowerShell($dst = \"C:\\\\Users\\\\user\\\\Documents\\\\GitHub\\\\����_������_����_�த\\\\web-store\")",
+      "PowerShell($dt = \"C:\\\\Users\\\\user\\\\Documents\\\\GitHub\\\\Сайт_дизайн_клод_прод\\\\design-template\"; New-Item -ItemType Directory -Force -Path $dt | Out-Null; $zip = Join-Path $dt \"template.zip\"; Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/flycited2-dotcom/ClaudeDesign_tehnika_site/main/____1%20\\(4\\).zip\" -OutFile $zip; \\(Get-Item $zip\\).Length)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npx prisma *)",
+      "Bash(tee /tmp/dev.log)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
