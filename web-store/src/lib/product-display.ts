@@ -184,6 +184,25 @@ export function buildProductCardHighlights(product: ProductCardHighlightInput): 
   return highlights.slice(0, 3);
 }
 
+export function productShortTitle(
+  name: string | null | undefined,
+  vendor?: string | null,
+  part?: string | null,
+  maxLength = 80,
+): string {
+  const trimmed = name?.trim();
+  if (!trimmed) {
+    return [vendor, part].filter((value): value is string => Boolean(value)).join(" ").trim() || "Товар";
+  }
+  if (trimmed.length <= maxLength) return trimmed;
+
+  const naturalBreak = trimmed.slice(0, maxLength).search(/[.,;]\s/);
+  if (naturalBreak >= 30) {
+    return trimmed.slice(0, naturalBreak).trimEnd();
+  }
+  return trimmed.slice(0, maxLength - 1).trimEnd() + "…";
+}
+
 export function productDescriptionText(description: string | null | undefined, product?: ProductDescriptionInput): string {
   const trimmed = description?.trim();
   if (trimmed) return trimmed;

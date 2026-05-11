@@ -5,6 +5,11 @@ export type CatalogBreadcrumbItem = {
   href?: string;
 };
 
+export function truncateBreadcrumbLabel(label: string, max = 32): string {
+  if (label.length <= max) return label;
+  return label.slice(0, Math.max(1, max - 1)).trimEnd() + "…";
+}
+
 export function buildCatalogBreadcrumbItems(categoryPath: FlatCategory[], currentLabel?: string | null): CatalogBreadcrumbItem[] {
   return [
     { label: "Главная", href: "/" },

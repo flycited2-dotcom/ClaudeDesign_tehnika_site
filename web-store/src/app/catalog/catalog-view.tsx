@@ -10,7 +10,7 @@ import {
   type CatalogAttributeRangeFilter,
   type CatalogAttributeRangeGroup,
 } from "@/lib/catalog-attribute-filters";
-import { buildCatalogBreadcrumbItems } from "@/lib/catalog-breadcrumbs";
+import { buildCatalogBreadcrumbItems, truncateBreadcrumbLabel } from "@/lib/catalog-breadcrumbs";
 import type { CatalogBrandFilterOption } from "@/lib/catalog-brand-filters";
 import type { CategoryTreeItem, FlatCategory } from "@/lib/catalog-tree";
 import type { CatalogSort } from "@/lib/catalog-query";
@@ -642,16 +642,33 @@ export function CatalogView({
   return (
     <>
       <div className="bread">
-        {breadcrumbs.map((item, index) => (
-          <span key={`${item.href ?? item.label}-${index}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            {index > 0 ? <span>›</span> : null}
-            {item.href && index < breadcrumbs.length - 1 ? (
-              <Link href={item.href}>{item.label}</Link>
-            ) : (
-              <span>{item.label}</span>
-            )}
-          </span>
-        ))}
+        {breadcrumbs.map((item, index) => {
+          const isLast = index === breadcrumbs.length - 1;
+          const label = truncateBreadcrumbLabel(item.label, isLast ? 56 : 28);
+          return (
+            <span
+              key={`${item.href ?? item.label}-${index}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                maxWidth: isLast ? "min(420px, 50vw)" : "240px",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+              }}
+              title={item.label}
+            >
+              {index > 0 ? <span>›</span> : null}
+              {item.href && !isLast ? (
+                <Link href={item.href} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {label}
+                </Link>
+              ) : (
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+              )}
+            </span>
+          );
+        })}
       </div>
 
       <div className="section-head" style={{ margin: "6px 4px 18px" }}>

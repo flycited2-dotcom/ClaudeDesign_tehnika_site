@@ -8,10 +8,10 @@ import { ProductGallery } from "@/components/product-gallery";
 import { QuickOrderForm } from "@/components/quick-order-form";
 import { StockBadge } from "@/components/stock-badge";
 import { decimalToNumber, getCategoryPathById, getProductBySlug, getRelatedProducts } from "@/lib/catalog";
-import { buildCatalogBreadcrumbItems } from "@/lib/catalog-breadcrumbs";
+import { buildCatalogBreadcrumbItems, truncateBreadcrumbLabel } from "@/lib/catalog-breadcrumbs";
 import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
-import { buildProductFacts, productDescriptionText } from "@/lib/product-display";
+import { buildProductFacts, productDescriptionText, productShortTitle } from "@/lib/product-display";
 import { productImageSrc } from "@/lib/product-images";
 import { absoluteStorefrontUrl, buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo-jsonld";
 import { phoneHref, storefront } from "@/lib/storefront";
@@ -65,13 +65,14 @@ export default async function ProductPage({ params }: Props) {
     take: 4,
   });
   const name = product.name ?? product.supplierName;
+  const shortTitle = productShortTitle(name, product.vendor, product.part);
   const productPath = `/product/${product.slug}`;
   const productUrl = absoluteStorefrontUrl(productPath);
   const price = decimalToNumber(product.retailPrice);
   const fulfillment = publicFulfillmentText({ isAvailable: product.isAvailable && Boolean(price) });
   const categoryName = product.category?.name ?? null;
   const categoryPath = await getCategoryPathById(product.categoryId);
-  const breadcrumbs = buildCatalogBreadcrumbItems(categoryPath, name);
+  const breadcrumbs = buildCatalogBreadcrumbItems(categoryPath, shortTitle);
   const parentCategory = categoryPath.at(-1);
   const backHref = parentCategory ? `/catalog/${parentCategory.slug}` : "/catalog";
   const galleryImages = product.images.flatMap((image) => {
@@ -129,16 +130,40 @@ export default async function ProductPage({ params }: Props) {
           <ArrowLeft size={14} aria-hidden />
           {parentCategory ? parentCategory.name : "Каталог"}
         </Link>
-        {breadcrumbs.map((item, index) => (
-          <span key={`${item.href ?? item.label}-${index}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            {index > 0 ? <span>›</span> : null}
-            {item.href && index < breadcrumbs.length - 1 ? (
-              <Link href={item.href}>{item.label}</Link>
-            ) : (
-              <span>{item.label}</span>
-            )}
-          </span>
-        ))}
+        {breadcrumbs.map((item, index) => {
+          const label = truncateBreadcrumbLabel(item.label, index === breadcrumbs.length - 1 ? 56 : 28);
+          return (
+            <span
+              key={`${item.href ?? item.label}-${index}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                maxWidth: index === breadcrumbs.length - 1 ? "min(420px, 50vw)" : "240px",
+                overflow: "hidden",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {index > 0 ? <span>›</span> : null}
+              {item.href && index < breadcrumbs.length - 1 ? (
+                <Link
+                  href={item.href}
+                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  title={item.label}
+                >
+                  {label}
+                </Link>
+              ) : (
+                <span
+                  style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                  title={item.label}
+                >
+                  {label}
+                </span>
+              )}
+            </span>
+          );
+        })}
       </div>
 
       <div className="p-product-layout">
@@ -184,17 +209,30 @@ export default async function ProductPage({ params }: Props) {
           <h1
             style={{
               marginTop: 8,
-              fontSize: 30,
-              fontWeight: 900,
-              lineHeight: 1.2,
+              fontSize: 24,
+              fontWeight: 800,
+              lineHeight: 1.3,
               letterSpacing: "-0.01em",
               color: "var(--text)",
             }}
           >
-            {name}
+            {shortTitle}
           </h1>
-          <p style={{ marginTop: 14, lineHeight: 1.6, color: "var(--text-2)" }}>{description}</p>
+          {shortTitle !== name && (
+            <p
+              style={{
+                marginTop: 8,
+                fontSize: 14,
+                color: "var(--text-mute)",
+                lineHeight: 1.5,
+              }}
+              title={name}
+            >
+              {name}
+            </p>
+          )}
           <div style={{ marginTop: 16, fontSize: 13, color: "var(--text-mute)" }}>SKU {product.sku}</div>
+          <p style={{ marginTop: 16, fontSize: 14, lineHeight: 1.6, color: "var(--text-2)" }}>{description}</p>
         </section>
 
         <aside
@@ -288,20 +326,23 @@ export default async function ProductPage({ params }: Props) {
       </div>
 
       <section style={{ marginTop: 24 }} className="p-product-bottom">
-        <div className="glass" style={{ padding: 24, borderRadius: 24 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)" }}>О товаре</h2>
-          <p style={{ marginTop: 12, lineHeight: 1.7, color: "var(--text-2)" }}>{description}</p>
-        </div>
-        <div className="glass" style={{ padding: 24, borderRadius: 24 }}>
+        <div className="glass" style={{ padding: 24, borderRadius: 24, gridColumn: "1 / -1" }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)" }}>Характеристики</h2>
-          <dl style={{ marginTop: 14 }}>
+          <dl
+            style={{
+              marginTop: 14,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+              columnGap: 32,
+            }}
+          >
             {facts.map((fact, index) => (
               <div
                 key={fact.label}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(140px, 200px) minmax(0, 1fr)",
-                  gap: 16,
+                  gridTemplateColumns: "minmax(120px, 180px) minmax(0, 1fr)",
+                  gap: 12,
                   padding: "10px 0",
                   borderTop: index === 0 ? "none" : "1px solid rgba(255,255,255,0.5)",
                   fontSize: 14,
@@ -404,7 +445,7 @@ export default async function ProductPage({ params }: Props) {
       <div className="mob-buy-bar">
         <div className="row">
           <div style={{ minWidth: 0, flex: 1 }}>
-            <p className="name">{name}</p>
+            <p className="name">{shortTitle}</p>
             <p className="price">{price ? formatRub(price) : "Цена уточняется"}</p>
           </div>
           <AddToCartButton
