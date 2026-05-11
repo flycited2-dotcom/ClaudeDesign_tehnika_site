@@ -109,44 +109,42 @@ function CategoryBranch({
   );
 }
 
-function SearchPanel({ basePath, currentQuery }: { basePath: string; currentQuery?: string }) {
+function SearchSection({ basePath, currentQuery }: { basePath: string; currentQuery?: string }) {
   return (
-    <form action={basePath} className="filters" style={{ marginBottom: 16 }}>
+    <form action={basePath} className="f-section" style={{ paddingTop: 0, borderTop: 0 }}>
       <h4>Поиск</h4>
-      <div className="f-section" style={{ paddingTop: 0, borderTop: 0 }}>
-        <div
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: "rgba(255,255,255,0.56)",
+          border: "1px solid var(--glass-stroke)",
+          borderRadius: 14,
+          height: 44,
+          padding: "0 14px",
+        }}
+      >
+        <Search size={16} aria-hidden style={{ opacity: 0.6 }} />
+        <input
+          name="q"
+          defaultValue={currentQuery}
+          placeholder="Название, SKU, бренд"
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "rgba(255,255,255,0.56)",
-            border: "1px solid var(--glass-stroke)",
-            borderRadius: 14,
-            height: 44,
-            padding: "0 14px",
+            flex: 1,
+            minWidth: 0,
+            border: 0,
+            background: "transparent",
+            outline: "none",
+            fontSize: 14,
           }}
-        >
-          <Search size={16} aria-hidden style={{ opacity: 0.6 }} />
-          <input
-            name="q"
-            defaultValue={currentQuery}
-            placeholder="Название, SKU, бренд"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              border: 0,
-              background: "transparent",
-              outline: "none",
-              fontSize: 14,
-            }}
-          />
-        </div>
+        />
       </div>
     </form>
   );
 }
 
-function CategoriesPanel({
+function CategoriesSection({
   categories,
   currentCategorySlug,
 }: {
@@ -155,12 +153,9 @@ function CategoriesPanel({
 }) {
   const totalCount = categories.reduce((sum, category) => sum + category.productCount, 0);
   return (
-    <div className="filters" style={{ marginBottom: 16 }}>
+    <div className="f-section">
       <h4>Категории</h4>
-      <div
-        className="f-section"
-        style={{ paddingTop: 0, borderTop: 0, maxHeight: "60vh", overflow: "auto" }}
-      >
+      <div style={{ maxHeight: "40vh", overflow: "auto" }}>
         <Link
           href="/catalog"
           aria-current={!currentCategorySlug ? "page" : undefined}
@@ -234,8 +229,15 @@ function FiltersPanel({
   }, []);
 
   return (
-    <form action={basePath} className="filters">
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+    <form action={basePath}>
+      <div
+        className="f-section"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <h4 style={{ margin: 0 }}>Фильтры</h4>
         {hasFilters ? (
           <Link href={basePath} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-2)" }}>
@@ -660,9 +662,12 @@ export function CatalogView({
       </div>
 
       <div className="cat-layout">
-        <aside>
-          <SearchPanel basePath={basePath} currentQuery={currentQuery} />
-          <CategoriesPanel categories={categories} currentCategorySlug={currentCategorySlug} />
+        <aside
+          className="filters"
+          style={{ maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}
+        >
+          <SearchSection basePath={basePath} currentQuery={currentQuery} />
+          <CategoriesSection categories={categories} currentCategorySlug={currentCategorySlug} />
           <FiltersPanel
             basePath={basePath}
             brands={brands}

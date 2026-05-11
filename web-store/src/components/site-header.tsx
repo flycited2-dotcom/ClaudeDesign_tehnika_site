@@ -30,6 +30,13 @@ type Suggestion = {
   image: string | null;
 };
 
+type MenuCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  productCount: number;
+};
+
 const POPULAR = ["холодильник", "стиральная машина", "Bosch", "до 50 000 ₽", "встраиваемая"];
 
 export function SiteHeader() {
@@ -37,10 +44,45 @@ export function SiteHeader() {
   const [role, setRole] = useState<Role>("b2c");
   const [mobOpen, setMobOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuCategories, setMenuCategories] = useState<MenuCategory[] | null>(null);
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const cartCount = useCart().reduce((sum, item) => sum + item.quantity, 0);
+
+  function openMenu() {
+    setMenuOpen((current) => !current);
+    if (!menuCategories) {
+      fetch("/api/catalog/categories")
+        .then((response) => (response.ok ? response.json() : { categories: [] }))
+        .then((data: { categories?: MenuCategory[] }) => {
+          setMenuCategories(data.categories ?? []);
+        })
+        .catch(() => {
+          setMenuCategories([]);
+        });
+    }
+  }
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -143,11 +185,92 @@ export function SiteHeader() {
           </div>
         </Link>
 
-        <Link href="/catalog" className="cat-btn">
-          <Package size={18} aria-hidden />
-          Каталог товаров
-          <ChevronDown size={16} aria-hidden />
-        </Link>
+        <div ref={menuRef} style={{ position: "relative" }}>
+          <button
+            type="button"
+            className="cat-btn"
+            onClick={openMenu}
+            aria-expanded={menuOpen}
+          >
+            <Package size={18} aria-hidden />
+            Каталог товаров
+            <ChevronDown size={16} aria-hidden style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+          </button>
+          {menuOpen && (
+            <div
+              role="dialog"
+              aria-label="Каталог по категориям"
+              style={{
+                position: "absolute",
+                left: 0,
+                top: "calc(100% + 14px)",
+                width: "min(880px, 90vw)",
+                maxHeight: "70vh",
+                overflowY: "auto",
+                zIndex: 60,
+                padding: 24,
+                borderRadius: 22,
+                background: "var(--glass-bg-3)",
+                backdropFilter: "blur(28px)",
+                WebkitBackdropFilter: "blur(28px)",
+                border: "1px solid var(--glass-stroke-2)",
+                boxShadow: "var(--shadow-soft)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 16,
+                }}
+              >
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>
+                  Каталог по категориям
+                </h3>
+                <Link
+                  href="/catalog"
+                  className="btn btn-soft btn-sm"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Все товары
+                </Link>
+              </div>
+              {menuCategories === null ? (
+                <p style={{ color: "var(--text-mute)" }}>Загружаем категории…</p>
+              ) : menuCategories.length === 0 ? (
+                <p style={{ color: "var(--text-mute)" }}>Категории недоступны. Откройте каталог.</p>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gap: 10,
+                  }}
+                >
+                  {menuCategories.map((category) => (
+                    <Link
+                      key={category.id}
+                      href={`/catalog/${category.slug}`}
+                      className="f-row"
+                      onClick={() => setMenuOpen(false)}
+                      style={{
+                        margin: 0,
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        background: "rgba(255,255,255,0.45)",
+                        border: "1px solid var(--glass-stroke)",
+                      }}
+                    >
+                      <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>{category.name}</span>
+                      <span className="cnt">{category.productCount.toLocaleString("ru-RU")}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         <div className="hdr-search-wrap" ref={searchRef}>
           <form action="/search" onSubmit={handleSubmit}>

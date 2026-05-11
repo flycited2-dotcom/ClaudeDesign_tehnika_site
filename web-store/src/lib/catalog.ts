@@ -182,7 +182,9 @@ export const getHomeSnapshot = unstable_cache(async () => {
 }, ["home-snapshot"], { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] });
 
 const getCatalogBrands = unstable_cache(async (where: Prisma.ProductWhereInput) => {
-  return prisma.product.groupBy({
+  // Fetch up to 500 vendors then sort by count desc in JS so the brand
+  // filter shows the most-populated brands first instead of alphabetic.
+  const rows = await prisma.product.groupBy({
     by: ["vendor"],
     where,
     _count: {
@@ -191,8 +193,12 @@ const getCatalogBrands = unstable_cache(async (where: Prisma.ProductWhereInput) 
     orderBy: {
       vendor: "asc",
     },
-    take: 80,
+    take: 500,
   });
+  return rows
+    .filter((row) => (row._count?._all ?? 0) > 0 && row.vendor && row.vendor.trim())
+    .sort((a, b) => (b._count._all ?? 0) - (a._count._all ?? 0))
+    .slice(0, 120);
 }, ["catalog-brands"], { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] });
 
 function catalogProductOrderBy(sort: CatalogSort = "popular"): Prisma.ProductOrderByWithRelationInput[] {
