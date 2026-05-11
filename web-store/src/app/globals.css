@@ -144,6 +144,9 @@ body {
 }
 .p-card .p-card-actions {
   padding: 0 18px 18px;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
 }
 .p-card .p-card-buy {
   width: 100%;
@@ -153,6 +156,67 @@ body {
   opacity: 0.55;
   cursor: not-allowed;
 }
+.p-card .p-card-secondary {
+  display: flex;
+  gap: 8px;
+}
+.p-card .p-card-icon {
+  flex: 1;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--glass-stroke);
+  color: var(--text-mute);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.p-card .p-card-icon:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+}
+.p-card .p-card-icon.on {
+  color: #ff5757;
+  background: rgba(255, 87, 87, 0.10);
+  border-color: rgba(255, 87, 87, 0.35);
+}
+.p-card .p-card-icon.on[aria-label*="сравнения"] {
+  color: var(--accent-2);
+  background: rgba(79, 125, 255, 0.12);
+  border-color: rgba(79, 125, 255, 0.35);
+}
+.p-card .p-role-note {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.p-card .p-role-b2b {
+  background: rgba(79, 125, 255, 0.12);
+  color: var(--accent-2);
+}
+.p-card .p-role-gov {
+  background: rgba(128, 104, 255, 0.14);
+  color: #4f3ad6;
+}
+.p-card .p-card-toast {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 170, 90, 0.95);
+  color: #3a2200;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  pointer-events: none;
+}
+.p-card { position: relative; }
 .product-grid {
   align-items: stretch;
 }

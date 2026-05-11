@@ -19,10 +19,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CallbackButton } from "@/components/callback-button";
 import { formatRub } from "@/lib/format";
+import { useCompare, useFavorites } from "@/lib/sku-list-storage";
 import { storefront } from "@/lib/storefront";
 import { useCart } from "@/lib/use-cart";
-
-type Role = "b2c" | "b2b" | "gov";
+import { setStorefrontRole, useStorefrontRole } from "@/lib/use-role";
 
 type Suggestion = {
   id: string;
@@ -47,7 +47,9 @@ const POPULAR = ["холодильник", "стиральная машина", 
 
 export function SiteHeader() {
   const router = useRouter();
-  const [role, setRole] = useState<Role>("b2c");
+  const role = useStorefrontRole();
+  const favorites = useFavorites();
+  const compare = useCompare();
   const [mobOpen, setMobOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -184,13 +186,13 @@ export function SiteHeader() {
           <a href="#">Помощь</a>
           <span>Режим:</span>
           <div className="role-switch">
-            <button type="button" className={role === "b2c" ? "on" : ""} onClick={() => setRole("b2c")}>
+            <button type="button" className={role === "b2c" ? "on" : ""} onClick={() => setStorefrontRole("b2c")}>
               Розница
             </button>
-            <button type="button" className={role === "b2b" ? "on" : ""} onClick={() => setRole("b2b")}>
+            <button type="button" className={role === "b2b" ? "on" : ""} onClick={() => setStorefrontRole("b2b")}>
               Опт
             </button>
-            <button type="button" className={role === "gov" ? "on" : ""} onClick={() => setRole("gov")}>
+            <button type="button" className={role === "gov" ? "on" : ""} onClick={() => setStorefrontRole("gov")}>
               Госзакупки
             </button>
           </div>
@@ -522,11 +524,13 @@ export function SiteHeader() {
         </div>
 
         <div className="head-actions">
-          <Link href="/catalog" className="icon-btn" title="Избранное" aria-label="Избранное">
+          <Link href="/favorites" className="icon-btn" title="Избранное" aria-label="Избранное">
             <Heart size={18} aria-hidden />
+            {favorites.length > 0 && <span className="badge">{favorites.length}</span>}
           </Link>
-          <Link href="/catalog" className="icon-btn" title="Сравнение" aria-label="Сравнение">
+          <Link href="/compare" className="icon-btn" title="Сравнение" aria-label="Сравнение">
             <ArrowLeftRight size={18} aria-hidden />
+            {compare.length > 0 && <span className="badge">{compare.length}</span>}
           </Link>
           <Link href="/cart" className="icon-btn" title="Корзина" aria-label="Корзина">
             <ShoppingCart size={18} aria-hidden />
