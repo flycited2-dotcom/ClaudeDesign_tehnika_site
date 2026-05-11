@@ -536,7 +536,12 @@ export function SiteHeader() {
             <ShoppingCart size={18} aria-hidden />
             {cartCount > 0 && <span className="badge">{cartCount}</span>}
           </Link>
-          <Link href="/cart" className="icon-btn" title="Кабинет" aria-label="Кабинет">
+          <Link
+            href={role === "b2b" ? "/b2b" : role === "gov" ? "/gov" : "/account"}
+            className="icon-btn"
+            title="Кабинет"
+            aria-label="Кабинет"
+          >
             <User size={18} aria-hidden />
           </Link>
           <button
