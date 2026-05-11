@@ -24,6 +24,34 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-11 22:51 — Iter 10 Round D: кабинеты /account /b2b /gov по ТЗ шаблона
+- Commit: `9fa22bc`
+- Backup: `20260511225106`
+- **components/account-shell.tsx** — glass aside (`.acc-sidebar` из template),
+  пункты меню по `activeRole` (b2c/b2b/gov), активный пункт по `activeItem`,
+  аватарка + role-meta, ссылка «Связаться с менеджером» вместо logout.
+  Breadcrumb + заголовок по роли.
+- **/account** — b2c: гостевой welcome-card со счётчиками cart/fav/compare
+  (placeholder под client-side виджеты), быстрые действия (Корзина / Избранное /
+  Сравнение / Чекаут), карта со storefront-инфо (телефоны, email, регион, часы).
+- **/b2b** — full template banner (.b2b-banner с градиентом + .b2b-pill),
+  сводка из `role-pricing` config (опт-скидка %, мин-кол-во, регион, время
+  ответа), КП-card с `QuoteRequestButton`, прайс-листы (каждый со своей
+  per-context кнопкой запроса), блок связи с менеджером.
+- **/gov** — gov-banner (амберный градиент), возможности (время КП, аналоги,
+  УПД/СФ, регион), карта запроса КП, документы и аккредитации (по запросу),
+  блок куратора закупок.
+- **site-header**: иконка User в `head-actions` теперь ведёт на `/account`,
+  `/b2b` или `/gov` в зависимости от текущей `useStorefrontRole` (было
+  захардкоженно `/cart`).
+- **glass-product-card**: ценообразование стало role-aware — b2b показывает
+  опт-цену + мин-кол-во, gov показывает «Цена по запросу», b2c сохраняет
+  зачёркнутый RRP если `product.rrp > retailPrice`.
+- **Известное ограничение:** orders/КП/контракты сейчас без аутентификации
+  (нет user-схемы и login-флоу) — кабинет работает как маркетинг-витрина +
+  заявки. Реальные история заказов и личный менеджер по контракту — отдельный
+  большой проект (auth, привязка заказов к телефону, личные данные пользователя).
+
 ### 2026-05-11 17:22 — Iter 9 Round C: role-aware pricing + fav/compare на товаре + КП-флоу
 - Commit: `c14f3d1`
 - Backup: `20260511172222`
