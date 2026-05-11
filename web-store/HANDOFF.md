@@ -24,6 +24,27 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-11 17:22 — Iter 9 Round C: role-aware pricing + fav/compare на товаре + КП-флоу
+- Commit: `c14f3d1`
+- Backup: `20260511172222`
+- **lib/role-pricing.ts**: `getRolePricingConfig()` читает `NEXT_PUBLIC_B2B_DISCOUNT_PERCENT`
+  (default 10%), `NEXT_PUBLIC_B2B_MIN_QTY` (default 5), `NEXT_PUBLIC_GOV_QUOTE_ENABLED`
+  (default true). `computeB2BPrice(retail, %)` округляет до 10 руб.
+- **GlassProductCard**: в режиме b2b — `.p-role-b2b` бейдж «Опт от N шт · XXX ₽»;
+  в gov — `.p-role-gov` и цена становится «Цена по запросу»; в b2c — РРЦ
+  зачёркнут, если `product.rrp > retailPrice`.
+- **ProductAsideActions** (новый client island на `/product/[slug]` aside):
+  блоки опт-цены / 44-ФЗ + glass-кнопки «В избранное» / «К сравнению» +
+  кнопка «Запросить опт-цену / Запросить КП» в b2b/gov.
+- **Quote flow**: `/app/quote/actions.ts` — `requestQuoteAction` server action,
+  Zod-валидация (имя, телефон обязательны; организация, ИНН, email, комментарий —
+  опц.), отправка в Telegram через тот же `TELEGRAM_BOT_TOKEN`/`_MANAGER_CHAT_ID`.
+- **components/quote-request-button.tsx** — glass-модал со всеми полями
+  заявки + индикаторами pending/success/error.
+- **Известное ограничение:** опт-цена это **наценочная модель**, не реальные
+  данные поставщика. Для реальных опт-цен нужны: миграция Prisma (поле
+  `wholesalePrice` на Product) + новый синк с поставщиком — отдельный проект.
+
 ### 2026-05-11 16:41 — Hotfix: RSC function prop в sort-select
 - Commit: `0a4d6e3`
 - Backup: `20260511164114`
