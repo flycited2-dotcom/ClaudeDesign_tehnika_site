@@ -99,6 +99,38 @@ body {
   }
 }
 
+/* Admin pages: glassify Tailwind cards via wrapper without rewriting each page.
+   Higher specificity than Tailwind utilities (.admin-area .bg-white > .bg-white). */
+.admin-area .bg-white {
+  background-color: var(--glass-bg-2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.admin-area .bg-stone-50 {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+.admin-area [class*="border-zinc-2"],
+.admin-area [class*="border-zinc-1"],
+.admin-area [class*="border-emerald-1"],
+.admin-area [class*="border-amber-1"],
+.admin-area [class*="border-red-1"],
+.admin-area [class*="border-teal-1"] {
+  border-color: var(--glass-stroke);
+}
+.admin-area .shadow-sm,
+.admin-area .shadow-md,
+.admin-area .shadow-lg,
+.admin-area .shadow-xl,
+.admin-area .shadow-2xl {
+  box-shadow: var(--shadow-card);
+}
+.admin-area input[class*="border-zinc"],
+.admin-area textarea[class*="border-zinc"],
+.admin-area select[class*="border-zinc"] {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: var(--glass-stroke);
+}
+
 /* Mobile filter collapsing for catalog: template handles .cat-layout
    collapse, but we still want a "Filters" toggle button on mobile */
 .cat-mobile-toggle {

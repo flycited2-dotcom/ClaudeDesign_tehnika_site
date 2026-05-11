@@ -15,6 +15,7 @@ const links = [
 export function AdminShell({ children, title }: { children: React.ReactNode; title: string }) {
   return (
     <div
+      className="admin-area"
       style={{
         display: "grid",
         gap: 24,
