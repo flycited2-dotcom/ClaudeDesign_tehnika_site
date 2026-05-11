@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AddToCartButton } from "@/components/add-to-cart-button";
 import { GlassProductCard } from "@/components/glass-product-card";
+import { ProductAsideActions } from "@/components/product-aside-actions";
 import { ProductGallery } from "@/components/product-gallery";
 import { QuickOrderForm } from "@/components/quick-order-form";
 import { StockBadge } from "@/components/stock-badge";
@@ -292,6 +293,12 @@ export default async function ProductPage({ params }: Props) {
               Заказ кратно {product.multiplicity} шт.
             </p>
           ) : null}
+          <ProductAsideActions
+            sku={product.sku}
+            retailPrice={price}
+            productName={name}
+            productHref={productPath}
+          />
           <div style={{ marginTop: 20, display: "grid", gap: 8 }}>
             <div
               style={{

@@ -10,6 +10,7 @@ import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
 import { buildProductCardHighlights, productShortTitle } from "@/lib/product-display";
 import { productImageSrc } from "@/lib/product-images";
+import { computeB2BPrice, getRolePricingConfig } from "@/lib/role-pricing";
 import {
   toggleCompare as toggleCompareStorage,
   toggleFavorite as toggleFavoriteStorage,
@@ -24,6 +25,7 @@ type GlassProductCardProduct = Product & {
 };
 
 export function GlassProductCard({ product }: { product: GlassProductCardProduct }) {
+  const pricing = getRolePricingConfig();
   const fullName = product.name ?? product.supplierName;
   const name = productShortTitle(fullName, product.vendor, product.part, 100);
   const image = productImageSrc(product.images?.[0]);
@@ -105,14 +107,27 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
             <span className="dot" />
             {fulfillment.stockShortLabel}
           </div>
-          {role === "b2b" && (
-            <div className="p-role-note p-role-b2b">Опт: цена и условия по запросу</div>
+          {role === "b2b" && price > 0 && (
+            <div className="p-role-note p-role-b2b">
+              Опт от {pricing.b2bMinQuantity} шт · {formatRub(computeB2BPrice(price, pricing.b2bDiscountPercent))}
+            </div>
           )}
-          {role === "gov" && (
+          {role === "gov" && pricing.govEnabled && (
             <div className="p-role-note p-role-gov">КП по 44-ФЗ / 223-ФЗ — оставьте заявку</div>
           )}
           <div className="p-price-row">
-            <span className="new">{price ? formatRub(price) : "Цена уточняется"}</span>
+            <span className="new">
+              {role === "gov"
+                ? "Цена по запросу"
+                : price
+                ? formatRub(price)
+                : "Цена уточняется"}
+            </span>
+            {role === "b2c" && product.rrp != null && Number(product.rrp) > price && (
+              <span className="old" style={{ marginLeft: 10 }}>
+                {formatRub(Number(product.rrp))}
+              </span>
+            )}
           </div>
         </div>
       </Link>
