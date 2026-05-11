@@ -103,15 +103,7 @@ export function CartClient() {
         <span>Корзина</span>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 24,
-          gridTemplateColumns: "minmax(0, 1fr) 380px",
-          alignItems: "start",
-        }}
-        className="cart-layout"
-      >
+      <div className="cart-layout" style={{ alignItems: "start" }}>
         <section className="glass" style={{ padding: 0, borderRadius: 24, overflow: "hidden" }}>
           <div
             style={{

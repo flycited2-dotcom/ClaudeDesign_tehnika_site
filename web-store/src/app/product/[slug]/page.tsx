@@ -141,15 +141,7 @@ export default async function ProductPage({ params }: Props) {
         ))}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 24,
-          gridTemplateColumns: "minmax(0, 1.05fr) minmax(0, 0.8fr) 360px",
-          alignItems: "start",
-        }}
-        className="p-product-layout"
-      >
+      <div className="p-product-layout">
         <div className="glass" style={{ padding: 16, borderRadius: 24 }}>
           <ProductGallery images={galleryImages} name={name} />
         </div>
@@ -206,8 +198,8 @@ export default async function ProductPage({ params }: Props) {
         </section>
 
         <aside
-          className="glass-strong"
-          style={{ padding: 24, borderRadius: 24, position: "sticky", top: 100, alignSelf: "start" }}
+          className="glass-strong p-product-aside"
+          style={{ padding: 24, borderRadius: 24 }}
         >
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <StockBadge state={product.stockStatus} label={fulfillment.stockLabel} />
@@ -295,10 +287,7 @@ export default async function ProductPage({ params }: Props) {
         </aside>
       </div>
 
-      <section
-        style={{ marginTop: 24, display: "grid", gap: 24, gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}
-        className="p-product-bottom"
-      >
+      <section style={{ marginTop: 24 }} className="p-product-bottom">
         <div className="glass" style={{ padding: 24, borderRadius: 24 }}>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: "var(--text)" }}>О товаре</h2>
           <p style={{ marginTop: 12, lineHeight: 1.7, color: "var(--text-2)" }}>{description}</p>
@@ -411,6 +400,21 @@ export default async function ProductPage({ params }: Props) {
           Позвонить
         </a>
       </section>
+
+      <div className="mob-buy-bar">
+        <div className="row">
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <p className="name">{name}</p>
+            <p className="price">{price ? formatRub(price) : "Цена уточняется"}</p>
+          </div>
+          <AddToCartButton
+            sku={product.sku}
+            multiplicity={product.multiplicity}
+            disabled={!fulfillment.canOrder || !price}
+            compact
+          />
+        </div>
+      </div>
     </>
   );
 }
