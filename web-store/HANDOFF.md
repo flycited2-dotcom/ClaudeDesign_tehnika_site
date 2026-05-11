@@ -1,5 +1,11 @@
 # Handoff: БытТехОпт
 
+> **Процесс работы для следующих разработчиков (с 2026-05-11):**
+> После каждого деплоя на прод (`npm run deploy:vps`) **обязательно**:
+> 1. Дописать запись в раздел [«История деплоев glass-редизайна»](#история-деплоев-glass-редизайна) — дата, commit SHA, имя бэкап-архива на сервере, что вошло, что проверено, известные ограничения.
+> 2. Закоммитить `HANDOFF.md` и запушить (`git commit -am "docs: handoff for <iter>"` + `git push`).
+> 3. Если деплой ломал прод — добавить отдельной строкой «Hotfix» и описать что чинили (как в `Hotfix RSC function prop`).
+
 ## Статус проекта
 
 - Код магазина: `C:\Users\user\Documents\GitHub\Codex\Telegram_Sales_meneger\web-store`
@@ -10,6 +16,103 @@
 - PM2 process: `climat-simf-store`
 - Домен и HTTPS работают через Nginx и Let's Encrypt.
 - SSH-ключ для deploy настроен: локальный приватный ключ `C:\Users\user\.ssh\climat_simf_deploy`, публичный ключ добавлен в `/root/.ssh/authorized_keys` на VPS. Для `npm run deploy:vps` можно использовать `WEB_STORE_SSH_KEY_PATH`.
+
+## История деплоев glass-редизайна
+
+> Хронология деплоев новой витрины (репо `flycited2-dotcom/ClaudeDesign_tehnika_site`,
+> ветка `main`). Самые свежие сверху. На сервере каждый деплой делает backup
+> исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
+> по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
+
+### 2026-05-11 16:41 — Hotfix: RSC function prop в sort-select
+- Commit: `0a4d6e3`
+- Backup: `20260511164114`
+- **Проблема:** все детальные категории `/catalog/<slug>` валились с 500
+  (digest `1821461776`). Причина: `CatalogView` (Server Component) передавал
+  `buildHref` функцию в `CatalogSortSelect` (Client) — Next.js 16 запрещает
+  сериализовать функции через RSC-границу.
+- **Фикс:** прокидываем заранее посчитанную `Record<SortValue, string>`
+  вместо функции.
+- **Проверено:** 8 категорий → 200 OK (1.7–10.7 c, крупные категории медленные
+  из-за cold-start), `/search`, `/catalog`, новые ошибки в pm2 не пишутся.
+- **Урок на будущее:** `npm run build` локально перед деплоем — поймал бы такую
+  RSC-ошибку без 500 на проде.
+
+### 2026-05-11 16:24 — Iter 8 Round B: favourites, compare, persistent role
+- Commit: `2da6642`
+- Backup: `20260511162432`
+- Добавлены `useFavorites`/`useCompare` (localStorage), кнопки сердечко и
+  сравнение в `GlassProductCard`, бейджи на иконках в шапке, страницы
+  `/favorites` и `/compare`. Role-switcher теперь сохраняется в localStorage
+  через `useStorefrontRole`/`setStorefrontRole`. В b2b/gov-режимах на
+  карточке появляется тематический note.
+- Новый API: `/api/catalog/products-by-sku?sku=…` для подгрузки до 32 товаров.
+
+### 2026-05-11 16:11 — Iter 8 Round A: card UX, pagination, sort, search, callback
+- Commit: `3baf6ec`
+- Backup: см. сразу до Round B
+- Вся карточка кликабельна → `/product/[slug]`. Кнопка «В корзину» с видимым
+  текстом и `data-testid="add-to-cart"` (QA-тест теперь её находит). Image
+  bound через CSS (`max-width:90%`, `max-height:200px`, `object-fit:contain`).
+  Имя clamped 3 строки, карточки одной высоты.
+- Новые компоненты `CatalogPager` (полные контролы Назад/1…N/Вперёд),
+  `CatalogSortSelect` (auto-apply на change).
+- Header search: явный onKeyDown Enter + submit-button вокруг лупы.
+- «Обратный звонок» в шапке → модал `CallbackButton` → server action
+  `requestCallbackAction` → Telegram через `TELEGRAM_BOT_TOKEN`/`_MANAGER_CHAT_ID`.
+
+### 2026-05-11 15:27 — Iter 7: short title + breadcrumb truncate + mega-menu drill-down
+- Commit: `a1eb2f4`
+- Backup: `20260511152753`
+- `productShortTitle` для h1 на странице товара (полное имя — мутед-подзаголовок).
+  `truncateBreadcrumbLabel` обрезает длинные элементы.
+- Дубль «О товаре» убран; характеристики full-width 2-col под фотками.
+- `/api/catalog/categories?parent=<id>` отдаёт детей категории с
+  `hasChildren: bool`. Mega-menu в шапке теперь drill-down с back-кнопкой
+  и breadcrumb внутри.
+
+### 2026-05-11 12:58 — Iter 6: filter overlap, photo lightbox, mega-menu, brand ordering
+- Commit: `85e2327`
+- Backup: `20260511125814`
+- **Bugfix:** три `<div className="filters">` (Search/Categories/Filters) все
+  имели `position: sticky; top: 120` и накладывались. Слиты в одну outer
+  aside с внутренним overflow-y.
+- ProductGallery: клик по фото открывает полноэкранный glass-lightbox с
+  навигацией стрелками/мышью, ESC, click-outside.
+- Кнопка «Каталог товаров» в шапке: dropdown с сеткой категорий из БД
+  (lazy fetch + `unstable_cache` 300 с).
+- Brand filter: вместо alphabetic top-80 теперь top-120 по числу товаров desc.
+
+### 2026-05-11 10:43 — Iter 5: glass admin shell + Telegram bot token
+- Commit: `981c9b8` (код) + ручная правка `.env` на сервере
+- Backup: `20260511104250`
+- `AdminShell` обёрнут классом `.admin-area`; CSS-overrides переписывают
+  Tailwind `bg-white` / `border-zinc-*` / `shadow-*` в glass-токены без
+  правки 11 admin-страниц по отдельности.
+- На сервер записан новый `TELEGRAM_BOT_TOKEN=8729390335:…`, pm2 рестарт
+  с `--update-env`. **Безопасность:** токен был выложен в чат — рекомендую
+  перевыпустить через `@BotFather` `/revoke`.
+
+### 2026-05-11 10:31 — Iter 4: mobile UX
+- Commit: `bc55c5c`
+- Backup: `20260511103123`
+- Inline grid styles заменены на классы (`.p-product-layout`,
+  `.p-product-aside`), template responsive media queries теперь применяются.
+- Mobile sticky bottom buy-bar `.mob-buy-bar` на странице товара
+  (price + AddToCartButton).
+
+### 2026-05-11 10:23 — Initial glass redesign (Iter 1–3, на «чистый» прод)
+- Commits: `3cd29a1`, `e6e80b8`, `7c70d94`, `2a91448`, `3b58664`, `5919fe4`,
+  `bbbe135`, `234dec9`, `9ac3e9e`, `c316baf`, `5a79b4a`
+- Backup: `20260511102308`
+- Полная перестройка фасада: layout (Inter font, glass-template.css),
+  главная (hero с SVG-Fridge, категории, promo, trust), site-header (glass,
+  topline, role-switch), site-footer (glass), `/catalog`, `/catalog/[slug]`,
+  `/search`, `/podborki/[slug]`, `/product/[slug]`, `/cart`, `/checkout`,
+  `/privacy`, `/order-success/[id]`.
+- Удалены orphan-компоненты: `cart-link.tsx`, `header-catalog-menu.tsx`,
+  `catalog-grid.tsx`, `product-card.tsx`. `getHeaderCategories` удалён из
+  `lib/catalog.ts`.
 
 ## Что уже сделано
 
