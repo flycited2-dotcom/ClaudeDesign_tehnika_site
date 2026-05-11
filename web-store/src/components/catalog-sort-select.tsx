@@ -14,10 +14,10 @@ type SortValue = keyof typeof SORT_LABELS;
 
 export function CatalogSortSelect({
   current,
-  buildHref,
+  hrefBySort,
 }: {
   current: SortValue;
-  buildHref: (sort: SortValue) => string;
+  hrefBySort: Record<SortValue, string>;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -42,7 +42,7 @@ export function CatalogSortSelect({
         onChange={(event) => {
           const next = event.target.value as SortValue;
           startTransition(() => {
-            router.push(buildHref(next));
+            router.push(hrefBySort[next]);
           });
         }}
         style={{

@@ -409,7 +409,12 @@ function CatalogSortBar({
       </div>
       <CatalogSortSelect
         current={state.sort}
-        buildHref={(sort) => catalogHref(basePath, { ...state, sort, page: 1 })}
+        hrefBySort={{
+          popular: catalogHref(basePath, { ...state, sort: "popular", page: 1 }),
+          price_asc: catalogHref(basePath, { ...state, sort: "price_asc", page: 1 }),
+          price_desc: catalogHref(basePath, { ...state, sort: "price_desc", page: 1 }),
+          new: catalogHref(basePath, { ...state, sort: "new", page: 1 }),
+        }}
       />
     </div>
   );
