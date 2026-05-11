@@ -1,6 +1,8 @@
 import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
-import { ArrowUpDown, Check, ChevronDown, Search, X } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 import Link from "next/link";
+import { CatalogPager } from "@/components/catalog-pager";
+import { CatalogSortSelect } from "@/components/catalog-sort-select";
 import { GlassProductCard } from "@/components/glass-product-card";
 import { SearchableCheckboxList } from "@/components/searchable-checkbox-list";
 import {
@@ -405,64 +407,10 @@ function CatalogSortBar({
       <div className="left">
         Найдено <b>{total.toLocaleString("ru-RU")}</b> товаров
       </div>
-      <form
-        action={basePath}
-        className="left"
-        style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 10 }}
-      >
-        {state.query ? <input type="hidden" name="q" value={state.query} /> : null}
-        {state.brands?.map((brand) => <input key={brand} type="hidden" name="brand" value={brand} />)}
-        {state.onlyAvailable ? <input type="hidden" name="available" value="1" /> : null}
-        {state.withPhoto ? <input type="hidden" name="photo" value="1" /> : null}
-        {state.minPrice ? <input type="hidden" name="minPrice" value={state.minPrice} /> : null}
-        {state.maxPrice ? <input type="hidden" name="maxPrice" value={state.maxPrice} /> : null}
-        {state.specFilters?.map((filter) => <input key={filter} type="hidden" name="spec" value={filter} />)}
-        {state.attributeFilters?.map((filter) => (
-          <input key={catalogAttributeFilterParam(filter)} type="hidden" name="attr" value={catalogAttributeFilterParam(filter)} />
-        ))}
-        {state.attributeRangeFilters?.flatMap((filter) => {
-          const inputs: React.ReactNode[] = [];
-          if (filter.min !== undefined) {
-            inputs.push(
-              <input
-                key={`min-${filter.key}`}
-                type="hidden"
-                name="attrMin"
-                value={`${filter.key}:${filter.min}`}
-              />,
-            );
-          }
-          if (filter.max !== undefined) {
-            inputs.push(
-              <input
-                key={`max-${filter.key}`}
-                type="hidden"
-                name="attrMax"
-                value={`${filter.key}:${filter.max}`}
-              />,
-            );
-          }
-          return inputs;
-        })}
-        <span className="sort" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <ArrowUpDown size={14} aria-hidden />
-          <select
-            name="sort"
-            defaultValue={state.sort}
-            style={{ background: "transparent", border: 0, fontWeight: 700, color: "inherit", outline: "none" }}
-          >
-            {Object.entries(catalogSortLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={14} aria-hidden />
-        </span>
-        <button type="submit" className="btn btn-soft btn-sm">
-          Ок
-        </button>
-      </form>
+      <CatalogSortSelect
+        current={state.sort}
+        buildHref={(sort) => catalogHref(basePath, { ...state, sort, page: 1 })}
+      />
     </div>
   );
 }
@@ -738,24 +686,7 @@ export function CatalogView({
             </div>
           )}
 
-          {totalPages > 1 ? (
-            <div className="pager">
-              {page > 1 ? (
-                <Link href={pageHref(page - 1)} className="pager-link">
-                  ‹
-                </Link>
-              ) : null}
-              <span className="on">{page}</span>
-              <span style={{ color: "var(--text-mute)" }}>
-                из {totalPages}
-              </span>
-              {page < totalPages ? (
-                <Link href={pageHref(page + 1)} className="pager-link">
-                  ›
-                </Link>
-              ) : null}
-            </div>
-          ) : null}
+          <CatalogPager page={page} totalPages={totalPages} buildHref={pageHref} />
         </div>
       </div>
     </>

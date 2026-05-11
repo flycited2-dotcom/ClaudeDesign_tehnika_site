@@ -7,7 +7,7 @@ import { addCartItem } from "@/lib/cart-storage";
 import { decimalToNumber } from "@/lib/catalog";
 import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
-import { buildProductCardHighlights } from "@/lib/product-display";
+import { buildProductCardHighlights, productShortTitle } from "@/lib/product-display";
 import { productImageSrc } from "@/lib/product-images";
 
 type GlassProductCardProduct = Product & {
@@ -16,7 +16,8 @@ type GlassProductCardProduct = Product & {
 };
 
 export function GlassProductCard({ product }: { product: GlassProductCardProduct }) {
-  const name = product.name ?? product.supplierName;
+  const fullName = product.name ?? product.supplierName;
+  const name = productShortTitle(fullName, product.vendor, product.part, 100);
   const image = productImageSrc(product.images?.[0]);
   const price = decimalToNumber(product.retailPrice);
   const fulfillment = publicFulfillmentText({
@@ -25,7 +26,7 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
   const canOrder = fulfillment.canOrder && Boolean(price);
   const quantity = Math.max(product.multiplicity || 1, 1);
   const highlights = buildProductCardHighlights({
-    title: name,
+    title: fullName,
     part: product.part,
     warranty: product.warranty,
     weight: product.weight,
@@ -34,65 +35,60 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
     attributes: product.attributes,
   }).slice(0, 3);
   const inStock = product.isAvailable && Boolean(price);
+  const href = `/product/${product.slug}`;
 
   return (
     <article className="p-card">
-      <Link href={`/product/${product.slug}`} className="p-art" aria-label={name}>
-        <div className="p-art-img">
-          {image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt={name} loading="lazy" />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-soft)",
-                fontSize: 13,
-              }}
-            >
-              Фото уточняется
+      <Link href={href} className="p-card-link" aria-label={fullName}>
+        <div className="p-art">
+          <div className="p-art-img">
+            {image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={image} alt={fullName} loading="lazy" />
+            ) : (
+              <div className="p-art-placeholder">Фото уточняется</div>
+            )}
+          </div>
+        </div>
+        <div className="p-body">
+          <div className="p-meta">{product.vendor ?? "Товар"}</div>
+          <div className="p-name" title={fullName}>
+            {name}
+          </div>
+          {highlights.length > 0 && (
+            <div className="p-specs">
+              {highlights.map((spec) => (
+                <span key={spec} className="p-spec">
+                  {spec}
+                </span>
+              ))}
             </div>
           )}
-        </div>
-      </Link>
-      <div className="p-body">
-        <div className="p-meta">{product.vendor ?? "Товар"}</div>
-        <Link href={`/product/${product.slug}`} className="p-name">
-          {name}
-        </Link>
-        {highlights.length > 0 && (
-          <div className="p-specs">
-            {highlights.map((spec) => (
-              <span key={spec} className="p-spec">
-                {spec}
-              </span>
-            ))}
+          <div className={"p-stock " + (inStock ? "" : "low")}>
+            <span className="dot" />
+            {fulfillment.stockShortLabel}
           </div>
-        )}
-        <div className={"p-stock " + (inStock ? "" : "low")}>
-          <span className="dot" />
-          {fulfillment.stockShortLabel}
-        </div>
-        <div className="p-foot">
-          <div className="p-price">
+          <div className="p-price-row">
             <span className="new">{price ? formatRub(price) : "Цена уточняется"}</span>
           </div>
-          <button
-            type="button"
-            className="add"
-            disabled={!canOrder}
-            onClick={() => {
-              if (canOrder) addCartItem(product.sku, quantity);
-            }}
-            aria-label="В корзину"
-          >
-            <ShoppingCart size={18} aria-hidden />
-          </button>
         </div>
+      </Link>
+      <div className="p-card-actions">
+        <button
+          type="button"
+          className="btn btn-primary p-card-buy"
+          data-testid="add-to-cart"
+          disabled={!canOrder}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (canOrder) addCartItem(product.sku, quantity);
+          }}
+          aria-label="В корзину"
+        >
+          <ShoppingCart size={16} aria-hidden />
+          В корзину
+        </button>
       </div>
     </article>
   );

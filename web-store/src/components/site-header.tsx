@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { CallbackButton } from "@/components/callback-button";
 import { formatRub } from "@/lib/format";
 import { storefront } from "@/lib/storefront";
 import { useCart } from "@/lib/use-cart";
@@ -151,12 +152,16 @@ export function SiteHeader() {
     };
   }, [query]);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function submitSearch() {
     const trimmed = query.trim();
     if (!trimmed) return;
     setSearchOpen(false);
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    submitSearch();
   }
 
   function pickSuggestion(suggestion: Suggestion) {
@@ -411,17 +416,29 @@ export function SiteHeader() {
         </div>
 
         <div className="hdr-search-wrap" ref={searchRef}>
-          <form action="/search" onSubmit={handleSubmit}>
-            <div className={"hdr-search " + (searchOpen ? "open" : "")} onClick={() => setSearchOpen(true)}>
-              <Search size={18} aria-hidden />
+          <form action="/search" method="get" onSubmit={handleSubmit} role="search">
+            <div className={"hdr-search " + (searchOpen ? "open" : "")}>
+              <button
+                type="submit"
+                aria-label="Найти"
+                style={{ background: 0, border: 0, padding: 0, color: "inherit", cursor: "pointer", display: "inline-flex" }}
+              >
+                <Search size={18} aria-hidden />
+              </button>
               <input
                 name="q"
-                type="search"
+                type="text"
                 autoComplete="off"
                 placeholder="Холодильник, Bosch, до 50 000 ₽…"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onFocus={() => setSearchOpen(true)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    submitSearch();
+                  }
+                }}
               />
               {query && (
                 <button
@@ -530,8 +547,13 @@ export function SiteHeader() {
         </div>
 
         <div className="phone">
-          {storefront.phones[0]}
-          <span>Обратный звонок →</span>
+          <a
+            href={`tel:${storefront.phones[0].replace(/[^\d+]/g, "")}`}
+            style={{ color: "inherit", textDecoration: "none" }}
+          >
+            {storefront.phones[0]}
+          </a>
+          <CallbackButton variant="header" />
         </div>
       </div>
 
