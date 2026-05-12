@@ -24,6 +24,17 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-12 17:00 — Hotfix follow-up: Nginx timeout + cache warmer + env template
+
+- Commit: `9152445` (warmer + env template), deploy backup `20260512140051`
+- Бэкап Nginx: `/etc/nginx/sites-available/climat-simf.ru.bak-<timestamp>`
+- **Контекст:** после фикса Prisma-пула в `.env` (см. ниже) остались два долга — Nginx обрезал ответ на 60 с при cold-start, и `unstable_cache.revalidate=300s` для следующего пользователя после истечения TTL снова греется холодным запросом.
+- **Nginx (VPS only):** в `/etc/nginx/sites-available/climat-simf.ru` в `location /` добавлены `proxy_read_timeout 180s; proxy_send_timeout 180s; proxy_connect_timeout 30s;`. `nginx -t` + `systemctl reload nginx`. Откат: `cp <bak> /etc/nginx/sites-available/climat-simf.ru && systemctl reload nginx`.
+- **Cache warmer:** `scripts/warm_cache.sh` пингует 12 горячих маршрутов (`/`, `/catalog`, 4 топ-категории, 6 `/podborki/*`) с таймаутом 150 с. На VPS установлен cron `*/4 * * * *`, логи `/var/log/climat-simf-warm.log`. Cadence 4 мин < `revalidate=300s`, поэтому кеш всегда тёплый. Скрипт идемпотентен, exit-код = число неуспешных URL.
+- **`.env.example`:** в строке `DATABASE_URL` теперь сразу зашиты `&connection_limit=20&pool_timeout=30`, чтобы новая инсталляция не повторяла P2024.
+- **Verification (после первого warm):** `/` 0.9 с, `/catalog` 1.6 с, `/catalog/bytovaya-tehnika-9839` 3.2 с, `/podborki/televizory-ot-55-dyuymov` 1.6 с, `/podborki/kabel-ot-25-mm2` 5.6 с — все 200. Раньше cold-start был 15-60 с с обрезанием на 60.
+- **Известное ограничение:** warmer держит горячими только перечисленные 12 маршрутов. Долгий хвост категорий по-прежнему может ловить cold-start. Для покрытия всего каталога нужен ISR или fetch-all (отдельный большой проект).
+
 ### 2026-05-12 13:26 — Hotfix: Prisma connection pool (P2024 → /podborki/* 500)
 
 - Commit: docs-only (правка только VPS env, без правок кода)
