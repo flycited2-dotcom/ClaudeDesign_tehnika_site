@@ -24,6 +24,16 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-12 13:26 — Hotfix: Prisma connection pool (P2024 → /podborki/* 500)
+
+- Commit: docs-only (правка только VPS env, без правок кода)
+- Backup: `/var/www/climat-simf.ru/.env.bak-20260512132636` (откат: `cp <bak> /var/www/climat-simf.ru/.env && pm2 restart climat-simf-store --update-env`)
+- **Проблема:** QA-прогон от 2026-05-12T09:55Z показал HTTP 500 на всех `/podborki/[slug]` и таймауты на `/catalog/[slug]`. По `pm2 logs --err` корневая причина — `PrismaClientKnownRequestError P2024: Timed out fetching a new connection from the connection pool (limit: 9, timeout: 10)`. Под параллельной нагрузкой QA-агента дефолтный пул Prisma (`num_physical_cpus * 2 + 1 = 9` на 4-ядерном VPS) выбивался, а 10-секундный pool_timeout не давал шанса дождаться. Падали `Product.findMany`, `Category.findFirst/Many`, `ProductAttribute.aggregate`, `Product.groupBy` — массово, включая ревалидацию `home-snapshot`.
+- **Фикс:** в `/var/www/climat-simf.ru/.env` к `DATABASE_URL` добавлено `&connection_limit=20&pool_timeout=30`. PM2 рестарт с `--update-env`. Postgres `max_connections=100` — запас огромный, поэтому 20 соединений безопасны.
+- **Verification:** все 6 landings `/podborki/*` отдают 200 (было 500). 5 параллельных запросов на крупные категории — все 200, P2024 в свежих логах после рестарта = 0.
+- **Остаточные шумы из QA-отчёта (НЕ баги сайта):** cold-start крупных категорий 15-60 с (известный долг, нужен cache warmer/ISR); Nginx `proxy_read_timeout=60s` обрезает ответ на холодном кеше; QA-сценарий ищет CTA на listing-страницах (а они только на `/product/[slug]`); QA не открывает свёрнутый поиск на mobile UA.
+- **Известное ограничение:** правка живёт только на VPS. При re-deploy через `scripts/deploy_vps.py` `.env` сохраняется (скрипт его не перезаписывает), но если кто-то будет настраивать новый сервер — нужно повторить вручную или зашить параметры пула в `DATABASE_URL` шаблона.
+
 ### 2026-05-11 22:51 — Iter 10 Round D: кабинеты /account /b2b /gov по ТЗ шаблона
 - Commit: `9fa22bc`
 - Backup: `20260511225106`
