@@ -17,6 +17,80 @@ enum OrderStatus {
   CANCELLED        @map("cancelled")
 }
 
+enum StorefrontRole {
+  B2C @map("b2c")
+  B2B @map("b2b")
+  GOV @map("gov")
+}
+
+enum RoleRequestStatus {
+  PENDING  @map("pending")
+  APPROVED @map("approved")
+  REJECTED @map("rejected")
+}
+
+model User {
+  id           String               @id @default(cuid())
+  email        String               @unique
+  name         String?
+  role         StorefrontRole       @default(B2C)
+  phone        String?
+  orgName      String?
+  inn          String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  sessions     Session[]
+  roleRequests RoleUpgradeRequest[]
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+  ip        String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model MagicLinkToken {
+  id         String    @id @default(cuid())
+  email      String
+  token      String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model RoleUpgradeRequest {
+  id            String            @id @default(cuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestedRole StorefrontRole
+  status        RoleRequestStatus @default(PENDING)
+  orgName       String
+  inn           String?
+  contactPerson String
+  phone         String
+  note          String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  reviewNote    String?
+  createdAt     DateTime          @default(now())
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
 model Category {
   id             String     @id @default(cuid())
   externalId     Int        @unique
