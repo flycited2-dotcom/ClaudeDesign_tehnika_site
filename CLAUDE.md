@@ -116,6 +116,26 @@ WEB_STORE_VPS_PASSWORD='...' python scripts/deploy_vps.py
 - Compare: `techno_market_compare_v1` — `sku-list-storage.ts` + `useCompare()` (max 4)
 - Role: `techno_market_role_v1` — `use-role.ts` + `useStorefrontRole()`
 
+## Операционные правки на VPS (живут только в `/var/www/climat-simf.ru/.env` и `/etc/nginx/`)
+
+> Эти изменения были сделаны в отдельных сессиях после первоначальной серии Iter 1–10
+> и описаны в [`HANDOFF.md`](web-store/HANDOFF.md) (2026-05-12). Они **не лежат
+> в репо** и при настройке нового сервера должны быть повторены вручную.
+
+- **Prisma pool** в `/var/www/climat-simf.ru/.env`:
+  `DATABASE_URL=postgresql://…?schema=public&connection_limit=20&pool_timeout=30`
+  (default `num_physical_cpus*2+1=9` на 4-ядерном VPS выбивало `P2024` при
+  параллельной нагрузке QA). В `.env.example` шаблон уже обновлён, но
+  настоящий сервер правится отдельно.
+- **Nginx**: в `/etc/nginx/sites-available/climat-simf.ru` `location /`
+  добавлены `proxy_read_timeout 180s; proxy_send_timeout 180s;
+  proxy_connect_timeout 30s;`. Иначе Nginx обрезал cold-start крупных
+  категорий на 60 с.
+- **Cache warmer cron**: `*/4 * * * *` пингует `scripts/warm_cache.sh`
+  с 12 горячими маршрутами (главная, /catalog, 4 топ-категории, 6 /podborki/*).
+  Cadence 4 мин < `unstable_cache.revalidate=300s`, поэтому кэш всегда тёплый.
+  Логи в `/var/log/climat-simf-warm.log`. Скрипт идемпотентен.
+
 ## RSC / Next.js 16 — ловушки
 
 1. **Никогда не передавать function prop** из server component в client component —
@@ -196,12 +216,26 @@ web-store/
 - Goal-driven — определяю критерий успеха до правок, проверяю после.
 - Surface assumptions — если что-то непонятно, спрашиваю до кода.
 
-## Известные долги (на 2026-05-11)
+## Известные долги (на 2026-05-14)
 
-- Cold-start крупных категорий — нет cache warmer / ISR.
-- Реальные опт-цены: схема Prisma пока без поля `wholesalePrice`. Кабинет работает
-  без auth — это маркетинг-витрина + CTA.
-- QA-тест `07-user-journeys.spec.ts` жалуется на CTA / анкорную навигацию на
-  лендинге — пока не починено детально (нужно открыть spec и посмотреть, что
-  именно ищет).
-- «Смотреть видео» в hero на главной — пустой `href="#"`.
+- **Cold-start длинного хвоста категорий** — warmer держит горячими только
+  12 маршрутов; категории за пределами топа всё ещё могут ловить 8–60 с
+  первый запрос. Решение — ISR или fetch-all warmer (отдельный проект).
+- **Реальные опт-цены** в b2b: схема Prisma пока без поля `wholesalePrice`.
+  Сейчас опт-цена — наценочная модель `retail * (1 - %)`. Реальные данные
+  требуют миграции схемы + синка с поставщиком (большой проект).
+- **Кабинет без auth** — `/account`, `/b2b`, `/gov` маркетинг-витрины без
+  истории заказов и привязки КП к пользователю. Нужны user-схема и
+  login-флоу (по телефону, OTP) — отдельный проект.
+- Footer-социалки (Telegram/WhatsApp/Карта) ещё `href="#"` — нужны реальные
+  адреса либо скрыть.
+
+**Закрытые долги (для справки):**
+- ~~Cold-start prod-горячих маршрутов 8–11 с~~ — закрыто cache warmer
+  + Nginx timeout 180s + Prisma pool 20 (2026-05-12).
+- ~~QA: CTA / якорная навигация на лендинге~~ — закрыто Iter 11: hero
+  «Как мы работаем» → `#how-order`, topline «Доставка/Помощь» →
+  `/#contacts`/`/#how-order`, секции `#how-order` и `#contacts` на
+  главной (2026-05-14).
+- ~~«Смотреть видео» в hero на главной — пустой `href="#"`~~ — закрыто
+  Iter 11 (заменено на «Как мы работаем» → `#how-order`).

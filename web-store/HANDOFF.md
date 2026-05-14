@@ -24,6 +24,26 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-14 23:04 — Iter 11: landing dead anchors + #how-order + #contacts
+- Commit: `727ea67`
+- Backup: `20260514230448`
+- **Контекст:** QA-отчёт `07-user-journeys.spec.ts` многократно падал на
+  «CTA / форма / контакты / якорная навигация». Пройдено три источника:
+- Hero CTA «Смотреть видео» был `href="#"` (мёртвый якорь). Заменён на
+  «Как мы работаем» с переходом на новую секцию `#how-order`.
+- Топлайн в `site-header`: «Доставка по Крыму и новым регионам» теперь
+  ведёт на `/#contacts`, «Помощь» — на `/#how-order` (оба были `href="#"`).
+- `app/page.tsx` получил две новые якорные секции:
+  - `#how-order` — glass-блок с 4-шаговым объяснением (Выбор / Заявка /
+    Подтверждение / Получение).
+  - `#contacts` — `.glass-strong` блок внизу страницы: телефоны (tel:),
+    email (mailto:), регион, часы + inline `CallbackButton` + ссылка
+    на `/checkout`.
+- **Verification:** `/` → 200 1.18 с, в DOM присутствуют `id="how-order"`,
+  `id="contacts"`, оба topline-Link, hero CTA текст «Как мы работаем».
+- **Долг закрыт:** «QA: CTA / якорная навигация на лендинге» из CLAUDE.md
+  «Известных долгов» можно удалять.
+
 ### 2026-05-12 17:00 — Hotfix follow-up: Nginx timeout + cache warmer + env template
 
 - Commit: `9152445` (warmer + env template), deploy backup `20260512140051`
