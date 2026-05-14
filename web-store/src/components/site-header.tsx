@@ -180,10 +180,10 @@ export function SiteHeader() {
             <span className="pulse" />
             г. {storefront.city}
           </span>
-          <a href="#">Доставка по Крыму и новым регионам</a>
+          <Link href="/#contacts">Доставка по Крыму и новым регионам</Link>
         </div>
         <div className="tl-r">
-          <a href="#">Помощь</a>
+          <Link href="/#how-order">Помощь</Link>
           <span>Режим:</span>
           <div className="role-switch">
             <button type="button" className={role === "b2c" ? "on" : ""} onClick={() => setStorefrontRole("b2c")}>

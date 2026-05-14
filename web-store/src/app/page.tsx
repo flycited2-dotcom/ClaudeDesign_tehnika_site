@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import {
   ArrowRight,
+  CheckCircle2,
   Gem,
+  Mail,
+  MapPin,
   Percent,
+  Phone,
   Play,
   Shield,
   ShoppingCart,
@@ -13,8 +17,10 @@ import {
 import Link from "next/link";
 import { Coffee } from "@/components/art/coffee";
 import { Fridge } from "@/components/art/fridge";
+import { CallbackButton } from "@/components/callback-button";
 import { GlassProductCard } from "@/components/glass-product-card";
 import { getHomeSnapshot } from "@/lib/catalog";
+import { phoneHref, storefront } from "@/lib/storefront";
 
 export const dynamic = "force-dynamic";
 
@@ -62,11 +68,11 @@ export default async function Home() {
             <Link href="/catalog" className="btn btn-primary btn-lg">
               В каталог <ArrowRight size={18} aria-hidden />
             </Link>
-            <a className="video-link" href="#">
+            <a className="video-link" href="#how-order">
               <span className="play">
                 <Play size={16} aria-hidden />
               </span>{" "}
-              Смотреть видео
+              Как мы работаем
             </a>
           </div>
         </div>
@@ -196,6 +202,58 @@ export default async function Home() {
         </div>
       </div>
 
+      <section id="how-order" className="glass" style={{ padding: 32, borderRadius: 24, marginTop: 18 }}>
+        <div className="section-head" style={{ marginBottom: 18 }}>
+          <div>
+            <h2>Как мы работаем</h2>
+            <div className="meta">Без сложных шагов — заявка, подтверждение, доставка, оплата при получении</div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gap: 16,
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          }}
+        >
+          {[
+            { num: "1", title: "Выберите товар", text: "Используйте каталог, поиск или фильтры. Добавьте в корзину или оставьте заявку из карточки." },
+            { num: "2", title: "Отправьте заявку", text: "Имя и телефон — достаточно. Email и комментарий по желанию." },
+            { num: "3", title: "Менеджер подтверждает", text: "Проверим наличие у поставщика, согласуем цену и срок доставки 7 дней." },
+            { num: "4", title: "Получаете заказ", text: "Доставим по Крыму и новым регионам. Оплата при получении после подтверждения." },
+          ].map((step) => (
+            <div
+              key={step.num}
+              style={{
+                padding: 18,
+                borderRadius: 16,
+                background: "rgba(255,255,255,0.5)",
+                border: "1px solid var(--glass-stroke)",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 999,
+                  background: "linear-gradient(135deg,#75a2ff,#426dff)",
+                  color: "#fff",
+                  fontWeight: 900,
+                  fontSize: 14,
+                }}
+              >
+                {step.num}
+              </span>
+              <h3 style={{ marginTop: 12, fontSize: 16, fontWeight: 800, color: "var(--text)" }}>{step.title}</h3>
+              <p style={{ marginTop: 6, fontSize: 13, lineHeight: 1.5, color: "var(--text-2)" }}>{step.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {popularProducts.length > 0 && (
         <>
           <div className="section-head">
@@ -253,6 +311,93 @@ export default async function Home() {
           </div>
         </div>
       </div>
+
+      <section
+        id="contacts"
+        className="glass-strong"
+        style={{
+          padding: 32,
+          borderRadius: 28,
+          marginTop: 18,
+          display: "grid",
+          gap: 24,
+          gridTemplateColumns: "minmax(0, 1.1fr) minmax(260px, 0.9fr)",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <p
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: 1,
+              color: "var(--accent-2)",
+            }}
+          >
+            Контакты
+          </p>
+          <h2 style={{ marginTop: 6, fontSize: 28, fontWeight: 900, color: "var(--text)" }}>
+            Позвоните или закажите обратный звонок
+          </h2>
+          <p style={{ marginTop: 12, color: "var(--text-2)", lineHeight: 1.6 }}>
+            Менеджер ответит в рабочее время ({storefront.hours}). Подберём аналог, посчитаем доставку,
+            подтвердим срок 7 дней.
+          </p>
+          <div style={{ marginTop: 18, display: "grid", gap: 10, fontSize: 14, color: "var(--text-2)" }}>
+            {storefront.phones.map((phone) => (
+              <a
+                key={phone}
+                href={phoneHref(phone)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 10, color: "inherit", fontWeight: 700 }}
+              >
+                <Phone size={16} aria-hidden style={{ color: "var(--accent-2)" }} />
+                {phone}
+              </a>
+            ))}
+            <a
+              href={`mailto:${storefront.email}`}
+              style={{ display: "inline-flex", alignItems: "center", gap: 10, color: "inherit" }}
+            >
+              <Mail size={16} aria-hidden style={{ color: "var(--accent-2)" }} />
+              {storefront.email}
+            </a>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+              <MapPin size={16} aria-hidden style={{ color: "var(--accent-2)" }} />
+              {storefront.region}
+            </div>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+              <CheckCircle2 size={16} aria-hidden style={{ color: "#1ea866" }} />
+              {storefront.hours}
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            justifyItems: "center",
+            padding: 24,
+            borderRadius: 20,
+            background: "rgba(255,255,255,0.5)",
+            border: "1px solid var(--glass-stroke)",
+          }}
+        >
+          <p style={{ fontWeight: 700, color: "var(--text)", textAlign: "center" }}>
+            Оставьте телефон — перезвоним
+          </p>
+          <CallbackButton variant="inline" className="btn btn-primary btn-lg">
+            Заказать обратный звонок
+          </CallbackButton>
+          <Link
+            href="/checkout"
+            className="btn btn-soft"
+            style={{ width: "100%", justifyContent: "center" }}
+          >
+            Оформить заявку
+          </Link>
+        </div>
+      </section>
     </>
   );
 }
