@@ -22,7 +22,12 @@ import { formatRub } from "@/lib/format";
 import { useCompare, useFavorites } from "@/lib/sku-list-storage";
 import { storefront } from "@/lib/storefront";
 import { useCart } from "@/lib/use-cart";
-import { setStorefrontRole, useStorefrontRole } from "@/lib/use-role";
+import {
+  ROLE_LABELS,
+  useStorefrontIdentity,
+  useStorefrontRole,
+  useStorefrontRoleSetter,
+} from "@/lib/use-role";
 
 type Suggestion = {
   id: string;
@@ -48,6 +53,8 @@ const POPULAR = ["холодильник", "стиральная машина", 
 export function SiteHeader() {
   const router = useRouter();
   const role = useStorefrontRole();
+  const { setRole, isAuthenticated } = useStorefrontRoleSetter();
+  const identity = useStorefrontIdentity();
   const favorites = useFavorites();
   const compare = useCompare();
   const [mobOpen, setMobOpen] = useState(false);
@@ -184,18 +191,46 @@ export function SiteHeader() {
         </div>
         <div className="tl-r">
           <Link href="/#how-order">Помощь</Link>
-          <span>Режим:</span>
-          <div className="role-switch">
-            <button type="button" className={role === "b2c" ? "on" : ""} onClick={() => setStorefrontRole("b2c")}>
-              Розница
-            </button>
-            <button type="button" className={role === "b2b" ? "on" : ""} onClick={() => setStorefrontRole("b2b")}>
-              Опт
-            </button>
-            <button type="button" className={role === "gov" ? "on" : ""} onClick={() => setStorefrontRole("gov")}>
-              Госзакупки
-            </button>
-          </div>
+          {isAuthenticated ? (
+            <>
+              <span>Статус:</span>
+              <span
+                className="role-pill"
+                title={identity.orgName ?? identity.email ?? "Кабинет"}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  background: "rgba(79,125,255,0.14)",
+                  border: "1px solid rgba(79,125,255,0.30)",
+                  color: "var(--accent-2)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {ROLE_LABELS[role]}
+                {identity.orgName ? ` · ${identity.orgName}` : ""}
+              </span>
+              <a href="/logout" style={{ fontSize: 12, color: "var(--text-mute)" }}>
+                Выйти
+              </a>
+            </>
+          ) : (
+            <>
+              <span>Режим:</span>
+              <div className="role-switch">
+                <button type="button" className={role === "b2c" ? "on" : ""} onClick={() => setRole("b2c")}>
+                  Розница
+                </button>
+                <button type="button" className={role === "b2b" ? "on" : ""} onClick={() => setRole("b2b")}>
+                  Опт
+                </button>
+                <button type="button" className={role === "gov" ? "on" : ""} onClick={() => setRole("gov")}>
+                  Госзакупки
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -537,10 +572,18 @@ export function SiteHeader() {
             {cartCount > 0 && <span className="badge">{cartCount}</span>}
           </Link>
           <Link
-            href={role === "b2b" ? "/b2b" : role === "gov" ? "/gov" : "/account"}
+            href={
+              isAuthenticated
+                ? role === "b2b"
+                  ? "/b2b"
+                  : role === "gov"
+                  ? "/gov"
+                  : "/account"
+                : "/login"
+            }
             className="icon-btn"
-            title="Кабинет"
-            aria-label="Кабинет"
+            title={isAuthenticated ? "Кабинет" : "Войти"}
+            aria-label={isAuthenticated ? "Кабинет" : "Войти"}
           >
             <User size={18} aria-hidden />
           </Link>

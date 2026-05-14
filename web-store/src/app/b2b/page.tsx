@@ -3,6 +3,8 @@ import { ArrowRight, Building2, FileText, Phone } from "lucide-react";
 import Link from "next/link";
 import { AccountShell } from "@/components/account-shell";
 import { QuoteRequestButton } from "@/components/quote-request-button";
+import { RoleUpgradeRequestModal } from "@/components/role-upgrade-request-modal";
+import { getCurrentUser, roleToStorefront } from "@/lib/auth";
 import { getRolePricingConfig } from "@/lib/role-pricing";
 import { storefront } from "@/lib/storefront";
 
@@ -12,6 +14,8 @@ export const metadata: Metadata = {
     "Опт для бизнеса: оптовые цены, прайс-листы, отсрочка платежа и личный менеджер в магазине БытТехОпт.",
 };
 
+export const dynamic = "force-dynamic";
+
 const PRICELISTS = [
   { name: "Полный прайс · опт", sub: "XLSX · обновляется ежедневно по запросу" },
   { name: "Климатика · опт", sub: "PDF · кондиционеры, сплит-системы, осушители" },
@@ -19,8 +23,38 @@ const PRICELISTS = [
   { name: "Компьютеры · корпоративный", sub: "PDF · ноутбуки, мониторы, переферия" },
 ];
 
-export default function B2BPage() {
+export default async function B2BPage() {
   const pricing = getRolePricingConfig();
+  const user = await getCurrentUser();
+  const userRole = user ? roleToStorefront(user.role) : null;
+  const isB2BUser = userRole === "b2b";
+  const isB2CUser = userRole === "b2c";
+
+  const heroCTA = !user ? (
+    <Link
+      href="/login?next=/b2b"
+      className="btn btn-soft btn-lg"
+      style={{ background: "#fff", color: "var(--accent-2)" }}
+    >
+      Войти и запросить опт-статус <ArrowRight size={16} aria-hidden />
+    </Link>
+  ) : isB2CUser ? (
+    <RoleUpgradeRequestModal
+      requestedRole="b2b"
+      buttonLabel="Запросить опт-статус"
+      buttonClassName="btn btn-soft btn-lg"
+      buttonStyle={{ background: "#fff", color: "var(--accent-2)" }}
+      defaultContact={user.name}
+      defaultPhone={user.phone}
+    />
+  ) : (
+    <QuoteRequestButton
+      scope="b2b"
+      buttonLabel="Запросить КП"
+      buttonClassName="btn btn-soft btn-lg"
+      buttonStyle={{ background: "#fff", color: "var(--accent-2)" }}
+    />
+  );
 
   return (
     <>
@@ -39,15 +73,14 @@ export default function B2BPage() {
             отсрочка платежа по договору. Персональный менеджер на всех этапах сделки.
           </p>
         </div>
-        <QuoteRequestButton
-          scope="b2b"
-          buttonLabel="Заявка на опт-аккаунт"
-          buttonClassName="btn btn-soft btn-lg"
-          buttonStyle={{ background: "#fff", color: "var(--accent-2)" }}
-        />
+        {heroCTA}
       </div>
 
-      <AccountShell activeRole="b2b" activeItem="dash">
+      <AccountShell
+        activeRole="b2b"
+        activeItem="dash"
+        user={isB2BUser ? { name: user!.name, orgName: user!.orgName, email: user!.email } : null}
+      >
         <div className="acc-card">
           <h3>Сводка</h3>
           <div className="acc-stats">

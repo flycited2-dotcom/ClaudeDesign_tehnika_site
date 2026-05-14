@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { RoleProvider } from "@/components/role-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { getRoleContext } from "@/lib/role";
 import "./globals.css";
 
 const inter = Inter({
@@ -44,17 +46,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const roleContext = await getRoleContext();
   return (
     <html lang="ru" className={`${inter.variable} antialiased`}>
       <body className="app">
-        <SiteHeader />
-        <main>{children}</main>
-        <SiteFooter />
+        <RoleProvider
+          initialRole={roleContext.role}
+          isAuthenticated={roleContext.isAuthenticated}
+          userName={roleContext.userName}
+          orgName={roleContext.orgName}
+          email={roleContext.email}
+        >
+          <SiteHeader />
+          <main>{children}</main>
+          <SiteFooter />
+        </RoleProvider>
       </body>
     </html>
   );

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import { FileText, Phone } from "lucide-react";
+import { ArrowRight, FileText, Phone } from "lucide-react";
 import Link from "next/link";
 import { AccountShell } from "@/components/account-shell";
 import { QuoteRequestButton } from "@/components/quote-request-button";
+import { RoleUpgradeRequestModal } from "@/components/role-upgrade-request-modal";
+import { getCurrentUser, roleToStorefront } from "@/lib/auth";
 import { storefront } from "@/lib/storefront";
 
 export const metadata: Metadata = {
@@ -10,6 +12,8 @@ export const metadata: Metadata = {
   description:
     "Поставки для государственных и муниципальных заказчиков по 44-ФЗ и 223-ФЗ. Подбор аналогов, документы, бюджетная отсрочка.",
 };
+
+export const dynamic = "force-dynamic";
 
 const DOCUMENTS = [
   ["Выписка из ЕГРЮЛ", "По запросу"],
@@ -19,7 +23,38 @@ const DOCUMENTS = [
   ["Договор поставки (типовой)", "По запросу"],
 ];
 
-export default function GovPage() {
+export default async function GovPage() {
+  const user = await getCurrentUser();
+  const userRole = user ? roleToStorefront(user.role) : null;
+  const isGovUser = userRole === "gov";
+  const isB2CUser = userRole === "b2c";
+
+  const heroCTA = !user ? (
+    <Link
+      href="/login?next=/gov"
+      className="btn btn-soft btn-lg"
+      style={{ background: "#fff", color: "var(--accent-2)" }}
+    >
+      Войти и запросить гос-статус <ArrowRight size={16} aria-hidden />
+    </Link>
+  ) : isB2CUser ? (
+    <RoleUpgradeRequestModal
+      requestedRole="gov"
+      buttonLabel="Запросить гос-статус"
+      buttonClassName="btn btn-soft btn-lg"
+      buttonStyle={{ background: "#fff", color: "var(--accent-2)" }}
+      defaultContact={user.name}
+      defaultPhone={user.phone}
+    />
+  ) : (
+    <QuoteRequestButton
+      scope="gov"
+      buttonLabel="Запросить КП по ТЗ"
+      buttonClassName="btn btn-soft btn-lg"
+      buttonStyle={{ background: "#fff", color: "var(--accent-2)" }}
+    />
+  );
+
   return (
     <>
       <div className="b2b-banner gov-banner">
@@ -37,15 +72,14 @@ export default function GovPage() {
             рабочего дня, поставляем с УПД и СФ. Бюджетная отсрочка по согласованию.
           </p>
         </div>
-        <QuoteRequestButton
-          scope="gov"
-          buttonLabel="Запросить КП по ТЗ"
-          buttonClassName="btn btn-soft btn-lg"
-          buttonStyle={{ background: "#fff", color: "var(--accent-2)" }}
-        />
+        {heroCTA}
       </div>
 
-      <AccountShell activeRole="gov" activeItem="dash">
+      <AccountShell
+        activeRole="gov"
+        activeItem="dash"
+        user={isGovUser ? { name: user!.name, orgName: user!.orgName, email: user!.email } : null}
+      >
         <div className="acc-card">
           <h3>Возможности</h3>
           <div className="acc-stats">

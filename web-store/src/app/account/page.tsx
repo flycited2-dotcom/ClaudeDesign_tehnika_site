@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { ArrowRight, ShoppingCart } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AccountShell } from "@/components/account-shell";
+import { getCurrentUser, roleToStorefront } from "@/lib/auth";
 import { storefront } from "@/lib/storefront";
 
 export const metadata: Metadata = {
@@ -10,15 +12,31 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AccountPage() {
+export const dynamic = "force-dynamic";
+
+export default async function AccountPage() {
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect("/login?next=/account");
+  }
+  const role = roleToStorefront(user.role);
+  if (role === "b2b") redirect("/b2b");
+  if (role === "gov") redirect("/gov");
+
+  const greeting = user.name?.trim() ? `Здравствуйте, ${user.name.split(/\s+/)[0]}!` : "Здравствуйте!";
+
   return (
-    <AccountShell activeRole="b2c" activeItem="dash">
+    <AccountShell
+      activeRole="b2c"
+      activeItem="dash"
+      user={{ name: user.name, orgName: user.orgName, email: user.email }}
+    >
       <div className="acc-card">
-        <h3>Здравствуйте!</h3>
+        <h3>{greeting}</h3>
         <p style={{ color: "var(--text-mute)", lineHeight: 1.5, fontSize: 14 }}>
-          В этой версии кабинет работает в гостевом режиме. Корзина, избранное и
-          сравнение сохраняются на этом устройстве. Для истории заказов и бонусов
-          подключим авторизацию по телефону — менеджер уже работает с вашими заявками.
+          В этой версии кабинет работает в облегчённом режиме. Корзина, избранное и
+          сравнение сохраняются на этом устройстве. История заказов и бонусов появится
+          в следующих обновлениях — менеджер уже работает с вашими заявками.
         </p>
         <div className="acc-stats" style={{ marginTop: 18 }}>
           <div className="acc-stat">
