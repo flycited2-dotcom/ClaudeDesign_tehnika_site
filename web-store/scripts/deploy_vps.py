@@ -67,6 +67,7 @@ def build_remote_deploy_script(
             f"cd {quoted_root}",
             install.rstrip(),
             "npx prisma generate",
+            "npx prisma db push --skip-generate",
             f"npm run build >{quoted_log} 2>&1",
             "test -f .next/prerender-manifest.json",
             "test -s .next/BUILD_ID",
