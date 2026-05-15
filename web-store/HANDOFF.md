@@ -24,6 +24,58 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-15 — Iter 12: auth core + role binding (sub-projects A+B+admin)
+
+- Spec: [`docs/superpowers/specs/2026-05-14-auth-core-and-role-binding-design.md`](docs/superpowers/specs/2026-05-14-auth-core-and-role-binding-design.md)
+- Branch commits:
+  - `6668672` — spec
+  - `9d6e709` — Prisma user models + lib/auth/mailer/role + tests
+  - `3231e44` — /login flow + verify + logout + middleware
+  - `2eb99d6` — RoleProvider + use-role rewrite + role-aware cabinet UI
+  - (текущий, после lint-fix) — admin/role-requests + env.example
+- **Контекст:** в CLAUDE.md был зафиксирован долг «Кабинет без auth — `/account`, `/b2b`, `/gov` маркетинг-витрины без истории заказов». Шаблон glass-дизайна (`design-template/unzipped/screen-account/b2b/gov.jsx`) предполагал реальную идентификацию: имя/реквизиты ООО, статистика, КП, документы. Без auth это всё было заглушками. Итерация 12 закрывает подпроекты **A (auth core) + B (роли в БД) + минимальный admin для апрува upgrade-заявок**. Воссоздание моков заказов / КП / документов с реальными данными — следующие подпроекты C/D/E (зафиксированы в spec).
+
+**Что вошло:**
+- **Prisma schema:** новые модели `User`, `Session`, `MagicLinkToken`, `RoleUpgradeRequest` + enum `StorefrontRole (B2C/B2B/GOV)`, `RoleRequestStatus`. На проде применяется через `npx prisma db push` (в репо нет migration-файлов — соответствует существующему workflow `npm run db:push`).
+- **lib/auth.ts:** magic-link токены (TTL 15 мин, single-use), сессии (TTL 30 дней) в `techno_market_session` httpOnly cookie, `getCurrentUser()` через `React.cache()`, `normalizeEmail/isValidEmail` хелперы, мапинг Prisma enum ↔ storefront string.
+- **lib/mailer.ts:** Resend HTTP API + console fallback (без npm-зависимостей, через `fetch`). Шаблоны magic-link / role-approved / role-rejected писем.
+- **lib/role.ts:** server-side `getActiveRole()` + `getRoleContext()` — у залогиненных юзеров source-of-truth `user.role`, у анонов — preview cookie `techno_market_role_preview`.
+- **/login + /login/verify + /logout** — magic-link flow, форма email, route handler валидирует токен и создаёт сессию, /logout уничтожает в БД.
+- **middleware.ts** — защищает `/account/*` (анонов кидает на `/login?next=...`). `/b2b`, `/gov` остаются публичными.
+- **RoleProvider (client) + use-role.ts shim** — Public API (`useStorefrontRole`, `setStorefrontRole`, `ROLE_LABELS`) сохранён для existing call-sites в `GlassProductCard`, `ProductAsideActions`. Добавлены `useStorefrontIdentity()`, `useStorefrontRoleSetter()`. Анон может менять роль через переключатель в шапке, залогиненный — нет.
+- **site-header** — гибридный role indicator: анон видит переключатель ролей + кнопку Войти (иконка User); залогиненный — pill «Роль · Орг» + ссылку «Выйти» + иконка User → role-home.
+- **AccountShell** — рендерит реальные имя/orgName/email с инициалами в аватаре; для анона — fallback на «Гость» (нужно для старых вызовов).
+- **/account** — middleware-защищён, редиректит b2b/gov юзеров на их кабинет, показывает приветствие именем.
+- **/b2b и /gov** — публичные маркетинг-страницы, hero CTA меняется по статусу: anon → Войти, b2c → RoleUpgradeRequestModal (форма orgName/ИНН/контакт/телефон/комментарий, server action создаёт `RoleUpgradeRequest` + Telegram-уведомление менеджеру), matching role → существующий `QuoteRequestButton`.
+- **/admin/role-requests** — новая страница в существующей админке (использует `requireAdmin()` + `AdminShell`). Список заявок со статусами, кнопки «Одобрить» / «Отклонить» с reviewNote. Approve в транзакции меняет user.role и копирует orgName/inn/phone из заявки + email уведомление.
+
+**Verification:**
+- `npm run lint` чистый
+- `npm run test` — 134/134 (122 existing + 12 новых в `auth.test.ts` и `mailer.test.ts` для pure helpers)
+- `npm run build` зелёный, `/admin/role-requests`, `/login`, `/login/verify`, `/logout`, `/account`, `/b2b`, `/gov`, middleware — все в маршрутах
+
+**Deploy steps (выполнять на VPS):**
+1. `git pull` в `/var/www/climat-simf.ru`
+2. На VPS прописать в `/var/www/climat-simf.ru/.env`:
+   - `RESEND_API_KEY=...` (если нет — magic-links будут только в pm2-логе, прод не сможет логинить)
+   - `MAIL_FROM="БытТехОпт <noreply@climat-simf.ru>"`
+3. `npm install` (новых deps нет, но `package-lock.json` мог обновиться)
+4. `npx prisma generate`
+5. `npx prisma db push` — **критично**: создаст таблицы User/Session/MagicLinkToken/RoleUpgradeRequest. Не пропускать.
+6. `npm run build`
+7. `pm2 restart climat-simf-store`
+8. Smoke:
+   - `curl -i https://climat-simf.ru/account` → 307 на `/login?next=/account`
+   - `curl -i https://climat-simf.ru/login` → 200, HTML формы
+   - `curl -i https://climat-simf.ru/b2b` → 200, маркетинг + кнопка «Войти» в hero
+   - `/admin/role-requests` после входа админа — список пуст
+
+**Известные ограничения / следующие шаги:**
+- **Все страницы стали dynamic.** `layout.tsx` теперь вызывает `await getRoleContext()` → `cookies()`, что форсит все маршруты в SSR. Cache warmer (4 мин) держит горячими 12 маршрутов в проде, поэтому регрессий быть не должно, но если cold-start длинного хвоста начнёт болеть — рассмотреть `headers` вместо cookies в `getActiveRole` или middleware-set `x-user-role` header.
+- **Без admin-промоции b2c не сможет стать b2b/gov** — нужно зайти в `/admin/role-requests` и одобрить. До настройки `ADMIN_EMAIL/ADMIN_PASSWORD` промоция вручную через Prisma Studio (`role` поле на User).
+- **C/D/E ещё впереди:** реальные заказы/КП/документы из шаблона `screen-account/b2b/gov.jsx` не реализованы — кабинеты после входа показывают тот же placeholder-контент, что и до Iter 12, но с реальной идентификацией пользователя.
+- Существующий `QuoteRequestButton` (callback / quote-action) пока анонимный (не привязан к user). Привязка — часть подпроекта C/D.
+
 ### 2026-05-14 23:04 — Iter 11: landing dead anchors + #how-order + #contacts
 - Commit: `727ea67`
 - Backup: `20260514230448`

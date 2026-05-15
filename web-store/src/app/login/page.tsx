@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser, roleToStorefront } from "@/lib/auth";
 import { LoginForm } from "./login-form";
@@ -41,7 +42,7 @@ export default async function LoginPage({
   return (
     <>
       <div className="bread">
-        <a href="/">Главная</a>
+        <Link href="/">Главная</Link>
         <span>›</span>
         <span>Вход</span>
       </div>

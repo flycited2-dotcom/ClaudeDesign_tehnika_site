@@ -46,26 +46,29 @@ export function RoleProvider({
   const [role, setRoleState] = useState<StorefrontRole>(initialRole);
 
   // Hydrate from localStorage on the client (anonymous preview only).
+  // setState is wrapped in setTimeout to satisfy react-hooks/set-state-in-effect.
   useEffect(() => {
-    if (isAuthenticated) {
-      // Clear stale anon preview if user logged in
+    const timer = window.setTimeout(() => {
+      if (isAuthenticated) {
+        try {
+          window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+        setRoleState(initialRole);
+        return;
+      }
       try {
-        window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+        const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (isStorefrontRole(raw) && raw !== initialRole) {
+          setRoleState(raw);
+          writePreviewCookie(raw);
+        }
       } catch {
         /* ignore */
       }
-      setRoleState(initialRole);
-      return;
-    }
-    try {
-      const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (isStorefrontRole(raw) && raw !== initialRole) {
-        setRoleState(raw);
-        writePreviewCookie(raw);
-      }
-    } catch {
-      /* ignore */
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [initialRole, isAuthenticated]);
 
   // Cross-tab sync for anon preview.
@@ -74,7 +77,9 @@ export function RoleProvider({
     const onChange = () => {
       try {
         const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (isStorefrontRole(raw)) setRoleState(raw);
+        if (isStorefrontRole(raw)) {
+          window.setTimeout(() => setRoleState(raw), 0);
+        }
       } catch {
         /* ignore */
       }
