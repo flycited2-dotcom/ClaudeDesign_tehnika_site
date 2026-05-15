@@ -24,6 +24,36 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-16 — Очередь следующей сессии (Iter 13: chrome под макет «лев.html»)
+
+> Пользователь показал актуальный макет (`лев.html` в Claude Design — не лежит в репо, только скриншоты). Сравнение с продом:
+
+**Расхождения:**
+1. **Topline удалён** — на скриншоте нет верхней полосы «г. Симферополь / Помощь / Режим: Розница/Опт/Госзакупки». Шапка начинается сразу с бренда. Переключатель ролей в этой версии макета **не нужен сверху**.
+2. **Добавлен `ScreenBar`** — плавающая нижняя glass-панель (chrome.jsx строки 213-238 в шаблоне). 11 пунктов с двумя разделителями:
+   - Группа 1: Главная / Каталог / Товар / Сравнение / Корзина / Оформление
+   - Группа 2: Кабинет / B2B / Госзакупки / Сервис
+   - Группа 3: Telegram-агент
+   - Активный пункт через `usePathname()`. CSS-классы `.screen-bar` + `.active` уже есть в `glass-template.css`.
+3. **VK** — иконка добавлена в footer-socials шаблона, в проде её нет.
+4. **Заглушки страниц** для пунктов bar:
+   - `/service` — соответствует `screen-service.jsx` в шаблоне, страницы в проде нет
+   - `/bot` (Telegram-агент) — соответствует `screen-bot.jsx`, страницы нет
+   - «Товар» (`/product`) — без `[slug]` нет дефолтной; решение: либо скрыть пункт, либо вести на `/catalog`, либо на «последний просмотренный» из localStorage
+
+**План Iter 13:**
+- Создать `src/components/site-screen-bar.tsx` (client, `usePathname`), рендерить в `app/layout.tsx` после `<main>` или внутри `<body>` как fixed-bottom
+- Из `site-header.tsx` вырезать весь `<div className="topline">…</div>` блок целиком
+- Решить судьбу переключателя ролей анона: либо убрать совсем (опт/гос-цены смотрят через переход на `/b2b`/`/gov`), либо вынести в dropdown в bottom-bar
+- Добавить в footer-socials VK link (`storefront.ts` или inline)
+- Создать заглушки `/service/page.tsx` и `/bot/page.tsx` (минимальный контент из `screen-service.jsx` / `screen-bot.jsx`) или сразу скрыть эти пункты до отдельной итерации
+- Lint + test + build + deploy + HANDOFF
+
+**Открытые вопросы для уточнения завтра:**
+- Полный набор 11 пунктов (с заглушками `/service` и `/bot`) или минимальный без них?
+- Куда переключатель ролей анона: убрать совсем / dropdown в bottom-bar / dropdown в шапке header?
+- Файл `лев.html` лежит только в Claude Design — есть смысл попросить его скачать в `design-template/`, иначе работаем только по скриншоту
+
 ### 2026-05-16 00:06 — Iter 12: auth core + role binding (sub-projects A+B+admin)
 
 - Spec: [`docs/superpowers/specs/2026-05-14-auth-core-and-role-binding-design.md`](docs/superpowers/specs/2026-05-14-auth-core-and-role-binding-design.md)
