@@ -45,9 +45,13 @@ export async function GET(request: Request) {
       where: {
         isActive: true,
         isVisible: true,
-        // Hide degraded items ("поврежденный товар", "уценка", "б/у" etc).
-        ...normalRetailNameWhere(),
-        AND: tokens.map((token) => productSearchTokenOr(token)),
+        // AND combines: per-token field match + degraded-name exclusion.
+        // (Don't spread {AND:[]} from normalRetailNameWhere directly — its
+        //  AND key would collide with the tokens AND below.)
+        AND: [
+          ...tokens.map((token) => productSearchTokenOr(token)),
+          normalRetailNameWhere(),
+        ],
       },
       select: {
         id: true,
