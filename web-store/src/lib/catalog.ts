@@ -252,6 +252,44 @@ function toProductWhereArray(value: Prisma.ProductWhereInput["AND"]): Prisma.Pro
   return Array.isArray(value) ? value : [value];
 }
 
+const PRODUCT_SEARCH_MAX_TOKENS = 6;
+const PRODUCT_SEARCH_MIN_TOKEN_LEN = 2;
+
+/**
+ * Split a user search string into searchable tokens. Each token is a word of
+ * length ≥ 2 (no single-letter noise). Capped at 6 tokens — beyond that the
+ * AND becomes useless and the query gets slow.
+ */
+export function buildProductSearchTokens(input: string): string[] {
+  return input
+    .trim()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= PRODUCT_SEARCH_MIN_TOKEN_LEN)
+    .slice(0, PRODUCT_SEARCH_MAX_TOKENS);
+}
+
+/**
+ * Build the OR clause for a single search token: match the token as a
+ * substring in any of the searchable text fields, or — if the whole token is
+ * numeric — also match by SKU exactly.
+ */
+export function productSearchTokenOr(token: string): Prisma.ProductWhereInput {
+  const numericSku = Number(token);
+  return {
+    OR: [
+      { supplierName: { contains: token, mode: "insensitive" } },
+      { name: { contains: token, mode: "insensitive" } },
+      { vendor: { contains: token, mode: "insensitive" } },
+      { part: { contains: token, mode: "insensitive" } },
+      { barcodes: { contains: token, mode: "insensitive" } },
+      ...(Number.isFinite(numericSku) && Number.isInteger(numericSku)
+        ? [{ sku: numericSku }]
+        : []),
+    ],
+  };
+}
+
 function applySelectedBrands(where: Prisma.ProductWhereInput, selectedBrands: string[]) {
   if (selectedBrands.length === 1) {
     where.vendor = selectedBrands[0];
@@ -440,15 +478,16 @@ export async function getCatalogPage(query: CatalogQuery) {
 
   const filteredWhere: Prisma.ProductWhereInput = { ...baseWhere };
   if (query.query) {
-    const numericSku = Number(query.query);
-    filteredWhere.OR = [
-      { supplierName: { contains: query.query, mode: "insensitive" } },
-      { name: { contains: query.query, mode: "insensitive" } },
-      { vendor: { contains: query.query, mode: "insensitive" } },
-      { part: { contains: query.query, mode: "insensitive" } },
-      { barcodes: { contains: query.query, mode: "insensitive" } },
-      ...(Number.isFinite(numericSku) ? [{ sku: numericSku }] : []),
-    ];
+    const tokens = buildProductSearchTokens(query.query);
+    if (tokens.length > 0) {
+      // AND of (OR across fields) for each token — finds products that
+      // contain every word, in any order, across name/supplierName/vendor/etc.
+      // Example: "indesit стиральная" matches "Стиральная машина Indesit IWSB...".
+      filteredWhere.AND = [
+        ...toProductWhereArray(filteredWhere.AND),
+        ...tokens.map((token) => productSearchTokenOr(token)),
+      ];
+    }
   }
 
   if (query.available) {

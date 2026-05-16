@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { decimalToNumber } from "@/lib/catalog";
+import {
+  buildProductSearchTokens,
+  decimalToNumber,
+  productSearchTokenOr,
+} from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { productImageSrc } from "@/lib/product-images";
 
@@ -27,16 +31,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ products: [] satisfies SuggestProduct[] });
   }
 
+  // Token-based search: every word in any of the searchable fields. Lets
+  // "indesit стиральная" match "Стиральная машина Indesit IWSB..." regardless
+  // of word order. Shared with /search and /catalog?q=... via @/lib/catalog.
+  const tokens = buildProductSearchTokens(rawQuery);
+  if (tokens.length === 0) {
+    return NextResponse.json({ products: [] satisfies SuggestProduct[] });
+  }
+
   try {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
         isVisible: true,
-        OR: [
-          { name: { contains: rawQuery, mode: "insensitive" } },
-          { supplierName: { contains: rawQuery, mode: "insensitive" } },
-          { vendor: { contains: rawQuery, mode: "insensitive" } },
-        ],
+        AND: tokens.map((token) => productSearchTokenOr(token)),
       },
       select: {
         id: true,
