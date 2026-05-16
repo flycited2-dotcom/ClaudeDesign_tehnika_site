@@ -38,19 +38,25 @@ if [ -z "${slugs}" ]; then
   exit 1
 fi
 
-fail=0
-count=0
+count="$(printf '%s\n' "${slugs}" | grep -cv '^$')"
 
-while IFS= read -r slug; do
-  [ -z "${slug}" ] && continue
-  count=$((count + 1))
-  url="${BASE}/catalog/${slug}"
-  http_code="$(curl -s -o /dev/null --max-time "${TIMEOUT}" -w '%{http_code}' "${url}")"
-  if [ "${http_code}" != "200" ]; then
-    echo "[$(date -Is)] FAIL ${http_code} ${url}" >&2
-    fail=$((fail + 1))
-  fi
-done <<< "${slugs}"
+# Parallelize: 8 concurrent curls. Each curl logs FAIL lines to stderr only
+# on non-200. Final exit code reflects whether any line failed.
+PARALLEL="${WARM_CACHE_PARALLEL:-8}"
+failures="$(
+  printf '%s\n' "${slugs}" \
+    | grep -v '^$' \
+    | xargs -P "${PARALLEL}" -I {} bash -c '
+        url="'"${BASE}"'/catalog/{}"
+        http_code="$(curl -s -o /dev/null --max-time '"${TIMEOUT}"' -w "%{http_code}" "${url}")"
+        if [ "${http_code}" != "200" ]; then
+          echo "[$(date -Is)] FAIL ${http_code} ${url}" >&2
+          echo 1
+        fi
+      ' \
+    | wc -l
+)"
+fail="${failures:-0}"
 
 # Also keep base catalog route warm.
 http_code="$(curl -s -o /dev/null --max-time "${TIMEOUT}" -w '%{http_code}' "${BASE}/catalog")"
