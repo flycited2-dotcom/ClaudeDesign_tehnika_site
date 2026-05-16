@@ -24,6 +24,32 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-16 23:24 — Iter 15B: real /service page
+
+- Spec: [`docs/superpowers/specs/2026-05-16-iter15b-service-page-design.md`](docs/superpowers/specs/2026-05-16-iter15b-service-page-design.md)
+- Commit: `c5315e7`
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260516232414.tar.gz`
+- Закрывает долг «Реальный /service» (из HANDOFF Iter 13/14).
+
+**Что вошло:**
+- **`src/app/service/page.tsx`** — переписан из stub. Server-page, использует существующий client-island `<CallbackButton>` для CTA, существующие классы из glass-template (`.glass`, `.bread`, `.section-head`, `.p-card`), никакого нового CSS.
+- **3 раздела:**
+  1. **Гарантия от производителя** — общий текст про заводскую гарантию (12/24–36 мес), что нужно для гарантийного случая, ссылка на АСЦ.
+  2. **Установка** — intro (свои мастера, весь Крым, выезд 24 ч, гарантия 12 мес) + 3×3 сетка карточек с ценами (9 категорий: стиралка/холодильник/газ.плита от 2 500 ₽, сплит от 8 000 ₽, духовка/варка/посудомойка/вытяжка/бойлер от 3 000 ₽) + CTA «Заказать установку → обратный звонок».
+  3. **Ремонт** — мы не ремонтируем, сетка карточек 3 АСЦ в Симферополе (НК-Центр, СЦ Максимум, Гарант Сервис) с адресами, кликабельными `tel:`-ссылками и сайтами.
+- **Иконки** lucide-react: WashingMachine, Refrigerator, Flame, Snowflake, Microwave, CookingPot, UtensilsCrossed, Wind, Droplet (категории), ShieldCheck/Wrench/Settings2 (разделы), Phone, MapPin, Globe.
+- **`robots: noindex` снят** — контент реальный, страница индексируется.
+- **Metadata**: keywords с региональными ключами («установка бытовой техники Симферополь», «авторизованный сервисный центр Крым»).
+
+**Verification:**
+- `npm run lint` чисто, `npm run test` 134/134, `npm run build` успешен.
+- Prod-smoke `/service` → 200, в HTML: «НК-Центр», «Гарант Сервис», «СЦ Максимум», «от 2 500 ₽», «от 8 000 ₽», «Сервис и установка». `noindex` отсутствует.
+
+**Что НЕ вошло:**
+- Своя форма заявки — используем существующий `CallbackButton` (он уже шлёт Telegram-уведомление менеджеру).
+- Картинки/логотипы СЦ.
+- Динамика прайса (всё статикой в page.tsx — легко править руками).
+
 ### 2026-05-16 22:47 — Iter 15A: quick-fixes (TG footer link + B2B 25%)
 
 - Commit: `9a0536f`
