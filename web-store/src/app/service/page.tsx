@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Сервис",
   description:
     "Раздел сервисного обслуживания скоро появится. Для срочных вопросов — обратный звонок в шапке сайта.",
+  robots: { index: false, follow: false },
 };
 
 export default function ServicePage() {
