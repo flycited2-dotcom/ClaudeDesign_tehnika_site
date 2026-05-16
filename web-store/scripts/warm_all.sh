@@ -5,11 +5,25 @@
 # Cron-friendly: silent on success, prints failing rows to stderr.
 # Intended cadence: every 30 minutes (TTL=3600s → 2× overlap).
 #
+# The first run (everything cold) can take 60+ minutes for 1700+ categories.
+# Subsequent runs on warm data finish in 3-5 minutes. We guard against
+# overlapping runs with flock so a cron tick that fires while the previous
+# run is still working will silently skip instead of doubling DB load.
+#
 # Install on VPS:
 #   chmod +x /var/www/climat-simf.ru/scripts/warm_all.sh
 #   ( crontab -l 2>/dev/null; echo "*/30 * * * * /var/www/climat-simf.ru/scripts/warm_all.sh >> /var/log/climat-simf-warm-all.log 2>&1" ) | crontab -
 
 set -u
+
+# Self-relock via flock to prevent overlapping runs. -n = exit immediately if
+# locked. FD 9 is reserved for the lock file.
+LOCK_FILE="/var/lock/climat-simf-warm-all.lock"
+exec 9>"${LOCK_FILE}"
+if ! flock -n 9; then
+  # Another instance is running. Skip silently — cron next tick will retry.
+  exit 0
+fi
 
 BASE="${WARM_CACHE_BASE:-https://climat-simf.ru}"
 TIMEOUT="${WARM_CACHE_TIMEOUT:-150}"
