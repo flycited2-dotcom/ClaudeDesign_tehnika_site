@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
-import { getActiveCategories } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { isDegradedRetailName } from "@/lib/retail-products";
 
@@ -17,20 +16,6 @@ type MenuCategory = {
   productCount: number;
   hasChildren: boolean;
 };
-
-const getNonEmptyCategoryIds = unstable_cache(
-  async (): Promise<Set<string>> => {
-    if (!process.env.DATABASE_URL) return new Set();
-    const rows = await prisma.product.groupBy({
-      by: ["categoryId"],
-      where: { isActive: true, isVisible: true, categoryId: { not: null } },
-      _count: { _all: true },
-    });
-    return new Set(rows.map((r) => r.categoryId).filter((id): id is string => !!id));
-  },
-  ["non-empty-category-ids"],
-  { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] },
-);
 
 const getMenuCategoriesForParent = unstable_cache(
   async (parentKey: string): Promise<MenuCategory[]> => {
@@ -99,21 +84,6 @@ const getMenuCategoriesForParent = unstable_cache(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-
-    // flat=true: return slugs of active+visible categories that actually have
-    // products (productCount > 0). Used by the cron cache warmer — pinging
-    // empty categories is wasted DB load. There are ~4300 categories in DB
-    // total; non-empty subset is much smaller.
-    if (searchParams.get("flat") === "true") {
-      const [all, counts] = await Promise.all([
-        getActiveCategories(),
-        getNonEmptyCategoryIds(),
-      ]);
-      const slugs = all
-        .filter((c) => counts.has(c.id) && !isDegradedRetailName(c.name))
-        .map((c) => c.slug);
-      return NextResponse.json({ slugs });
-    }
 
     const parent = searchParams.get("parent")?.trim() || "root";
     const categories = await getMenuCategoriesForParent(parent);

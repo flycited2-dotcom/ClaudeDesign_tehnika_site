@@ -15,7 +15,7 @@ BASE="${WARM_CACHE_BASE:-https://climat-simf.ru}"
 TIMEOUT="${WARM_CACHE_TIMEOUT:-150}"
 
 # Fetch flat slug list from API.
-slugs_json="$(curl -s --max-time 30 "${BASE}/api/catalog/categories?flat=true")"
+slugs_json="$(curl -s --max-time 30 "${BASE}/api/catalog/categories/flat")"
 if [ -z "${slugs_json}" ]; then
   echo "[$(date -Is)] FAIL fetch slugs: empty response" >&2
   exit 1
