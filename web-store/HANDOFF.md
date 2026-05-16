@@ -24,6 +24,29 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-17 01:30 — Iter 15E: tokenized product search + degraded filter
+
+- Commits: `e30cfeb` (tokenize), `0db90ce` (degraded filter), `58d66e1` (collide-safe AND in suggest)
+- Deploy backups: `20260517012050`, `20260517012450`, `20260517012940`
+- Закрывает баг: «indesit стиральная машина» в поиске возвращал 0 товаров.
+
+**Root cause:**
+- `getCatalogPage` и `/api/search/suggest` искали полную подстроку `query.query` в каждом поле через `OR`. Запрос «indesit стиральная машина» не находил ни одного товара — у них supplierName=«Стиральная машина Indesit IWSB...», порядок слов другой.
+
+**Fix:**
+- Новые helpers в `src/lib/catalog.ts`: `buildProductSearchTokens(input)` — разбивает на слова (минимум 2 символа, максимум 6 токенов), `productSearchTokenOr(token)` — OR клауза по `supplierName/name/vendor/part/barcodes/sku`.
+- В `getCatalogPage` и в `/api/search/suggest/route.ts`: WHERE строится как `AND` каждого токена через OR-полей → товар должен содержать **все слова в любом порядке** в любом из полей. Пример: «indesit стиральная» теперь матчит «Стиральная машина Indesit IWSB...».
+- В поиск дополнительно подключён `normalRetailNameWhere()` — скрывает товары с «(Поврежденный товар)», «уценка», «б/у» и т.п. (раньше применялся только в homepage).
+- **Ловушка собственного fix'а:** spread `...normalRetailNameWhere()` (возвращает `{AND:[...]}`) + явный `AND:` в том же объекте — последний перезаписывает первый. Исправлено через `AND: [...tokens.map(...), normalRetailNameWhere()]` (массив с обоими блоками).
+
+**Prod-smoke:**
+- `/api/search/suggest?q=indesit стиральная машина` → 6 нормальных стиралок Indesit. Без «Поврежденный».
+- `/api/search/suggest?q=bosch холодильник` → 6 холодильников Bosch.
+
+**Известно (на будущее):**
+- Search использует Prisma `contains, mode: insensitive` — без full-text индексов. На больших запросах (5-6 токенов, частые редкие слова) может тормозить. Если станет проблемой — Postgres `pg_trgm` или Postgres FTS (`tsvector`) — отдельная итерация.
+- В БД у части товаров `name=null`, поиск падает на `supplierName`. Когда sync починит поля — поиск автоматически выиграет.
+
 ### 2026-05-17 01:09 — Iter 15D follow-up #2: same fix on homepage Популярные товары
 
 - Commit: `12cd8d7`
