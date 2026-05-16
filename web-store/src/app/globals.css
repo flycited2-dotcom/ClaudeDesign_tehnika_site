@@ -10,6 +10,35 @@ body {
   font-family: var(--font-inter), Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* Floating bottom ScreenBar: reserve space so it never overlaps the footer */
+body.app {
+  padding-bottom: 96px;
+}
+
+/* ScreenBar items are <Link> (renders as <a>); template CSS targets <button>.
+   Mirror those rules onto <a> without touching glass-template.css. */
+.screen-bar a {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background .2s ease, color .2s ease;
+}
+.screen-bar a:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+.screen-bar a.active {
+  background: linear-gradient(135deg, #75a2ff, #426dff);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(79, 125, 255, .3);
+}
+
 /* Product page 3-column layout (gallery | info | sticky aside) */
 .p-product-layout {
   display: grid;

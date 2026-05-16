@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { RoleProvider } from "@/components/role-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { SiteScreenBar } from "@/components/site-screen-bar";
 import { getRoleContext } from "@/lib/role";
 import "./globals.css";
 
@@ -65,6 +66,7 @@ export default async function RootLayout({
           <SiteHeader />
           <main>{children}</main>
           <SiteFooter />
+          <SiteScreenBar />
         </RoleProvider>
       </body>
     </html>
