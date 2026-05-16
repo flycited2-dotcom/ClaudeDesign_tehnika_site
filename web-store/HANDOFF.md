@@ -24,6 +24,14 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-16 22:32 — Iter 14 hotfix: disable Telegram CTA до запуска реального бота
+
+- Commit: `54e0593`
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260516223236.tar.gz`
+- Пользователь заметил, что кнопка «Открыть в Telegram» в `/bot` ничего не делает. Реального бота пока нет — `<button>` без href вводил в заблуждение.
+- В `bot-demo.tsx`: добавлен флаг `BOT_AVAILABLE = false`. Пока false — кнопка disabled (opacity .55, cursor not-allowed) + подпись «Бот запускается — ссылка появится позже». Когда true — `<a href="https://t.me/{BOT_USERNAME}" target="_blank">`.
+- Когда появится реальный бот: 1) `BOT_USERNAME = "<real>"`, 2) `BOT_AVAILABLE = true`, deploy.
+
 ### 2026-05-16 22:10 — Iter 14: real /bot landing + noindex для заглушек
 
 - Spec: [`docs/superpowers/specs/2026-05-16-iter14-bot-landing-design.md`](docs/superpowers/specs/2026-05-16-iter14-bot-landing-design.md)
