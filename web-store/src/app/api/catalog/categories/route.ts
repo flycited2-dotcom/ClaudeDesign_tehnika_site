@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
+import { getActiveCategories } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { isDegradedRetailName } from "@/lib/retail-products";
 
 export const dynamic = "force-dynamic";
 
-const STOREFRONT_CACHE_SECONDS = 300;
+// Keep in sync with STOREFRONT_CACHE_SECONDS in @/lib/catalog (1 hour, paired
+// with the cron warmer at scripts/warm_all.sh).
+const STOREFRONT_CACHE_SECONDS = 3600;
 
 type MenuCategory = {
   id: string;
@@ -82,6 +85,18 @@ const getMenuCategoriesForParent = unstable_cache(
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+
+    // flat=true: return all active+visible category slugs (including nested
+    // children) as a plain list. Used by the cron cache warmer so it can ping
+    // every category route once per cron cycle.
+    if (searchParams.get("flat") === "true") {
+      const all = await getActiveCategories();
+      const slugs = all
+        .filter((c) => !isDegradedRetailName(c.name))
+        .map((c) => c.slug);
+      return NextResponse.json({ slugs });
+    }
+
     const parent = searchParams.get("parent")?.trim() || "root";
     const categories = await getMenuCategoriesForParent(parent);
     return NextResponse.json({ categories });

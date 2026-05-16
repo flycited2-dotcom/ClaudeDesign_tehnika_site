@@ -27,7 +27,9 @@ import { prisma } from "@/lib/db";
 import { isDegradedRetailName, normalRetailNameWhere } from "@/lib/retail-products";
 
 const PRODUCTS_PER_PAGE = 24;
-const STOREFRONT_CACHE_SECONDS = 300;
+// 1 hour. Pair with cron cache warmer (scripts/warm_all.sh) every 30 min so
+// every category route is always hot for the first user request.
+const STOREFRONT_CACHE_SECONDS = 3600;
 
 export type CatalogQuery = {
   categorySlug?: string;
@@ -53,7 +55,7 @@ export function decimalToNumber(value: unknown): number {
   return Number(value);
 }
 
-const getActiveCategories = unstable_cache(async (): Promise<FlatCategory[]> => {
+export const getActiveCategories = unstable_cache(async (): Promise<FlatCategory[]> => {
   return prisma.category.findMany({
     where: {
       isActive: true,
