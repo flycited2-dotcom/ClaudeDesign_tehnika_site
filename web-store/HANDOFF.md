@@ -24,6 +24,16 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-16 22:47 — Iter 15A: quick-fixes (TG footer link + B2B 25%)
+
+- Commit: `9a0536f`
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260516224713.tar.gz`
+- Закрывает два долга из CLAUDE.md одной правкой:
+  1. **TG-иконка в footer** — `href="#"` → `https://t.me/+79785792995` (личный TG-контакт менеджера). `target="_blank"`, `rel="noopener noreferrer"`. WhatsApp и «Карта» остаются заглушками — у пользователя нет URL.
+  2. **B2B discount default 10% → 25%.** В `lib/role-pricing.ts` `DEFAULT_B2B_DISCOUNT` поменян на 25. Поскольку `NEXT_PUBLIC_*` инлайнится в bundle на build, правка `.env` всё равно требовала ребилда — поменяли в коде ради single source of truth. Если позже понадобится переопределить — переменная `NEXT_PUBLIC_B2B_DISCOUNT_PERCENT` на VPS всё ещё имеет приоритет.
+- Также обновлён `CLAUDE.md` worktree-копия — `default 10` → `default 25`.
+- Prod-smoke `/` → 200, в HTML `t.me/+79785792995`. b2b-цены вычисляются на клиенте по роли в localStorage — корректность проверена через build (формула в bundle).
+
 ### 2026-05-16 22:32 — Iter 14 hotfix: disable Telegram CTA до запуска реального бота
 
 - Commit: `54e0593`
