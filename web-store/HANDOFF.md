@@ -24,6 +24,35 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-16 23:48 — Iter 15C: eliminate cold-start for all categories
+
+- Spec: [`docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md`](docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md)
+- Commits: `51183d3` (основная реализация) + `d9a6b25` (фильтр пустых категорий + параллелизация после первого прода-замера)
+- Deploy backups: `20260516233915`, `20260516234649`
+- Закрывает долг «Cold-start длинного хвоста категорий» из CLAUDE.md.
+
+**Что вошло:**
+- **`src/lib/catalog.ts`** — `STOREFRONT_CACHE_SECONDS` 300 → 3600 (1 час). `getActiveCategories` экспортирован (был private).
+- **`src/app/api/catalog/categories/route.ts`** — `STOREFRONT_CACHE_SECONDS` 300 → 3600. При `?flat=true` возвращает `{slugs:[…]}` — все active+visible категории, у которых есть товары (через новый `getNonEmptyCategoryIds` cached helper).
+- **`scripts/warm_all.sh`** (НОВЫЙ) — параллельный warmer на xargs -P 8: pulls slug list из API, пингует `/catalog/<slug>` для каждой. Тайм-аут 150 с/курл, silent on success, фейлы в stderr.
+- **VPS cron** (операционно): `*/30 * * * * /var/www/climat-simf.ru/scripts/warm_all.sh >> /var/log/climat-simf-warm-all.log 2>&1`. Установлен через paramiko-скрипт. Существующий `warm_cache.sh` (топ-12, каждые 4 мин) НЕ трогали — он остаётся для самых горячих маршрутов.
+- **CLAUDE.md** (worktree-копия) — обновлён раздел про операционные правки на VPS.
+
+**Важные замеры с прода:**
+- `getActiveCategories` отдаёт 4342 категории (не 16 как казалось по top-level API).
+- После фильтра по productCount > 0 — 1755 категорий с товарами.
+- Параллельно (xargs -P 8) типичный warm-цикл на тёплых данных ~5-6 мин (укладывается в 30-мин cron). Bootstrap (первый прогон по cold-данным) может занять до 30+ мин — запущен в фоне на VPS PID 767675, логи `/var/log/climat-simf-warm-all-bootstrap.log`.
+
+**Verification:**
+- `npm run lint` чисто, `npm run test` 134/134, `npm run build` успешен.
+- Prod-smoke `/api/catalog/categories?flat=true` → `{"slugs":[…1755 items…]}`.
+- Cron установлен и виден в `crontab -l`.
+
+**Известные риски / следующее:**
+- При увеличении ассортимента (больше категорий с товарами) надо мониторить runtime warm_all — если приблизится к 30 мин, поднять параллельность (xargs -P 16) или ослабить cadence до раз в час.
+- Cron-задание не в git (по политике CLAUDE.md). При пересборке VPS нужно ставить заново — задокументировано в скрипте (см. шапку `warm_all.sh`).
+- TTL=3600 для меню тоже — новые категории появляются в навигации до часа. Если станет проблемой — разнести TTL для menu (300) и для каталога (3600).
+
 ### 2026-05-16 23:24 — Iter 15B: real /service page
 
 - Spec: [`docs/superpowers/specs/2026-05-16-iter15b-service-page-design.md`](docs/superpowers/specs/2026-05-16-iter15b-service-page-design.md)

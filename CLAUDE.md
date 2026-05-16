@@ -131,10 +131,19 @@ WEB_STORE_VPS_PASSWORD='...' python scripts/deploy_vps.py
   добавлены `proxy_read_timeout 180s; proxy_send_timeout 180s;
   proxy_connect_timeout 30s;`. Иначе Nginx обрезал cold-start крупных
   категорий на 60 с.
-- **Cache warmer cron**: `*/4 * * * *` пингует `scripts/warm_cache.sh`
+- **Cache warmer cron (топ-12)**: `*/4 * * * *` пингует `scripts/warm_cache.sh`
   с 12 горячими маршрутами (главная, /catalog, 4 топ-категории, 6 /podborki/*).
-  Cadence 4 мин < `unstable_cache.revalidate=300s`, поэтому кэш всегда тёплый.
+  Cadence 4 мин < `unstable_cache.revalidate=300s` (раньше; см. ниже про новый TTL).
   Логи в `/var/log/climat-simf-warm.log`. Скрипт идемпотентен.
+- **Cache warmer cron (все категории, с Iter 15C, 2026-05-16)**: `*/30 * * * *`
+  пингует `scripts/warm_all.sh` — тянет `/api/catalog/categories?flat=true`
+  (список slug всех непустых категорий, ~1755 из 4342 в DB) и параллельно
+  (xargs -P 8) пингует `/catalog/<slug>` для каждой. Cadence 30 мин < новый
+  `STOREFRONT_CACHE_SECONDS=3600`, поэтому каждая категория всегда тёплая.
+  Логи в `/var/log/climat-simf-warm-all.log` (cron) и
+  `/var/log/climat-simf-warm-all-bootstrap.log` (первый ручной прогон при
+  установке). Скрипт идемпотентен. **Это операционная правка — добавлена
+  через `crontab -e`, в git только сам скрипт.**
 
 ## RSC / Next.js 16 — ловушки
 
