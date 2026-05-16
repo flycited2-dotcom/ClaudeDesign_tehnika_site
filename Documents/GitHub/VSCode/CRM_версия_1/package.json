@@ -1,0 +1,16 @@
+{
+  "name": "crm-frontend",
+  "version": "1.0.0",
+  "description": "CRM Frontend Prototype",
+  "type": "module",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "puppeteer": "^25.0.2"
+  }
+}
