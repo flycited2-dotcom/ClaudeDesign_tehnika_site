@@ -1,3 +1,4 @@
+import nodemailer, { type Transporter } from "nodemailer";
 import { storefront } from "@/lib/storefront";
 
 type SendArgs = {
@@ -7,11 +8,63 @@ type SendArgs = {
   html?: string;
 };
 
-export type MailSendResult = { ok: true; provider: "resend" | "console" } | { ok: false; error: string };
+export type MailSendResult =
+  | { ok: true; provider: "smtp" | "resend" | "console" }
+  | { ok: false; error: string };
 
 function logToConsole({ to, subject, text }: SendArgs): MailSendResult {
   console.info(`[mailer:console] to=${to} subject=${subject}\n${text}`);
   return { ok: true, provider: "console" };
+}
+
+// SMTP transporter is cached per-process: opening a TLS connection per email
+// is wasteful and Sprinthost will rate-limit fresh connections.
+let cachedSmtp: Transporter | null = null;
+let cachedSmtpKey: string | null = null;
+
+function getSmtpTransport(): Transporter | null {
+  const host = process.env.SMTP_HOST;
+  const portStr = process.env.SMTP_PORT;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+  if (!host || !portStr || !user || !pass) return null;
+
+  const port = Number(portStr);
+  if (!Number.isFinite(port) || port <= 0) return null;
+
+  const key = `${host}:${port}:${user}`;
+  if (cachedSmtp && cachedSmtpKey === key) return cachedSmtp;
+
+  // 465 → implicit TLS, 587/25 → STARTTLS upgrade.
+  const secure = port === 465;
+  cachedSmtp = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+    connectionTimeout: 15_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  });
+  cachedSmtpKey = key;
+  return cachedSmtp;
+}
+
+async function sendViaSmtp(args: SendArgs, from: string): Promise<MailSendResult> {
+  const transport = getSmtpTransport();
+  if (!transport) return { ok: false, error: "smtp env not configured" };
+  try {
+    await transport.sendMail({
+      from,
+      to: args.to,
+      subject: args.subject,
+      text: args.text,
+      html: args.html,
+    });
+    return { ok: true, provider: "smtp" };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "unknown" };
+  }
 }
 
 async function sendViaResend(args: SendArgs, apiKey: string, from: string): Promise<MailSendResult> {
@@ -40,13 +93,30 @@ async function sendViaResend(args: SendArgs, apiKey: string, from: string): Prom
   }
 }
 
+/**
+ * Order of preference:
+ *   1. SMTP (SMTP_HOST + port + user + password) — production path for
+ *      Sprinthost mailbox (typically noreply@climat-simf.ru).
+ *   2. Resend (RESEND_API_KEY) — legacy fallback if someone sets it later.
+ *   3. Console — dev fallback, prints to pm2 logs. Use only locally.
+ */
 export async function sendMail(args: SendArgs): Promise<MailSendResult> {
-  const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM || `${storefront.brand} <noreply@climat-simf.ru>`;
 
+  if (getSmtpTransport()) {
+    const result = await sendViaSmtp(args, from);
+    if (result.ok) return result;
+    // Surface SMTP errors instead of silently falling back — otherwise the
+    // user thinks login worked but no email is sent.
+    console.error("[mailer:smtp] failed:", result.error);
+    return result;
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
   if (apiKey) {
     return sendViaResend(args, apiKey, from);
   }
+
   return logToConsole(args);
 }
 
