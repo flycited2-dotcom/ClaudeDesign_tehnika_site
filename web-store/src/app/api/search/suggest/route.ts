@@ -6,6 +6,7 @@ import {
 } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { productImageSrc } from "@/lib/product-images";
+import { normalRetailNameWhere } from "@/lib/retail-products";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ export async function GET(request: Request) {
       where: {
         isActive: true,
         isVisible: true,
+        // Hide degraded items ("поврежденный товар", "уценка", "б/у" etc).
+        ...normalRetailNameWhere(),
         AND: tokens.map((token) => productSearchTokenOr(token)),
       },
       select: {

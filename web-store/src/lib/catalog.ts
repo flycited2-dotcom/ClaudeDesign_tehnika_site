@@ -483,8 +483,12 @@ export async function getCatalogPage(query: CatalogQuery) {
       // AND of (OR across fields) for each token — finds products that
       // contain every word, in any order, across name/supplierName/vendor/etc.
       // Example: "indesit стиральная" matches "Стиральная машина Indesit IWSB...".
+      // Also hide degraded items (поврежденный товар / уценка / б/у) from
+      // search results — same rule as homepage Популярные товары.
+      const degradedClause = normalRetailNameWhere();
       filteredWhere.AND = [
         ...toProductWhereArray(filteredWhere.AND),
+        ...(degradedClause.AND ? toProductWhereArray(degradedClause.AND) : []),
         ...tokens.map((token) => productSearchTokenOr(token)),
       ];
     }
