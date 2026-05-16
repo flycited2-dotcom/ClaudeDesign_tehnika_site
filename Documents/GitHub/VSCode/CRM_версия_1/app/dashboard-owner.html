@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Рабочий стол · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    /* ── Hero strip ── */
+    .hero-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 100% 0%, var(--accent-soft) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-greeting {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .hero-subtitle {
+      margin-top: 6px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .hero-metrics {
+      display: flex;
+      gap: 32px;
+      flex-shrink: 0;
+    }
+    .hero-metric {
+      text-align: right;
+    }
+    .hero-metric-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .hero-metric-value {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-metric-divider {
+      width: 1px;
+      background: var(--border-subtle);
+      align-self: stretch;
+    }
+
+    /* ── Problem zone cards ── */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 1280px) {
+      .problem-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    .problem-card-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    .problem-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .problem-item:last-child {
+      border-bottom: none;
+    }
+    .problem-item-text {
+      flex: 1;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .problem-item-ts {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      margin-left: auto;
+      white-space: nowrap;
+    }
+    .problem-more {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* ── Notifications panel ── */
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .notif-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      cursor: default;
+      transition: background var(--dur-fast) var(--ease-spring);
+    }
+    .notif-item:hover {
+      background: var(--bg-hover);
+    }
+    .notif-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .notif-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .notif-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+    .notif-text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      margin-top: 2px;
+    }
+    .notif-ts {
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    /* ── Two-column row ── */
+    .two-col-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 1024px) {
+      .two-col-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── Card header ── */
+    .card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .card-head-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+    }
+    .card-head-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ── Online indicator on shift ── */
+    .on-shift {
+      font-style: italic;
+      color: var(--status-success-fg);
+      font-size: 13px;
+    }
+    .off-shift {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Employees table overflow scroll ── */
+    #employees-table {
+      overflow-x: auto;
+    }
+
+    /* ── Hero metric responsive ── */
+    @media (max-width: 900px) {
+      .hero-metrics {
+        display: none;
+      }
+    }
+
+    /* ── KPI section min-height for last stray card ── */
+    #kpis .kpi {
+      min-height: 116px;
+    }
+  </style>
+</head>
+<body data-route="dashboard" data-title="Рабочий стол">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Рабочий стол</h1>
+            <p class="text-secondary">Управленческая сводка · сегодня</p>
+          </div>
+          <div class="flex items-center gap-2"><!-- page actions --></div>
+        </header>
+
+        <!-- MAIN GRID -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
+
+          <!-- 1. HERO STRIP -->
+          <section id="hero">
+            <div class="hero-card">
+              <div class="hero-overlay"></div>
+              <div style="position:relative; z-index:1;">
+                <div class="hero-greeting">Доброе утро, Анна</div>
+                <div class="hero-subtitle" id="hero-subtitle">Вторник, 17 мая · подсчёт проблемных зон…</div>
+              </div>
+              <div class="hero-metrics" style="position:relative; z-index:1;">
+                <div class="hero-metric">
+                  <div class="hero-metric-label">Активных сделок</div>
+                  <div class="hero-metric-value" id="hero-active-deals">—</div>
+                </div>
+                <div class="hero-metric-divider"></div>
+                <div class="hero-metric">
+                  <div class="hero-metric-label">Сумма в работе</div>
+                  <div class="hero-metric-value" id="hero-work-sum">—</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. KPI GRID -->
+          <section id="kpis" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px;"></section>
+
+          <!-- 3. TWO-COLUMN ROW -->
+          <section class="two-col-row">
+            <!-- Left: Employees today -->
+            <div class="card" style="padding:0; overflow:hidden;">
+              <div style="padding: 20px 24px 16px;">
+                <div class="card-head" style="margin-bottom:0;">
+                  <span class="card-head-title">Сотрудники сегодня</span>
+                  <span class="card-head-sub">Всего 8</span>
+                </div>
+              </div>
+              <div id="employees-table"></div>
+            </div>
+
+            <!-- Right: Notifications -->
+            <div class="card">
+              <div class="card-head">
+                <span class="card-head-title">Уведомления</span>
+                <span class="card-head-sub">последние 6</span>
+              </div>
+              <div class="notif-list" id="notif-list"></div>
+            </div>
+          </section>
+
+          <!-- 4. PROBLEM ZONES -->
+          <section>
+            <div class="problem-grid" id="problem-grid"></div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+      const now  = Date.now();
+
+      // ─── HELPERS ──────────────────────────────────────────────────────────────
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayDateStr = new Date().toDateString();
+
+      function timeHHMM(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      }
+
+      function roleLabel(role) {
+        const map = {
+          owner: 'Собственник',
+          head_of_sales: 'РОП',
+          manager: 'Менеджер',
+          tender_specialist: 'Тендеры',
+          purchaser: 'Закупки',
+        };
+        return map[role] || role;
+      }
+
+      // ─── ACTIVE DEALS ────────────────────────────────────────────────────────
+      const activeDeals = MOCK.deals.filter(d => !['won','lost'].includes(d.stage));
+      const activeCount = activeDeals.length;
+      const activeSum   = activeDeals.reduce((s, d) => s + (d.amount || 0), 0);
+
+      document.getElementById('hero-active-deals').textContent = activeCount;
+      document.getElementById('hero-work-sum').textContent = CRM.formatMoney(activeSum);
+
+      // ─── HERO SUBTITLE ───────────────────────────────────────────────────────
+      // Count distinct problem items across all 4 zones
+      const leadsNoOwner   = MOCK.leads.filter(l => l.responsible === null).length;
+      const leadsUnproc    = MOCK.leads.filter(l => l.status === 'new' && (now - new Date(l.createdAt).getTime()) > 15*60000).length;
+      const stuckDeals     = activeDeals.filter(d => (now - new Date(d.lastActionAt).getTime()) > 3*86400000).length;
+      const overdueTasksN  = MOCK.tasks.filter(t => t.status === 'overdue').length;
+      const tenderDeadline = MOCK.tenders.filter(t => !['won','lost'].includes(t.status) && (new Date(t.deadlineSubmit).getTime() - now) < 48*3600000 && (new Date(t.deadlineSubmit).getTime() - now) > 0).length;
+      const offersNoResp   = MOCK.offers.filter(o => o.sentAt && (now - new Date(o.sentAt).getTime()) > 86400000 && !o.viewedAt).length;
+      // Total: card A items + card B items + card C items + card D items
+      const problemZoneCount = leadsNoOwner + leadsUnproc + stuckDeals + overdueTasksN + tenderDeadline + offersNoResp;
+
+      const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+      const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+      const today = new Date();
+      const heroDateStr = `${days[today.getDay()]}, ${today.getDate()} ${months[today.getMonth()]}`;
+      document.getElementById('hero-subtitle').textContent =
+        `${heroDateStr} · ${problemZoneCount} проблемных зон требуют внимания`;
+
+      // ─── KPI GRID ────────────────────────────────────────────────────────────
+      const kpiSect = document.getElementById('kpis');
+
+      const kpi1_newToday  = MOCK.leads.filter(l => new Date(l.createdAt).toDateString() === todayDateStr).length;
+      const kpi2_unproc    = MOCK.leads.filter(l => l.status === 'new').length;
+      const kpi3_active    = activeCount;
+      const kpi4_overdue   = MOCK.tasks.filter(t => t.status === 'overdue').length;
+      const kpi5_offerSent = MOCK.offers.filter(o => o.sentAt !== null).length;
+      const kpi6_online    = MOCK.workSessions.filter(s => s.date === todayStr && s.logoutAt === null).length;
+      const kpi7_tender48  = MOCK.tenders.filter(t =>
+        !['won','lost'].includes(t.status) &&
+        (new Date(t.deadlineSubmit).getTime() - now) < 48*3600000 &&
+        (new Date(t.deadlineSubmit).getTime() - now) > 0
+      ).length;
+
+      const kpis = [
+        { value: kpi1_newToday,  label: 'Новые заявки сегодня',     delta: '+2 vs вчера',       trend: 'up'   },
+        { value: kpi2_unproc,    label: 'Необработанные заявки',     delta: kpi2_unproc > 0 ? 'требуют внимания' : 'все обработаны', trend: kpi2_unproc > 0 ? 'down' : 'up' },
+        { value: kpi3_active,    label: 'Активные сделки',           delta: '+1 vs вчера',       trend: 'up'   },
+        { value: kpi4_overdue,   label: 'Просроченные задачи',       delta: kpi4_overdue > 0 ? '−1 vs вчера' : 'без изменений', trend: kpi4_overdue > 0 ? 'down' : 'up' },
+        { value: kpi5_offerSent, label: 'Отправленные КП',           delta: '+1 vs вчера',       trend: 'up'   },
+        { value: kpi6_online,    label: 'Сотрудники онлайн',         delta: 'из 8 на смене',     trend: 'up'   },
+        { value: kpi7_tender48,  label: 'Тендерные дедлайны <48ч',  delta: kpi7_tender48 > 0 ? 'срочно' : 'без изменений', trend: kpi7_tender48 > 0 ? 'down' : 'up' },
+      ];
+
+      kpis.forEach(k => {
+        kpiSect.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k));
+      });
+
+      // ─── EMPLOYEES TABLE ─────────────────────────────────────────────────────
+      // Get today's sessions (fallback to most recent date)
+      let sessions = MOCK.workSessions.filter(s => s.date === todayStr);
+      if (!sessions.length) {
+        // fallback: find most recent date
+        const dates = [...new Set(MOCK.workSessions.map(s => s.date))].sort().reverse();
+        sessions = MOCK.workSessions.filter(s => s.date === dates[0]);
+      }
+
+      // Join with users
+      const empRows = sessions.map(s => {
+        const user = MOCK.users.find(u => u.id === s.userId) || {};
+        return {
+          ...s,
+          name: user.name || s.userId,
+          role: user.role || '',
+        };
+      }).sort((a, b) => {
+        // Собственник first, then РОП, then rest
+        const order = { owner: 0, head_of_sales: 1 };
+        return (order[a.role] ?? 99) - (order[b.role] ?? 99);
+      });
+
+      CRM.renderTable('#employees-table', {
+        columns: [
+          {
+            key: 'name', label: 'СОТРУДНИК',
+            render: r => `<span style="display:inline-flex;align-items:center;gap:8px;">${CRM.renderAvatar(r.name,'sm')}<span style="font-size:13px;font-weight:500;">${r.name.split(' ').slice(0,2).join(' ')}</span></span>`
+          },
+          {
+            key: 'role', label: 'РОЛЬ',
+            render: r => `<span style="font-size:13px;color:var(--text-secondary);">${roleLabel(r.role)}</span>`
+          },
+          {
+            key: 'loginAt', label: 'ВХОД',
+            render: r => r.loginAt ? `<span class="num" style="font-size:13px;">${timeHHMM(r.loginAt)}</span>` : '<span class="text-muted">—</span>'
+          },
+          {
+            key: 'logoutAt', label: 'ВЫХОД',
+            render: r => r.logoutAt
+              ? `<span class="num" style="font-size:13px;">${timeHHMM(r.logoutAt)}</span>`
+              : '<span class="on-shift">на смене</span>'
+          },
+          {
+            key: 'hoursWorked', label: 'ЧАСОВ', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.hoursWorked}</span>`
+          },
+          {
+            key: 'tasksDone', label: 'ВЫПОЛНЕНО', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.tasksDone}</span>`
+          },
+          {
+            key: 'tasksOverdue', label: 'ПРОСРОЧЕНО', numeric: true,
+            render: r => r.tasksOverdue > 0
+              ? `<span class="badge badge--danger badge--flat">${r.tasksOverdue}</span>`
+              : `<span class="num" style="font-size:13px;color:var(--text-muted);">0</span>`
+          },
+          {
+            key: 'offersSent', label: 'КП', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.offersSent}</span>`
+          },
+          {
+            key: 'activeDeals', label: 'СДЕЛКИ', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.activeDeals}</span>`
+          },
+        ],
+        rows: empRows,
+        empty: { title: 'Нет данных за сегодня', body: 'Данные по смене появятся после начала рабочего дня.' }
+      });
+
+      // ─── NOTIFICATIONS PANEL ─────────────────────────────────────────────────
+      const severityColor = {
+        info:    'var(--status-info-fg)',
+        success: 'var(--status-success-fg)',
+        warning: 'var(--status-warning-fg)',
+        danger:  'var(--status-danger-fg)',
+        neutral: 'var(--status-neutral-fg)',
+      };
+
+      const sorted = [...MOCK.notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 6);
+      const notifList = document.getElementById('notif-list');
+
+      notifList.innerHTML = sorted.map(n => `
+        <div class="notif-item">
+          <div class="notif-dot" style="background:${severityColor[n.severity] || severityColor.neutral};"></div>
+          <div class="notif-body">
+            <div class="notif-title">${n.title}</div>
+            <div class="notif-text">${n.body}</div>
+          </div>
+          <div class="notif-ts">${CRM.formatRelative(n.createdAt)}</div>
+        </div>
+      `).join('');
+
+      // ─── PROBLEM ZONE CARDS ──────────────────────────────────────────────────
+      function renderProblemItem(badge, text, ts) {
+        return `
+          <div class="problem-item">
+            <div style="flex-shrink:0;">${badge}</div>
+            <div class="problem-item-text" title="${text}">${text}</div>
+            <div class="problem-item-ts">${CRM.formatRelative(ts)}</div>
+          </div>
+        `;
+      }
+
+      function renderProblemCard(title, items) {
+        const cap = 5;
+        const shown = items.slice(0, cap);
+        const extra = items.length - shown.length;
+        return `
+          <div class="card">
+            <div class="problem-card-title">${title}</div>
+            ${shown.map(i => renderProblemItem(
+              CRM.renderBadge(i.severity, i.label),
+              i.text,
+              i.ts
+            )).join('')}
+            ${shown.length === 0 ? '<p style="font-size:13px;color:var(--text-muted);">Нет проблем</p>' : ''}
+            ${extra > 0 ? `<div class="problem-more">… +${extra} ещё</div>` : ''}
+          </div>
+        `;
+      }
+
+      // Card A — Лиды
+      const cardAItems = [];
+      MOCK.leads.filter(l => l.responsible === null).forEach(l => {
+        cardAItems.push({ severity: 'warning', label: 'Без ответственного', text: l.title, ts: l.createdAt });
+      });
+      MOCK.leads.filter(l => l.status === 'new' && (now - new Date(l.createdAt).getTime()) > 15*60000).forEach(l => {
+        const mins = Math.round((now - new Date(l.createdAt).getTime()) / 60000);
+        cardAItems.push({ severity: 'danger', label: `Без обработки ${mins} мин`, text: l.title, ts: l.createdAt });
+      });
+
+      // Card B — Сделки
+      const cardBItems = [];
+      activeDeals.filter(d => (now - new Date(d.lastActionAt).getTime()) > 3*86400000).forEach(d => {
+        const daysStuck = Math.round((now - new Date(d.lastActionAt).getTime()) / 86400000);
+        const client = MOCK.clients.find(c => c.id === d.clientId);
+        cardBItems.push({ severity: 'warning', label: `Без движения ${daysStuck} дн`, text: `${d.number} · ${client ? client.name : d.clientId}`, ts: d.lastActionAt });
+      });
+
+      // Card C — Задачи
+      const cardCItems = MOCK.tasks.filter(t => t.status === 'overdue').map(t => ({
+        severity: 'danger', label: 'Просрочена', text: t.title, ts: t.deadline
+      }));
+
+      // Card D — КП и тендеры
+      const cardDItems = [];
+      MOCK.offers.filter(o => o.sentAt && (now - new Date(o.sentAt).getTime()) > 86400000 && !o.viewedAt).forEach(o => {
+        const client = MOCK.clients.find(c => c.id === o.clientId);
+        const daysWaiting = Math.round((now - new Date(o.sentAt).getTime()) / 86400000);
+        cardDItems.push({ severity: 'warning', label: `Нет ответа ${daysWaiting} дн`, text: `${o.number} · ${client ? client.name : o.clientId}`, ts: o.sentAt });
+      });
+      MOCK.tenders.filter(t => {
+        const dl = new Date(t.deadlineSubmit).getTime();
+        return !['won','lost'].includes(t.status) && (dl - now) < 48*3600000 && (dl - now) > 0;
+      }).forEach(t => {
+        const ms = new Date(t.deadlineSubmit).getTime() - now;
+        const totalHours = Math.floor(ms / 3600000);
+        const dDays = Math.floor(totalHours / 24);
+        const dHours = totalHours % 24;
+        const label = dDays > 0 ? `Дедлайн ${dDays} д ${dHours} ч` : `Дедлайн ${dHours} ч`;
+        cardDItems.push({ severity: 'danger', label, text: t.title, ts: t.deadlineSubmit });
+      });
+
+      const problemGrid = document.getElementById('problem-grid');
+      problemGrid.innerHTML = [
+        renderProblemCard('Лиды', cardAItems),
+        renderProblemCard('Сделки', cardBItems),
+        renderProblemCard('Задачи', cardCItems),
+        renderProblemCard('КП и тендеры', cardDItems),
+      ].join('');
+
+      // Re-run lucide after DOM mutations
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
