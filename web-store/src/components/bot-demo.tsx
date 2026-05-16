@@ -19,7 +19,9 @@ import {
 } from "lucide-react";
 
 // @buttehopt_bot — мок-username, реальный bot подключим позже одной правкой констант.
+// Когда бот появится: 1) поменять BOT_USERNAME, 2) поставить BOT_AVAILABLE = true.
 const BOT_USERNAME = "buttehopt_bot";
+const BOT_AVAILABLE = false;
 
 type MsgMe = { who: "me"; text?: string; voice?: number };
 type MsgBot = { who: "bot"; text: string };
@@ -301,9 +303,36 @@ export function BotDemo() {
             <div className="nm">@{BOT_USERNAME}</div>
             <div className="meta">t.me/{BOT_USERNAME}</div>
             <div style={{ marginTop: 8 }}>
-              <button type="button" className="btn btn-sm btn-primary">
-                Открыть в Telegram
-              </button>
+              {BOT_AVAILABLE ? (
+                <a
+                  className="btn btn-sm btn-primary"
+                  href={`https://t.me/${BOT_USERNAME}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Открыть в Telegram
+                </a>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary"
+                    disabled
+                    style={{ opacity: 0.55, cursor: "not-allowed" }}
+                  >
+                    Открыть в Telegram
+                  </button>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 11,
+                      color: "var(--text-mute)",
+                    }}
+                  >
+                    Бот запускается — ссылка появится позже
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
