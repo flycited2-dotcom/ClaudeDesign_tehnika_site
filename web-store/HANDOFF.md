@@ -24,6 +24,17 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-17 01:09 — Iter 15D follow-up #2: same fix on homepage Популярные товары
+
+- Commit: `12cd8d7`
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260517010912.tar.gz`
+- Пользователь заметил: блок «Популярные товары» на главной — те же 4 placeholder'а «Фото уточняется».
+- Причина: `getHomeSnapshot` — отдельная функция от `getCatalogPage`, со своим WHERE без image+price-band фильтров. Применил аналогичную правку в `src/lib/catalog.ts`:
+  - `retailPrice: { gte: 3000, lte: 300000 }` (массмаркет)
+  - `images: { some: { deleted: false } }` (реальная Image-запись)
+- Prod-smoke `/` → 8 реальных `<img>` тегов, 0 placeholder'ов.
+- Если в будущем добавляются новые витрины популярных товаров (`/podborki/*`, лендинги, мини-блоки) — применять тот же фильтр шаблоном.
+
 ### 2026-05-17 01:04 — Iter 15D follow-up: require real Image row in default catalog
 
 - Commit: `2e34940`
