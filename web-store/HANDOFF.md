@@ -24,7 +24,40 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
-### 2026-05-16 — Очередь следующей сессии (Iter 13: chrome под макет «лев.html»)
+### 2026-05-16 19:26 — Iter 13: bottom ScreenBar + /service + /bot stubs
+
+- Spec: [`docs/superpowers/specs/2026-05-16-iter13-chrome-screenbar-design.md`](docs/superpowers/specs/2026-05-16-iter13-chrome-screenbar-design.md) (commit `1402422`)
+- Branch commits:
+  - `338871d` — первая версия спека (исходила из неверного предположения «удалить topline»)
+  - `1402422` — рерайт спека после сверки скринов от пользователя + `chrome.jsx` + `Магазин.html`: единственное расхождение — отсутствие ScreenBar; topline на проде/в макете уже идентичны
+  - `b4d9e47` — реализация
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260516192647.tar.gz`
+- Build log: `/tmp/climat-simf-build-20260516192647.log`
+- **Контекст:** прошлая сессия (Iter 12) оставила HANDOFF-заметку «topline удалён в новом макете» — это оказалось неверной интерпретацией. Скрины реального макета (`Магазин.html` собранный в браузере) показали, что topline остаётся со всеми элементами (город / «Помощь» / «Сервис» / role-switch). Реальное расхождение — только отсутствие плавающей нижней навигации (`ScreenBar` из `chrome.jsx:213-238`). Эта итерация закрывает именно его.
+
+**Что вошло:**
+- **`src/components/site-screen-bar.tsx`** — client component, `usePathname` + `<Link>`. 10 пунктов (без «Товар» из шаблона — нет `/product` без slug): Главная · Каталог · Сравнение · Корзина · Оформление · | · Кабинет · B2B · Госзакупки · Сервис · | · Telegram-агент. Правила активности: `/` точно, `/catalog/*` и `/product/*` подсвечивают «Каталог», `/account/*` — «Кабинет», остальные — точное совпадение href.
+- **`src/app/layout.tsx`** — импорт + рендер `<SiteScreenBar />` после `<SiteFooter />` внутри `RoleProvider`.
+- **`src/app/globals.css`** — `body.app{padding-bottom:96px}` (чтобы fixed-bar не перекрывал футер) + override `.screen-bar a`/`.screen-bar a:hover`/`.screen-bar a.active` (template CSS таргетит `<button>`, а `Link` рендерится как `<a>`; зеркалим правила без правки `glass-template.css`).
+- **`src/app/service/page.tsx`** + **`src/app/bot/page.tsx`** — server-pages, coming-soon заглушки в glass-стиле (bread → section-head → `.glass` карточка + CTA). По скринам у пользователя в макете есть полная страница `/service` (по `screen-service.jsx`) — в этой итерации сознательно делаем заглушки, реальный контент — отдельный подпроект.
+
+**Что НЕ вошло (по согласованию):**
+- VK в footer-socials (отложено до получения URL — есть отдельный долг в CLAUDE.md убрать все `href="#"`).
+- Реальный контент `/service` (гарантия, ремонт, формы заявок) — отдельная итерация.
+- Реальный `/bot` Telegram-агент (бизнес-логика, интеграция).
+- Пункт «Товар» в bar — скрыт, у нас нет роута `/product` без slug.
+- Любые правки topline/role-switch/header/footer.
+
+**Verification:**
+- `npm run lint` чисто, `npm run test` 134/134, `npm run build` успешен (`/service` и `/bot` появились в маршрутах).
+- Prod-smoke: `/`, `/catalog`, `/cart`, `/b2b`, `/gov`, `/service`, `/bot` → 200; `/account` → 307 (middleware-редирект анонов на `/login` после Iter 12, ожидаемо).
+- В HTML главной присутствуют и `screen-bar`, и `topline` — оба chrome-блока работают одновременно.
+
+**Известные риски / следующее:**
+- Заглушки `/service` и `/bot` индексируются (`robots.index: true` глобально). Если хотим скрыть их от поиска до запуска реального контента — добавить per-page `metadata.robots: { index: false }`.
+- На мобиле bar активирует overflow-x:auto и горизонтально прокручивается (правило шаблона). Если на узких экранах будет неудобно, можно ввести compact-режим (только иконки) — отдельным улучшением.
+
+### 2026-05-16 — Очередь следующей сессии (Iter 13: chrome под макет «лев.html») [закрыто, см. запись 19:26 выше]
 
 > Пользователь показал актуальный макет (`лев.html` в Claude Design — не лежит в репо, только скриншоты). Сравнение с продом:
 
