@@ -24,7 +24,51 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
-### 2026-05-16 23:48 — Iter 15C: eliminate cold-start for all categories
+### 2026-05-17 00:19 — Iter 15C: eliminate cold-start for all categories (final state)
+
+- Spec: [`docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md`](docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md)
+- Commits:
+  - `51183d3` — первая реализация (warm_all.sh, flat в существующем route)
+  - `d9a6b25` — фильтр empty + параллелизация xargs -P 8
+  - `bd2e57a` — **fix:** вынес flat в отдельный `/api/catalog/categories/flat/route.ts` после обнаружения, что turbopack persistent cache держит старый компиляут существующего `route.ts` (см. ловушки ниже)
+  - `c66e93f` — **fix:** flock в `warm_all.sh` против overlapping cron-runs (первый bootstrap ~60-77 мин > cadence 30 мин)
+- Deploy backups: `20260516233915`, `20260516234649`, `20260516235923`, `20260517001743`
+- Закрывает долг «Cold-start длинного хвоста категорий» из CLAUDE.md.
+
+**Что вошло:**
+- **`src/lib/catalog.ts`** — `STOREFRONT_CACHE_SECONDS` 300 → 3600. `getActiveCategories` экспортирован.
+- **`src/app/api/catalog/categories/route.ts`** — `STOREFRONT_CACHE_SECONDS` 300 → 3600 (только апдейт константы; новый функционал НЕ добавлять сюда — см. ниже).
+- **`src/app/api/catalog/categories/flat/route.ts`** (НОВЫЙ) — `GET → {slugs:[...]}` — все active+visible категории с productCount>0 (1755 из 4342 на момент деплоя). Использует `getActiveCategories` + новый cached `getNonEmptyCategoryIds`.
+- **`scripts/warm_all.sh`** (НОВЫЙ) — `flock -n` против overlapping runs. Берёт slugs из API, `xargs -P 8` параллельно курлит `/catalog/<slug>`. Silent on success.
+- **VPS cron** (операционно): `*/30 * * * * /var/www/climat-simf.ru/scripts/warm_all.sh >> /var/log/climat-simf-warm-all.log 2>&1` — установлен через paramiko. Существующий `warm_cache.sh` (топ-12, каждые 4 мин) НЕ трогали.
+- **CLAUDE.md** worktree — обновлён операционный раздел.
+
+**Замеры с прода:**
+- Cold категория (вне топ-warmer'а до прогрева): **~21 сек** (`kabeli-i-perekhodniki-12041`, `knigi-i-zhurnaly-11432`, `muzyka-na-vinile-13002`).
+- Warm категория после warm_all: **~1 сек** (`3d-ochki-14833`).
+- Первый bootstrap-прогон: 1755 × 21 / 8 параллель = ~77 мин. Запущен в фоне PID 777076 в 00:19:37 MSK, логи `/var/log/climat-simf-warm-all-bootstrap.log` (silent on success).
+- Регулярный warm-цикл на тёплых данных: 1755 × 1 / 8 ≈ 3.5 мин (укладывается в 30-мин cron).
+
+**Verification:**
+- `npm run lint` чисто, `npm run test` 134/134, `npm run build` успешен.
+- Endpoint: `curl https://climat-simf.ru/api/catalog/categories/flat` → `{"slugs":[…1755…]}`. Старый `?flat=true` параметр **не работает** (см. ловушки) — warmer обращается к новому URL `/flat`.
+- Cron установлен и виден в `crontab -l`. flock на месте (`grep -c flock` = 3).
+
+**Ловушки на проде (обе зафиксированы):**
+
+1. **Turbopack persistent build cache игнорирует правки в существующих route.ts.**
+   Деплой через `deploy_vps.py` копирует tar → запускает `next build`. Build переиспользует `.next/cache` от предыдущего build. Если ты ПРАВИШЬ существующий route, может скомпилировать старую версию (route.js — тонкий loader, реальный код в chunks, и chunk-hash не обновляется). Лечится `rm -rf .next && next build` руками.
+   **Workaround для будущего:** если правка существующего route не подхватывается, сделай новый файл `<path>/<sub>/route.ts` вместо редактирования старого — новый файл turbopack видит как cold-build.
+   **Симптом, который нашёл:** endpoint возвращал старую форму ответа `{"categories":[]}` вместо новой `{"slugs":[...]}` даже после deploy + restart pm2. grep'ом видно: `route.js` (10 строк loader) ссылается на chunks, в чанках **не было** строк нового кода (`getNonEmptyCategoryIds`, `flat`). Решено через split route в отдельный файл `categories/flat/route.ts`.
+
+2. **`deploy_vps.py` сбрасывает chmod +x на скриптах**, потому что tar восстанавливает permissions из исходника, а git не хранит executable-bit для bash-скриптов по умолчанию. После каждого деплоя `warm_all.sh` (и любые новые .sh) нужно `chmod +x` руками. **Workaround на будущее:** `git update-index --chmod=+x scripts/*.sh` для всех таких файлов (одноразово на ветке).
+
+**Известные риски / следующее:**
+- При увеличении ассортимента (>2-3k категорий с товарами) runtime warm_all может приблизиться к 30 мин даже на тёплых данных. Поднять `WARM_CACHE_PARALLEL=16` или cadence до часа.
+- Cron-задание не в git (политика проекта). При пересборке VPS — ставить заново (см. шапку `warm_all.sh`).
+- Bootstrap-прогон в фоне сейчас. Полное покрытие в ~01:36 MSK. После — все категории должны отвечать <2 сек.
+
+### 2026-05-16 23:24 — Iter 15B: real /service page
 
 - Spec: [`docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md`](docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md)
 - Commits: `51183d3` (основная реализация) + `d9a6b25` (фильтр пустых категорий + параллелизация после первого прода-замера)

@@ -155,7 +155,19 @@ WEB_STORE_VPS_PASSWORD='...' python scripts/deploy_vps.py
 2. **`react-hooks/set-state-in-effect`** lint-правило запрещает синхронный
    `setState` в `useEffect`. Workaround: setState внутри `setTimeout`/`then`
    callback.
-3. **`npm run build` обязательно** перед деплоем — он ловит RSC-ошибки, которые
+3. **Turbopack persistent build cache игнорирует правки в существующих route.ts.**
+   На VPS `next build` переиспользует `.next/cache` от предыдущего билда. Если
+   ты правишь existing handler, он может скомпилировать старую версию (route.js — тонкий
+   loader; реальный код в chunks, и chunk-hash не обновляется). Симптом: endpoint
+   возвращает старую форму ответа после deploy+pm2 restart. Лечится
+   `cd /var/www/climat-simf.ru && rm -rf .next && npx next build` руками + `pm2 restart`.
+   **Workaround:** если новый функционал в существующем route не подхватывается,
+   вынеси в новый файл `<path>/<sub>/route.ts` — turbopack новые пути билдит cold.
+   Один раз ловили на Iter 15C (`/api/catalog/categories/flat`).
+4. **`deploy_vps.py` сбрасывает chmod +x на bash-скриптах** — tar восстанавливает
+   permissions из исходника, git не хранит x-bit по умолчанию. После каждого
+   деплоя `chmod +x scripts/*.sh` руками. Один раз — `git update-index --chmod=+x`.
+5. **`npm run build` обязательно** перед деплоем — он ловит RSC-ошибки, которые
    `lint` + `test` пропускают (они проверяют отдельные модули, не сборку).
 4. **Cold-start крупных категорий** (50k+ товаров) рендерится 8-11 с. Кэш
    греется через `unstable_cache` с `revalidate: 300`. На первый запрос —
