@@ -24,6 +24,42 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-17 00:50 — Iter 15D: UX fixes (header phone, catalog popular sort) + chmod fix + Iter 15C honest revisit
+
+- Commits: `ac0b900` (chmod git mode 755), `55ed648` (header phone + initial sort), `e595885` (mass-market price band)
+- Deploy backups: `20260517004448`, `20260517004944` (оба с принудительным `rm -rf .next && next build` на VPS из-за ловушки #1)
+- Закрывает 2 UX-репорта от пользователя + 1 операционный долг.
+
+**Что вошло:**
+
+**1. Footer/header layout: телефон + «Обратный звонок» слипались в шапке.**
+- `CallbackButton variant="header"` рендерил `<button>` (inline) внутри `.phone`, шаблонный CSS ожидал `.phone span` с `display:block`.
+- В `src/components/callback-button.tsx` для `variant="header"` добавлены: `display:block`, `marginTop:4`, `fontSize:"11.5px"`, `textAlign:"left"`, `fontFamily/lineHeight: inherit` — мэтчит правила `.phone span` из glass-template.css без правки самого template.
+
+**2. Каталог `/catalog` первая страница — массмаркет вместо узкоспец B2B / расходников.**
+- Bug: `sort=popular` default orderBy содержал `retailPrice: "desc"` — поэтому на первой странице были серверные системы Lenovo/Huawei за 6-9 млн ₽, СХД, ROSA Virtualization и т.п. Не подходит для retail-витрины.
+- Первый fix (`55ed648`): `desc` → `asc` — но дал противоположную крайность: канцелярка по 50 ₽ (ручки/маркеры/саморезы).
+- Финальный fix (`e595885`): два изменения в `src/lib/catalog.ts`:
+  - **orderBy без `retailPrice`**: только `hasImage desc, isAvailable desc, updatedAt desc` (нейтральный сорт).
+  - **Условный price-band 3 000–300 000 ₽ в WHERE**: применяется ТОЛЬКО когда `sort=popular` и пользователь НЕ задал ни одного фильтра (категория, поиск, бренд, attrs, явные price). Любой пользовательский фильтр снимает окно — bracket стиралки/тв/ноутбуки/кондиционеры остаются видимы.
+- Результат на проде: первая страница /catalog = Gorenje стиралки, Asus ноутбуки, RASKAT телевизор.
+
+**3. Ловушка #2 chmod закрыта навсегда.**
+- `git update-index --chmod=+x web-store/scripts/warm_*.sh` — mode 100755 в индексе. Дальнейшие deploy_vps.py не будут сбрасывать exec-bit.
+
+**Iter 15C — честный пересмотр:**
+
+При прокликивании после bootstrap-warmer обнаружено: cold-start всё ещё **21+ сек на не-топ-12 категориях**, причём на двух запросах подряд (значит page-cache реально не держит). Топ-12 (warm_cache.sh) отвечают 2 сек — они в hot in-memory cache Next, потому что пингуются каждые 4 мин.
+
+Причина: `getCatalogPage()` НЕ обёрнут в `unstable_cache`, только мелкие helpers (`getActiveCategories`, `getCategoryBySlug`, `getCatalogBrands`). Page-level `revalidate=300` не работает как ISR для всех 1755 категорий — Next держит ограниченное окно hot-cache.
+
+**Iter 15C → НЕ закрыт целиком.** Реально работает только chmod fix + warmer-инфраструктура (cron, flock, endpoint /flat). Сам прогрев категорий не достигает цели. Чтобы починить — отдельная итерация: обернуть `getCatalogPage(query)` в `unstable_cache` (нужен детерминированный cache-key по query параметрам) ИЛИ перевести `/catalog/[slug]` на ISR с `generateStaticParams`. Текущий warm_all.sh, формально, всё ещё имеет смысл — он держит малые data-helpers горячими и ловит обработку 200 на каждой странице (как health-check 1755 routes).
+
+**Что осталось из «известных долгов»:**
+- **Реальный cold-start fix** (новый долг из 15C). Большая итерация.
+- **WhatsApp / «Карта» в footer** — нет URL.
+- **Реальный Telegram-бот** — нет username.
+
 ### 2026-05-17 00:19 — Iter 15C: eliminate cold-start for all categories (final state)
 
 - Spec: [`docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md`](docs/superpowers/specs/2026-05-16-iter15c-warm-all-categories-design.md)
