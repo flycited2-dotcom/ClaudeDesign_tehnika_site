@@ -473,6 +473,12 @@ export async function getCatalogPage(query: CatalogQuery) {
     // Кофемашины, ТВ, стиралки, холодильники, кондиционеры — все в этом
     // диапазоне. Любой явный фильтр пользователя снимает это окно.
     filteredWhere.retailPrice = { gte: 3000, lte: 300000 };
+    // Also require a REAL image record (not just hasImage flag — sync sets
+    // hasImage=true on ~3% of products that have no actual Image rows; without
+    // this filter they bubble to the top via updatedAt and the page renders
+    // 24 "Фото уточняется" placeholders. Real images: ~53.6k in this band,
+    // plenty for browsing.
+    filteredWhere.images = { some: { deleted: false } };
   }
 
   const specFilterOptions = shouldBuildFacetPanels
