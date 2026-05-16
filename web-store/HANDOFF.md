@@ -24,6 +24,28 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-17 01:04 — Iter 15D follow-up: require real Image row in default catalog
+
+- Commit: `2e34940`
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260517010351.tar.gz`
+- Пользователь заметил: на /catalog первой странице все 24 карточки без фото («Фото уточняется»).
+
+**Корневой bug данных:**
+В БД у части товаров `hasImage=true`, но в `ProductImage` нет ни одной записи (`_count.images: 0`). Замеры в массмаркет диапазоне (3k-300k, total 83 460):
+- 53 663 (97%) — `hasImage=true` И реально есть Image. **Честно с фото.**
+- 1 522 (~3%) — `hasImage=true` НО Image-записей **нет**. **Лжецы.**
+- 7 — `hasImage=false` но Image есть.
+
+Бывший `orderBy [{hasImage:'desc'}, {isAvailable:'desc'}, {updatedAt:'desc'}]` ставил **именно «лжецов»** в самый верх — у них updatedAt свежий (sync их недавно дёргал в попытках обогащения). На странице получалось 24 placeholder'а.
+
+**Fix:**
+В `getCatalogPage` для default popular (когда нет user-фильтров) добавлен `where.images = { some: { deleted: false } }` — обязательное условие реальной Image-записи. Фильтрует «лжецов» из дефолтного listing. При любом пользовательском фильтре (категория/бренд/поиск/price) условие НЕ применяется — пользователь может явно смотреть и товары без фото.
+
+**Результат на проде:** /catalog первая страница — ноутбуки Asus Zenbook / Chuwi MiniBook / Tecno MegaBook с реальными картинками через `/api/product-images/<id>`. 24 `<img>`, 0 placeholder'ов.
+
+**Известный sync-долг (новый из этой проверки):**
+Sync-pipeline (Codex/Telegram_Sales_meneger) ставит `hasImage=true` в Product даже когда не создаёт записи в ProductImage. ~1.5k товаров в массмаркет, скорее всего больше в общем. Если хотим фильтр снять и доверять флагу — нужен либо одноразовый SQL `UPDATE Product SET hasImage = (EXISTS ...)`, либо правка sync-кода в источнике.
+
 ### 2026-05-17 00:50 — Iter 15D: UX fixes (header phone, catalog popular sort) + chmod fix + Iter 15C honest revisit
 
 - Commits: `ac0b900` (chmod git mode 755), `55ed648` (header phone + initial sort), `e595885` (mass-market price band)
