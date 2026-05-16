@@ -21,7 +21,14 @@ export function SiteFooter() {
           <button type="submit">Подписаться</button>
         </form>
         <div className="socials">
-          <a className="social" title="Telegram" href="#" aria-label="Telegram">
+          <a
+            className="social"
+            title="Telegram"
+            href="https://t.me/+79785792995"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Telegram"
+          >
             <Send size={18} aria-hidden />
           </a>
           <a className="social" title="WhatsApp" href="#" aria-label="WhatsApp">

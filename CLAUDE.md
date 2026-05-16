@@ -87,7 +87,7 @@ WEB_STORE_VPS_PASSWORD='...' python scripts/deploy_vps.py
 - `lib/use-role.ts` — `useStorefrontRole()` хук читает localStorage,
   `setStorefrontRole()` пишет, default `b2c`.
 - `lib/role-pricing.ts` — `getRolePricingConfig()` читает env-переменные
-  `NEXT_PUBLIC_B2B_DISCOUNT_PERCENT` (default 10), `NEXT_PUBLIC_B2B_MIN_QTY`
+  `NEXT_PUBLIC_B2B_DISCOUNT_PERCENT` (default 25), `NEXT_PUBLIC_B2B_MIN_QTY`
   (default 5), `NEXT_PUBLIC_GOV_QUOTE_ENABLED` (default true).
 - В `GlassProductCard`:
   - b2c — обычная цена + зачёркнутый RRP, если есть

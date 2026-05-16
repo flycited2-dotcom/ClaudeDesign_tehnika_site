@@ -2,7 +2,7 @@
 // values are available both on the server and inside client components
 // without prop-drilling.
 
-const DEFAULT_B2B_DISCOUNT = 10;
+const DEFAULT_B2B_DISCOUNT = 25;
 const DEFAULT_B2B_MIN_QTY = 5;
 const DEFAULT_GOV_ENABLED = true;
 
