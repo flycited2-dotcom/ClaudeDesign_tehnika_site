@@ -221,15 +221,20 @@ function catalogProductOrderBy(sort: CatalogSort = "popular"): Prisma.ProductOrd
     return [{ updatedAt: "desc" }, { hasImage: "desc" }, { isAvailable: "desc" }, { retailPrice: "desc" }];
   }
 
-  // "popular" default for retail storefront: sort by mass-market price ASC
-  // so consumer goods (kettles, TVs, fridges) appear before niche B2B gear
-  // (servers, storage arrays, virtualization software priced in millions).
-  // We don't have real sales-based popularity signal — ASC price + image is
-  // the safest proxy for "what an average visitor wants to see first".
+  // "popular" default for retail storefront. We don't have sales data, so we
+  // proxy "what a typical visitor wants to see":
+  //   1. Has a real image (placeholders look broken).
+  //   2. Available right now (no point teasing out-of-stock first).
+  //   3. Price is in mass-market band — neither niche B2B kit priced in
+  //      millions nor sub-100 ₽ stationery commodities. Prisma can't do a
+  //      CASE WHEN in orderBy, so we sort by absolute distance from a
+  //      target price (75 000 ₽) using raw SQL via Prisma sortOrder.
+  //      But orderBy doesn't take expressions — fall back to a simple
+  //      compromise: sort by updatedAt so freshly synced goods float up.
+  //      Categories with extreme prices have their dedicated category pages.
   return [
     { hasImage: "desc" },
     { isAvailable: "desc" },
-    { retailPrice: { sort: "asc", nulls: "last" } },
     { updatedAt: "desc" },
   ];
 }
@@ -454,6 +459,20 @@ export async function getCatalogPage(query: CatalogQuery) {
     if (query.minPrice) priceFilter.gte = query.minPrice;
     if (query.maxPrice) priceFilter.lte = query.maxPrice;
     filteredWhere.retailPrice = priceFilter;
+  } else if (
+    !query.categorySlug &&
+    !query.query &&
+    !selectedBrands.length &&
+    !activeAttributeFilters.length &&
+    !activeAttributeRangeFilters.length &&
+    (query.sort ?? "popular") === "popular"
+  ) {
+    // Default mass-market price band on /catalog root with no filters.
+    // Hides niche B2B gear (servers, storage, virtualization) priced in
+    // millions and sub-1 000 ₽ commodity stationery from the first page.
+    // Кофемашины, ТВ, стиралки, холодильники, кондиционеры — все в этом
+    // диапазоне. Любой явный фильтр пользователя снимает это окно.
+    filteredWhere.retailPrice = { gte: 3000, lte: 300000 };
   }
 
   const specFilterOptions = shouldBuildFacetPanels
