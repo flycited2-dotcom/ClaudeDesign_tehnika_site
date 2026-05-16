@@ -152,9 +152,14 @@ export const getHomeSnapshot = unstable_cache(async () => {
             },
           }
         : {}),
-      retailPrice: {
-        not: null,
-      },
+      // Mass-market band so the homepage "Популярные товары" doesn't show
+      // 9-million-rouble servers or sub-1k stationery commodities.
+      retailPrice: { gte: 3000, lte: 300000 },
+      // Require real Image row — hasImage flag is unreliable (~3% mass-market
+      // products have hasImage=true with zero ProductImage rows; without this
+      // filter they bubble to the top via updatedAt and the homepage renders
+      // "Фото уточняется" placeholders).
+      images: { some: { deleted: false } },
       ...normalRetailNameWhere(),
     },
     include: {
