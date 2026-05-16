@@ -1,0 +1,66 @@
+<aside class="app-sidebar" id="appSidebar">
+  <div class="px-5 h-16 flex items-center border-b" style="border-color: var(--border-subtle);">
+    <div>
+      <div class="h-display" style="font-size: 22px;">CRM</div>
+      <div class="text-caps">ТД Северное Сияние</div>
+    </div>
+  </div>
+
+  <nav class="px-3 py-4 flex flex-col gap-5">
+    <div>
+      <div class="text-caps px-3 mb-2 sidebar-label">Работа</div>
+      <ul class="flex flex-col gap-1" data-nav-group>
+        <li><a data-nav="dashboard" href="/app/dashboard-owner.html" class="sb-item"><i data-lucide="layout-dashboard"></i><span class="sidebar-label">Рабочий стол</span></a></li>
+        <li><a data-nav="leads" href="/app/leads/list.html" class="sb-item"><i data-lucide="sparkles"></i><span class="sidebar-label">Лиды</span><span class="sb-count" data-count="leads-open"></span></a></li>
+        <li><a data-nav="deals" href="/app/deals/kanban.html" class="sb-item"><i data-lucide="briefcase"></i><span class="sidebar-label">Сделки</span></a></li>
+        <li><a data-nav="tasks" href="/app/tasks/my.html" class="sb-item"><i data-lucide="check-square"></i><span class="sidebar-label">Задачи</span><span class="sb-count" data-count="tasks-overdue"></span></a></li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="text-caps px-3 mb-2 sidebar-label">Клиенты и продажи</div>
+      <ul class="flex flex-col gap-1" data-nav-group>
+        <li><a data-nav="clients" href="/app/clients/list.html" class="sb-item"><i data-lucide="users"></i><span class="sidebar-label">Клиенты</span></a></li>
+        <li><a data-nav="offers" href="/app/offers/list.html" class="sb-item"><i data-lucide="file-text"></i><span class="sidebar-label">КП</span></a></li>
+        <li><a data-nav="tenders" href="/app/tenders/list.html" class="sb-item"><i data-lucide="gavel"></i><span class="sidebar-label">Тендеры</span></a></li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="text-caps px-3 mb-2 sidebar-label">Аналитика</div>
+      <ul class="flex flex-col gap-1" data-nav-group>
+        <li><a data-nav="reports" href="/app/reports/overview.html" class="sb-item"><i data-lucide="bar-chart-3"></i><span class="sidebar-label">Отчёты</span></a></li>
+      </ul>
+    </div>
+
+    <div data-role="owner">
+      <div class="text-caps px-3 mb-2 sidebar-label">Администрирование</div>
+      <ul class="flex flex-col gap-1" data-nav-group>
+        <li><a data-nav="employees" href="/app/employees/list.html" class="sb-item"><i data-lucide="user-cog"></i><span class="sidebar-label">Сотрудники</span></a></li>
+        <li><a data-nav="settings" href="/app/settings/funnels.html" class="sb-item"><i data-lucide="settings"></i><span class="sidebar-label">Настройки</span></a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="mt-auto p-4">
+    <div class="surface p-3">
+      <div class="flex items-center gap-2 text-sm">
+        <span class="w-2 h-2 rounded-full" style="background: var(--status-success-fg);"></span>
+        <span class="text-secondary">На смене с 09:14</span>
+      </div>
+      <div class="mt-1 num text-sm">3 ч 26 мин</div>
+      <button class="btn btn-ghost btn-sm mt-2 w-full justify-center">Завершить день</button>
+    </div>
+  </div>
+</aside>
+
+<style>
+  .sb-item { display: flex; align-items: center; gap: 12px; height: 36px; padding: 0 12px; border-radius: var(--radius-md); color: var(--text-primary); font-size: 14px; transition: background var(--dur-fast) var(--ease-spring); position: relative; }
+  .sb-item:hover { background: var(--bg-hover); }
+  .sb-item.is-active { background: var(--accent-soft); color: var(--accent-hover); font-weight: 500; }
+  .sb-item.is-active::before { content: ""; position: absolute; left: 0; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--accent); }
+  .sb-item i { width: 18px; height: 18px; flex: 0 0 18px; }
+  .sb-count { margin-left: auto; background: var(--status-danger-bg); color: var(--status-danger-fg); font-size: 11px; padding: 2px 7px; border-radius: var(--radius-pill); font-weight: 500; }
+  .sb-count:empty { display: none; }
+  .app-sidebar { display: flex; flex-direction: column; }
+</style>

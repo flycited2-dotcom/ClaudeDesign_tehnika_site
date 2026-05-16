@@ -747,15 +747,20 @@ git commit -m "widgets: renderAvatar/Badge/Kpi/Table/Kanban/Tabs"
 
 ---
 
-### Task 0.10: Extend `screenshot.mjs` with resolution arg
+### Task 0.10: Create `screenshot.mjs` with resolution preset
 
 **Files:**
-- Read first: `screenshot.mjs` (existing in repo root)
-- Modify: `screenshot.mjs`
+- Create: `screenshot.mjs` (repo root) — did NOT exist despite `.claude/CLAUDE.md` referencing it.
+- Create / modify: `package.json` to declare puppeteer as a dev dependency.
 
-- [ ] **Step 1: Read `screenshot.mjs`** with the Read tool to learn its current arg parsing and output filename logic.
+- [ ] **Step 1: Install puppeteer locally**
 
-- [ ] **Step 2: Add a third positional argument `resolution` accepting one of `desktop` (1920×1080), `compact` (1366×768), `tablet` (768×1024).** When omitted, default to `desktop`. The resolution suffix appends to the screenshot filename, e.g. `screenshot-7-clients-list-tablet.png`.
+```
+npm init -y
+npm install --save-dev puppeteer
+```
+
+- [ ] **Step 2: Create `screenshot.mjs`** that accepts `url`, optional `label`, and an optional `resolution` (one of `desktop` 1920×1080, `compact` 1366×768, `tablet` 768×1024; default `desktop`). It auto-increments filenames into `./temporary screenshots/screenshot-N[-label][-resolution].png` and never overwrites.
 
 Implementation must:
 - Map presets to `{ width, height }` pairs.

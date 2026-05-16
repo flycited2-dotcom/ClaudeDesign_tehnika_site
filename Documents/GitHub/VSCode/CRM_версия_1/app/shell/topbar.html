@@ -1,0 +1,30 @@
+<header class="app-topbar">
+  <button class="btn btn-ghost btn-icon md:hidden" data-action="toggle-sidebar"><i data-lucide="menu"></i></button>
+
+  <div class="h-display h3" data-page-title>Рабочий стол</div>
+
+  <div class="flex-1 max-w-[480px] mx-6 relative">
+    <input class="input input-search" placeholder="Найти клиента, сделку, КП, задачу…" data-global-search>
+    <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted border px-1.5 py-0.5 rounded" style="border-color: var(--border-subtle);">⌘K</kbd>
+  </div>
+
+  <div class="ml-auto flex items-center gap-3">
+    <div class="relative" data-create>
+      <button class="btn btn-primary" data-action="open-create"><i data-lucide="plus"></i>Создать</button>
+    </div>
+
+    <button class="btn btn-ghost btn-icon relative" data-action="open-notifications">
+      <i data-lucide="bell"></i>
+      <span class="absolute top-2 right-2 w-2 h-2 rounded-full" style="background: var(--status-danger-fg);"></span>
+    </button>
+
+    <div class="segmented" data-role-switch>
+      <button data-role-value="owner" class="is-active">Собственник</button>
+      <button data-role-value="manager">Менеджер</button>
+    </div>
+
+    <button class="flex items-center gap-2" data-action="open-profile">
+      <span class="avatar" data-user-avatar>АЦ</span>
+    </button>
+  </div>
+</header>
