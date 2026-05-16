@@ -51,13 +51,18 @@ export function CallbackButton({
         style={
           variant === "header"
             ? {
+                display: "block",
+                marginTop: 4,
                 background: 0,
                 border: 0,
                 padding: 0,
                 cursor: "pointer",
                 color: "var(--accent-2)",
-                font: "inherit",
+                fontSize: "11.5px",
                 fontWeight: 700,
+                textAlign: "left",
+                fontFamily: "inherit",
+                lineHeight: "inherit",
               }
             : undefined
         }

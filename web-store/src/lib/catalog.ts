@@ -221,7 +221,17 @@ function catalogProductOrderBy(sort: CatalogSort = "popular"): Prisma.ProductOrd
     return [{ updatedAt: "desc" }, { hasImage: "desc" }, { isAvailable: "desc" }, { retailPrice: "desc" }];
   }
 
-  return [{ hasImage: "desc" }, { isAvailable: "desc" }, { retailPrice: "desc" }, { updatedAt: "desc" }];
+  // "popular" default for retail storefront: sort by mass-market price ASC
+  // so consumer goods (kettles, TVs, fridges) appear before niche B2B gear
+  // (servers, storage arrays, virtualization software priced in millions).
+  // We don't have real sales-based popularity signal — ASC price + image is
+  // the safest proxy for "what an average visitor wants to see first".
+  return [
+    { hasImage: "desc" },
+    { isAvailable: "desc" },
+    { retailPrice: { sort: "asc", nulls: "last" } },
+    { updatedAt: "desc" },
+  ];
 }
 
 function toProductWhereArray(value: Prisma.ProductWhereInput["AND"]): Prisma.ProductWhereInput[] {
