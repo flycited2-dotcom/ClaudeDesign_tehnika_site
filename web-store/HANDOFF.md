@@ -24,6 +24,40 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-16 22:10 — Iter 14: real /bot landing + noindex для заглушек
+
+- Spec: [`docs/superpowers/specs/2026-05-16-iter14-bot-landing-design.md`](docs/superpowers/specs/2026-05-16-iter14-bot-landing-design.md)
+- Branch commit: `534f8f5` — реализация (запушен в origin)
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260516221048.tar.gz`
+- Build log: `/tmp/climat-simf-build-20260516221048.log`
+
+**Что вошло:**
+- **`src/app/bot/page.tsx`** — переписан из stub в server-page с metadata + рендер client-island `<BotDemo />`. `robots: noindex` сохранён.
+- **`src/components/bot-demo.tsx`** (НОВЫЙ, ~370 строк, client) — полный лендинг по `design-template/unzipped/screen-bot.jsx`:
+  - Левая колонка: pill «AI-агент по продажам», hero-заголовок, sub, список 8 capabilities (lucide-react иконки), QR-карточка-плейсхолдер с `@buttehopt_bot` (мок-username, помечен в комментарии), переключатель 5 сценариев диалога.
+  - Phone-mockup: tg-phone → tg-screen с tg-status, tg-header (avatar БТ, мета, иконки), tg-body с key={scenario} (для перемонтирования при смене), tg-input-bar.
+  - 5 пресетов `TG_PRESETS` (Поиск/Голос/Сравнение/Тендер/Заказ) портированы 1-в-1 из шаблона.
+  - Внутренний `<TgMsg>` — роутер по типу сообщения (me-text, me-voice с voice-bars, bot-text, card, buttons, quick).
+  - Voice-wave (24 столбика по формуле `4 + (Math.sin(i*1.4)+1)*8 + (i%5)*2`) — в `useMemo`, чтобы не пересоздавался.
+- **`src/app/service/page.tsx`** + **`src/app/bot/page.tsx`** — `metadata.robots: { index: false, follow: false }` (страницы остаются coming-soon для `/service` и техническим лендингом для `/bot`, но не индексируются).
+
+**Иконки (lucide-react mapping):** Bot, Search, SlidersHorizontal, ArrowLeftRight, Check, ReceiptText, FileText, Mic, Headphones, ChevronLeft, Phone, MoreHorizontal, Paperclip, Play.
+
+**Что НЕ вошло (по согласованию):**
+- Реальный Telegram bot API / webhook — только лендинг.
+- Реальная привязка `@buttehopt_bot` — мок-username (одна правка константы `BOT_USERNAME` в `bot-demo.tsx` когда появится реальный бот).
+- QR-картинка — пустой `<div className="qr" />` как в шаблоне (квадрат-плейсхолдер от CSS).
+- CTA «Открыть в Telegram» как `href` — `<button>` без href, активируется когда появится username.
+
+**Verification:**
+- `npm run lint` чисто, `npm run test` 134/134, `npm run build` успешен (`/bot` и `/service` в маршрутах).
+- Prod-smoke `/bot` → 200, HTML содержит `bot-frame`, `tg-phone`, `tg-msg`, `buttehopt_bot`.
+- Prod-smoke `/service` → 200, в HTML присутствует `<meta name="robots" content="noindex,nofollow">`.
+
+**Известные риски / следующее:**
+- Visual smoke в браузере (переключатель сценариев, рендер voice-wave, overflow на узких экранах) — не делал, нужно прокликать руками или дать визуальный фидбек.
+- На очереди — VK в footer, если появится URL.
+
 ### 2026-05-16 19:26 — Iter 13: bottom ScreenBar + /service + /bot stubs
 
 - Spec: [`docs/superpowers/specs/2026-05-16-iter13-chrome-screenbar-design.md`](docs/superpowers/specs/2026-05-16-iter13-chrome-screenbar-design.md) (commit `1402422`)
