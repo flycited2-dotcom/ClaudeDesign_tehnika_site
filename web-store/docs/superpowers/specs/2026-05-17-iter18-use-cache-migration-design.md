@@ -1,8 +1,31 @@
 # Iter 18 — Cold-start fix через migration на Next 16 `'use cache'`
 
 **Дата:** 2026-05-17
-**Статус:** Утверждён к реализации (брейнсторм 2026-05-17, 4 вопроса закрыто)
+**Статус:** ⚠️ **АРХИВИРОВАН 2026-05-18 — план провалился на Phase 0.** См. revision note ниже. Актуальный план: [`2026-05-18-iter18b-unstable-cache-fix.md`](../plans/2026-05-18-iter18b-unstable-cache-fix.md).
 **Зависимый коммит:** `f00e270` (Iter 17 docs)
+
+## Revision note (2026-05-18)
+
+Phase 0 этого spec'а провалилась при первой же попытке: `cacheComponents: true` в Next 16
+**несовместим** не только с `export const revalidate` (что я предвидел), но и с
+`export const dynamic = "force-dynamic"`. В проекте 24 routes (admin/login/checkout/API)
+с `force-dynamic` — каждый из них Next отказывается компилировать при включённом
+`cacheComponents`.
+
+Это значит migration на `'use cache'` потребовала бы ревизии всех 24 routes
+(удалить `force-dynamic` + verify что Next правильно классифицирует их через usage
+of `cookies()`/`headers()`/`searchParams`). Это **большая surgical работа** с риском
+сломать auth/admin/checkout flows.
+
+В оригинальном брейнсторме (2026-05-17) я рекомендовал `unstable_cache` именно
+из-за минимального риска, но пользователь выбрал `'use cache'` потому что Next 16
+рекомендует. Failure mode на Phase 0 подтвердил мою исходную рекомендацию.
+
+**Решение:** switch на `unstable_cache` approach. Цель (cold-start <2 сек) сохраняется,
+архитектурный риск минимизируется. Новый plan: [`2026-05-18-iter18b-unstable-cache-fix.md`](../plans/2026-05-18-iter18b-unstable-cache-fix.md).
+
+Этот spec остаётся в репо как историческая запись + объяснение почему путь
+через `'use cache'` НЕ был выбран. Содержательно секции ниже устарели.
 
 ## Цель
 
