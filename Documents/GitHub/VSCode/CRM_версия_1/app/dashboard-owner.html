@@ -347,6 +347,12 @@
         return map[role] || role;
       }
 
+      // ─── REFERENCE DATE (today or most recent date with sessions) ────────────
+      const allSessionDates = [...new Set(MOCK.workSessions.map(s => s.date))].sort();
+      const referenceDate = allSessionDates.includes(todayStr)
+        ? todayStr
+        : allSessionDates[allSessionDates.length - 1];
+
       // ─── ACTIVE DEALS ────────────────────────────────────────────────────────
       const activeDeals = MOCK.deals.filter(d => !['won','lost'].includes(d.stage));
       const activeCount = activeDeals.length;
@@ -355,23 +361,11 @@
       document.getElementById('hero-active-deals').textContent = activeCount;
       document.getElementById('hero-work-sum').textContent = CRM.formatMoney(activeSum);
 
-      // ─── HERO SUBTITLE ───────────────────────────────────────────────────────
-      // Count distinct problem items across all 4 zones
-      const leadsNoOwner   = MOCK.leads.filter(l => l.responsible === null).length;
-      const leadsUnproc    = MOCK.leads.filter(l => l.status === 'new' && (now - new Date(l.createdAt).getTime()) > 15*60000).length;
-      const stuckDeals     = activeDeals.filter(d => (now - new Date(d.lastActionAt).getTime()) > 3*86400000).length;
-      const overdueTasksN  = MOCK.tasks.filter(t => t.status === 'overdue').length;
-      const tenderDeadline = MOCK.tenders.filter(t => !['won','lost'].includes(t.status) && (new Date(t.deadlineSubmit).getTime() - now) < 48*3600000 && (new Date(t.deadlineSubmit).getTime() - now) > 0).length;
-      const offersNoResp   = MOCK.offers.filter(o => o.sentAt && (now - new Date(o.sentAt).getTime()) > 86400000 && !o.viewedAt).length;
-      // Total: card A items + card B items + card C items + card D items
-      const problemZoneCount = leadsNoOwner + leadsUnproc + stuckDeals + overdueTasksN + tenderDeadline + offersNoResp;
-
+      // ─── HERO DATE STRING (used in subtitle, filled in after card counts are known) ─
       const days = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
       const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
       const today = new Date();
       const heroDateStr = `${days[today.getDay()]}, ${today.getDate()} ${months[today.getMonth()]}`;
-      document.getElementById('hero-subtitle').textContent =
-        `${heroDateStr} · ${problemZoneCount} проблемных зон требуют внимания`;
 
       // ─── KPI GRID ────────────────────────────────────────────────────────────
       const kpiSect = document.getElementById('kpis');
@@ -381,7 +375,7 @@
       const kpi3_active    = activeCount;
       const kpi4_overdue   = MOCK.tasks.filter(t => t.status === 'overdue').length;
       const kpi5_offerSent = MOCK.offers.filter(o => o.sentAt !== null).length;
-      const kpi6_online    = MOCK.workSessions.filter(s => s.date === todayStr && s.logoutAt === null).length;
+      const kpi6_online    = MOCK.workSessions.filter(s => s.date === referenceDate && s.logoutAt === null).length;
       const kpi7_tender48  = MOCK.tenders.filter(t =>
         !['won','lost'].includes(t.status) &&
         (new Date(t.deadlineSubmit).getTime() - now) < 48*3600000 &&
@@ -403,13 +397,8 @@
       });
 
       // ─── EMPLOYEES TABLE ─────────────────────────────────────────────────────
-      // Get today's sessions (fallback to most recent date)
-      let sessions = MOCK.workSessions.filter(s => s.date === todayStr);
-      if (!sessions.length) {
-        // fallback: find most recent date
-        const dates = [...new Set(MOCK.workSessions.map(s => s.date))].sort().reverse();
-        sessions = MOCK.workSessions.filter(s => s.date === dates[0]);
-      }
+      // Get sessions for the shared referenceDate (today or most recent date with data)
+      let sessions = MOCK.workSessions.filter(s => s.date === referenceDate);
 
       // Join with users
       const empRows = sessions.map(s => {
@@ -524,14 +513,21 @@
         `;
       }
 
-      // Card A — Лиды
+      // Card A — Лиды (deduped: if a lead is both stale AND has no owner, show only the danger entry)
       const cardAItems = [];
-      MOCK.leads.filter(l => l.responsible === null).forEach(l => {
-        cardAItems.push({ severity: 'warning', label: 'Без ответственного', text: l.title, ts: l.createdAt });
-      });
-      MOCK.leads.filter(l => l.status === 'new' && (now - new Date(l.createdAt).getTime()) > 15*60000).forEach(l => {
+      const staleLeadIds = new Set(
+        MOCK.leads
+          .filter(l => l.status === 'new' && (now - new Date(l.createdAt).getTime()) > 15*60000)
+          .map(l => l.id)
+      );
+      // Danger entries first (stale new leads)
+      MOCK.leads.filter(l => staleLeadIds.has(l.id)).forEach(l => {
         const mins = Math.round((now - new Date(l.createdAt).getTime()) / 60000);
-        cardAItems.push({ severity: 'danger', label: `Без обработки ${mins} мин`, text: l.title, ts: l.createdAt });
+        cardAItems.push({ id: l.id, severity: 'danger', label: `Без обработки ${mins} мин`, text: l.title, ts: l.createdAt });
+      });
+      // Warning entries only for leads NOT already in the danger set
+      MOCK.leads.filter(l => l.responsible === null && !staleLeadIds.has(l.id)).forEach(l => {
+        cardAItems.push({ id: l.id, severity: 'warning', label: 'Без ответственного', text: l.title, ts: l.createdAt });
       });
 
       // Card B — Сделки
@@ -573,6 +569,11 @@
         renderProblemCard('Задачи', cardCItems),
         renderProblemCard('КП и тендеры', cardDItems),
       ].join('');
+
+      // ─── HERO SUBTITLE (computed from deduped card arrays) ───────────────────
+      const problemZoneCount = cardAItems.length + cardBItems.length + cardCItems.length + cardDItems.length;
+      document.getElementById('hero-subtitle').textContent =
+        `${heroDateStr} · ${problemZoneCount} проблемных зон требуют внимания`;
 
       // Re-run lucide after DOM mutations
       if (window.lucide) window.lucide.createIcons();
