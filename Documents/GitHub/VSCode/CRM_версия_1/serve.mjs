@@ -7,7 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 3000;
 
 const server = http.createServer((req, res) => {
-  let filePath = path.join(__dirname, req.url === '/' ? 'index.html' : req.url);
+  // Strip query string before resolving to filesystem path
+  const urlPath = req.url.split('?')[0];
+  let filePath = path.join(__dirname, urlPath === '/' ? 'index.html' : urlPath);
 
   // Prevent directory traversal
   if (!filePath.startsWith(__dirname)) {
