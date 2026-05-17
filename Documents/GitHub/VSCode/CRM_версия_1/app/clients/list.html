@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Клиенты · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="clients" data-title="Клиенты">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Клиенты</h1>
+            <p class="text-secondary">24 клиента</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="segmented">
+              <button class="is-active">Все</button>
+              <button>Юр.лицо</button>
+              <button>Физ.лицо</button>
+              <button>Госы</button>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="responsible">
+              <i data-lucide="user"></i>Ответственный<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="source">
+              <i data-lucide="filter"></i>Источник<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="download"></i>Импорт Excel
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Клиент
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      const typeLabel = {
+        company:    'Юр.лицо',
+        individual: 'Физ.лицо',
+        state:      'Гос.',
+      };
+
+      const statusMap = {
+        active:   { variant: 'success', label: 'Активный' },
+        prospect: { variant: 'info',    label: 'Потенциальный' },
+        inactive: { variant: 'neutral', label: 'Неактивный' },
+      };
+
+      const rows = [...MOCK.clients].sort((a, b) =>
+        new Date(b.lastActivity) - new Date(a.lastActivity)
+      );
+
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'name', label: 'НАЗВАНИЕ / ФИО',
+            render: r => `<span style="display:inline-flex;align-items:center;gap:12px;">
+              ${CRM.renderAvatar(r.name, 'sm')}
+              <span><strong style="font-size:14px;">${r.name}</strong><div class="text-muted" style="font-size:12px;margin-top:1px;">${r.id}</div></span>
+            </span>`
+          },
+          {
+            key: 'type', label: 'ТИП',
+            render: r => `<span class="text-secondary" style="font-size:13px;">${typeLabel[r.type] || r.type}</span>`
+          },
+          {
+            key: 'phone', label: 'ТЕЛЕФОН',
+            render: r => `<span class="num" style="font-size:13px;">${r.phone}</span>`
+          },
+          {
+            key: 'email', label: 'EMAIL',
+            render: r => `<span class="text-secondary" style="font-size:13px;">${r.email}</span>`
+          },
+          {
+            key: 'responsible', label: 'ОТВЕТСТВЕННЫЙ',
+            render: r => {
+              const user = MOCK.users.find(u => u.id === r.responsible);
+              if (!user) return '<span class="text-muted">—</span>';
+              const firstName = user.name.split(' ').slice(0, 2).join(' ');
+              return `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(user.name, 'sm')}<span style="font-size:13px;">${firstName}</span></span>`;
+            }
+          },
+          {
+            key: 'status', label: 'СТАТУС',
+            render: r => {
+              const s = statusMap[r.status] || { variant: 'neutral', label: r.status };
+              return CRM.renderBadge(s.variant, s.label);
+            }
+          },
+          {
+            key: 'lastActivity', label: 'АКТИВНОСТЬ',
+            render: r => `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.lastActivity)}</span>`
+          },
+          {
+            key: 'dealsSum', label: 'СУММА СДЕЛОК', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.dealsSum)}</span>`
+          },
+          {
+            key: '_actions', label: '',
+            render: () => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="pencil"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Ещё"><i data-lucide="more-vertical"></i></button>
+            </span>`
+          },
+        ],
+        rows,
+        empty: { title: 'Нет клиентов', body: 'Добавьте первого клиента или настройте фильтры.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

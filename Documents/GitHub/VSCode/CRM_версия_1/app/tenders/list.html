@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тендеры · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="tenders" data-title="Тендеры">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Тендеры</h1>
+            <p class="text-secondary">6 тендеров</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="segmented">
+              <button class="is-active">Список</button>
+              <a href="/app/tenders/calendar.html" style="display:inline-flex;align-items:center;gap:4px;padding:6px 14px;font-size:13px;color:var(--text-secondary);border-radius:var(--radius-pill);">Календарь</a>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="platform">
+              <i data-lucide="globe"></i>Площадка<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Тендер
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+      const now  = Date.now();
+      const URGENT_MS = 48 * 3_600_000;
+
+      const statusOrder = { searching: 0, preparing: 1, submitted: 2, won: 3, lost: 4 };
+
+      const statusMap = {
+        searching:  { variant: 'info',    label: 'Поиск' },
+        preparing:  { variant: 'warning', label: 'Готовится' },
+        submitted:  { variant: 'neutral', label: 'Подано' },
+        won:        { variant: 'success', label: 'Выигран' },
+        lost:       { variant: 'danger',  label: 'Проигран' },
+      };
+
+      const activeStatuses = new Set(['searching', 'preparing']);
+
+      // Sort: active statuses first (by deadlineSubmit asc), then rest (by deadlineSubmit desc)
+      const rows = [...MOCK.tenders].sort((a, b) => {
+        const aActive = activeStatuses.has(a.status);
+        const bActive = activeStatuses.has(b.status);
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+        if (aActive && bActive) {
+          // both active: sort by deadline asc (soonest first)
+          return new Date(a.deadlineSubmit) - new Date(b.deadlineSubmit);
+        }
+        // both non-active: sort by deadline desc
+        return new Date(b.deadlineSubmit) - new Date(a.deadlineSubmit);
+      });
+
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'id', label: 'ID',
+            render: r => `<span class="id-chip">${r.id}</span>`
+          },
+          {
+            key: 'title', label: 'НАЗВАНИЕ',
+            render: r => `<span style="font-size:14px;font-weight:500;color:var(--text-primary);max-width:280px;display:inline-block;">${r.title}</span>`
+          },
+          {
+            key: 'platform', label: 'ПЛОЩАДКА',
+            render: r => `<span class="text-secondary" style="font-size:13px;">${r.platform}</span>`
+          },
+          {
+            key: 'customer', label: 'ЗАКАЗЧИК',
+            render: r => `<span class="text-secondary" style="font-size:13px;">${r.customer}</span>`
+          },
+          {
+            key: 'nmcAmount', label: 'НМЦ', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.nmcAmount)}</span>`
+          },
+          {
+            key: 'manager', label: 'МЕНЕДЖЕР',
+            render: r => {
+              const user = MOCK.users.find(u => u.id === r.manager);
+              if (!user) return '<span class="text-muted">—</span>';
+              const firstName = user.name.split(' ').slice(0, 2).join(' ');
+              return `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(user.name, 'sm')}<span style="font-size:13px;">${firstName}</span></span>`;
+            }
+          },
+          {
+            key: 'deadlineSubmit', label: 'ДЕДЛАЙН ПОДАЧИ',
+            render: r => {
+              const dl = new Date(r.deadlineSubmit).getTime();
+              const msLeft = dl - now;
+              const isUrgent = msLeft > 0 && msLeft < URGENT_MS && !['won','lost'].includes(r.status);
+              const relDate = `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.deadlineSubmit)}</span>`;
+              return isUrgent
+                ? `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderBadge('danger','Горит')}${relDate}</span>`
+                : relDate;
+            }
+          },
+          {
+            key: 'status', label: 'СТАТУС',
+            render: r => {
+              const s = statusMap[r.status] || { variant: 'neutral', label: r.status };
+              return CRM.renderBadge(s.variant, s.label);
+            }
+          },
+          {
+            key: '_actions', label: '',
+            render: () => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="pencil"></i></button>
+            </span>`
+          },
+        ],
+        rows,
+        empty: { title: 'Нет тендеров', body: 'Добавьте первый тендер.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

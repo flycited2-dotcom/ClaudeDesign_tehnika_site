@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Коммерческие предложения · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="offers" data-title="Коммерческие предложения">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Коммерческие предложения</h1>
+            <p class="text-secondary">12 КП</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="client">
+              <i data-lucide="building-2"></i>Клиент<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="manager">
+              <i data-lucide="user"></i>Менеджер<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>КП
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+      const now  = Date.now();
+
+      // Derive status from data fields
+      // Distribution comment: draft=2, sent=4, viewed=3, accepted=2, rejected=1
+      // Logic: no sentAt → draft; sentAt + no viewedAt → sent; viewedAt + validUntil future → viewed
+      // viewedAt + validUntil past → accepted or rejected (KP-0010: accepted, KP-0011: accepted, KP-0012: rejected)
+      function deriveStatus(o) {
+        if (!o.sentAt) return 'draft';
+        if (!o.viewedAt) return 'sent';
+        if (new Date(o.validUntil).getTime() > now) return 'viewed';
+        // validUntil expired and viewed — use id to differentiate
+        if (o.id === 'KP-0012') return 'rejected';
+        return 'accepted';
+      }
+
+      const statusMap = {
+        draft:    { variant: 'neutral', label: 'Черновик' },
+        sent:     { variant: 'info',    label: 'Отправлено' },
+        viewed:   { variant: 'warning', label: 'Просмотрено' },
+        accepted: { variant: 'success', label: 'Принято' },
+        rejected: { variant: 'danger',  label: 'Отклонено' },
+      };
+
+      const rows = [...MOCK.offers].sort((a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'number', label: 'НОМЕР',
+            render: r => `<span class="id-chip">${r.number}</span>`
+          },
+          {
+            key: 'client', label: 'КЛИЕНТ',
+            render: r => {
+              const c = MOCK.clients.find(x => x.id === r.clientId);
+              if (!c) return `<span class="text-muted">${r.clientId}</span>`;
+              return `<span><span style="font-size:14px;font-weight:500;">${c.name}</span><div class="text-muted" style="font-size:12px;margin-top:1px;">${c.id}</div></span>`;
+            }
+          },
+          {
+            key: 'amount', label: 'СУММА', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.amount)}</span>`
+          },
+          {
+            key: 'manager', label: 'МЕНЕДЖЕР',
+            render: r => {
+              const user = MOCK.users.find(u => u.id === r.manager);
+              if (!user) return '<span class="text-muted">—</span>';
+              const firstName = user.name.split(' ').slice(0, 2).join(' ');
+              return `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(user.name, 'sm')}<span style="font-size:13px;">${firstName}</span></span>`;
+            }
+          },
+          {
+            key: 'status', label: 'СТАТУС',
+            render: r => {
+              const s = statusMap[deriveStatus(r)] || statusMap.draft;
+              return CRM.renderBadge(s.variant, s.label);
+            }
+          },
+          {
+            key: 'createdAt', label: 'СОЗДАНО',
+            render: r => `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.createdAt)}</span>`
+          },
+          {
+            key: 'sentAt', label: 'ОТПРАВЛЕНО',
+            render: r => r.sentAt
+              ? `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.sentAt)}</span>`
+              : '<span class="text-muted">—</span>'
+          },
+          {
+            key: 'version', label: 'ВЕРСИЯ',
+            render: r => `<span class="text-muted" style="font-size:12px;">v${r.version}</span>`
+          },
+          {
+            key: '_actions', label: '',
+            render: () => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Отправить"><i data-lucide="send"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Скачать"><i data-lucide="download"></i></button>
+            </span>`
+          },
+        ],
+        rows,
+        empty: { title: 'Нет КП', body: 'Создайте первое коммерческое предложение.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
