@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сделки · Канбан · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    /* Segmented control with anchor links */
+    .segmented a {
+      border: 0;
+      background: transparent;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .segmented a.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+    /* Kanban board fills content area */
+    #kanban-root.kanban {
+      min-height: 520px;
+      align-items: flex-start;
+    }
+    /* Column color accents per stage */
+    .kanban-col[data-stage="new"]         { border-top: 2px solid var(--status-info-fg); }
+    .kanban-col[data-stage="qualified"]   { border-top: 2px solid var(--status-warning-fg); }
+    .kanban-col[data-stage="offer_sent"]  { border-top: 2px solid var(--status-warning-fg); }
+    .kanban-col[data-stage="negotiation"] { border-top: 2px solid var(--status-warning-fg); }
+    .kanban-col[data-stage="won"]         { border-top: 2px solid var(--status-success-fg); }
+  </style>
+</head>
+<body data-route="deals" data-title="Сделки">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Сделки</h1>
+            <p class="text-secondary">Воронка продаж</p>
+          </div>
+          <div class="flex items-center" style="gap:8px;">
+            <div class="segmented">
+              <a href="/app/deals/kanban.html" class="is-active">Канбан</a>
+              <a href="/app/deals/list.html">Таблица</a>
+              <a href="/app/deals/by-client.html">По клиентам</a>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="funnel">
+              <i data-lucide="layers"></i>Воронка<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="direction">
+              <i data-lucide="filter"></i>Направление<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="responsible">
+              <i data-lucide="user"></i>Ответственный<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Сделка
+            </button>
+          </div>
+        </header>
+
+        <div id="kanban-root"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+      const now  = Date.now();
+      const STALE_MS = 3 * 86400000; // 3 days
+
+      // ─── helpers ─────────────────────────────────────────────────────────────
+      function isStale(deal) {
+        return !['won','lost'].includes(deal.stage) && (now - new Date(deal.lastActionAt)) > STALE_MS;
+      }
+
+      function staleDays(deal) {
+        return Math.round((now - new Date(deal.lastActionAt)) / 86400000);
+      }
+
+      function getUserName(id) {
+        const u = MOCK.users.find(u => u.id === id);
+        return u ? u.name : id;
+      }
+
+      function getClient(clientId) {
+        return MOCK.clients.find(c => c.id === clientId) || { name: clientId };
+      }
+
+      // ─── card renderer ───────────────────────────────────────────────────────
+      function cardRenderer(deal) {
+        const stale = isStale(deal);
+        const client = getClient(deal.clientId);
+        const staleClass = stale ? ' is-stale' : '';
+
+        return `<article class="kanban-card${staleClass}">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: var(--space-2);">
+    <span class="id-chip">${deal.number}</span>
+    ${deal.hasOverdueTasks ? CRM.renderBadge('danger','Задача просрочена') : ''}
+  </div>
+  <div style="font-size:14px; font-weight:500; color:var(--text-primary); margin-bottom: var(--space-1); line-height: 1.35;">${deal.title}</div>
+  <div style="font-size:12px; color:var(--text-secondary); margin-bottom: var(--space-3);">${client.name}</div>
+  <div style="font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:18px; font-weight:500; color:var(--text-primary); margin-bottom: var(--space-3);">${CRM.formatMoney(deal.amount)}</div>
+  <div style="display:flex; align-items:center; justify-content:space-between; padding-top: var(--space-2); border-top: 1px solid var(--border-subtle); font-size:11px; color:var(--text-muted);">
+    <div style="display:flex; align-items:center; gap:8px;">
+      ${CRM.renderAvatar(getUserName(deal.responsible), 'sm')}
+      ${deal.offersCount > 0 ? `<span><i data-lucide="file-text" style="width:11px;height:11px;display:inline-block;vertical-align:-2px;"></i> ${deal.offersCount}</span>` : ''}
+    </div>
+    <span>${CRM.formatRelative(deal.lastActionAt)}</span>
+  </div>
+  ${stale ? `<div style="margin-top: var(--space-2); font-size:11px; color: var(--status-danger-fg); display:flex; align-items:center; gap:4px;"><i data-lucide="clock" style="width:12px; height:12px;"></i>Без движения ${staleDays(deal)} дн</div>` : ''}
+</article>`;
+      }
+
+      // ─── columns & grouping ──────────────────────────────────────────────────
+      const columns = [
+        { id: 'new',         label: 'Новая' },
+        { id: 'qualified',   label: 'Квалифицирована' },
+        { id: 'offer_sent',  label: 'КП отправлено' },
+        { id: 'negotiation', label: 'Переговоры' },
+        { id: 'won',         label: 'Выиграна' },
+      ];
+
+      const cardsByColumn = {};
+      columns.forEach(col => { cardsByColumn[col.id] = []; });
+
+      // lost deals hidden from default kanban view
+      MOCK.deals.forEach(deal => {
+        if (cardsByColumn[deal.stage] !== undefined) {
+          cardsByColumn[deal.stage].push(deal);
+        }
+      });
+
+      // Sort each column: stale first (most stale on top), then by createdAt desc
+      columns.forEach(col => {
+        const arr = cardsByColumn[col.id];
+        const stale = arr.filter(isStale).sort((a, b) => new Date(a.lastActionAt) - new Date(b.lastActionAt));
+        const rest  = arr.filter(d => !isStale(d)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        cardsByColumn[col.id] = [...stale, ...rest];
+      });
+
+      // ─── render ──────────────────────────────────────────────────────────────
+      CRM.renderKanban('#kanban-root', { columns, cardsByColumn, cardRenderer });
+
+      // Apply data-stage attributes for CSS column accent borders
+      document.querySelectorAll('#kanban-root .kanban-col').forEach((colEl, idx) => {
+        colEl.setAttribute('data-stage', columns[idx].id);
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

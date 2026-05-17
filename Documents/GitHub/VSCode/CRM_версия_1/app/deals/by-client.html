@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сделки · По клиентам · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    /* Segmented control with anchor links */
+    .segmented a {
+      border: 0;
+      background: transparent;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .segmented a.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+    /* Client group layout */
+    .client-group { margin-bottom: var(--space-8); }
+    .client-group-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); }
+  </style>
+</head>
+<body data-route="deals" data-title="Сделки · по клиентам">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Сделки · по клиентам</h1>
+            <p class="text-secondary">Группировка по клиенту</p>
+          </div>
+          <div class="flex items-center" style="gap:8px;">
+            <div class="segmented">
+              <a href="/app/deals/kanban.html">Канбан</a>
+              <a href="/app/deals/list.html">Таблица</a>
+              <a href="/app/deals/by-client.html" class="is-active">По клиентам</a>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="funnel">
+              <i data-lucide="layers"></i>Воронка<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="direction">
+              <i data-lucide="filter"></i>Направление<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="responsible">
+              <i data-lucide="user"></i>Ответственный<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Сделка
+            </button>
+          </div>
+        </header>
+
+        <div id="groups-root"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── helpers ─────────────────────────────────────────────────────────────
+      const typeLabel = {
+        company:    'Юр.лицо',
+        individual: 'Физ.лицо',
+        state:      'Гос.',
+      };
+
+      const stageMap = {
+        new:         { variant: 'info',    label: 'Новая' },
+        qualified:   { variant: 'warning', label: 'Квалифицирована' },
+        offer_sent:  { variant: 'warning', label: 'КП отправлено' },
+        negotiation: { variant: 'warning', label: 'Переговоры' },
+        won:         { variant: 'success', label: 'Выиграна' },
+        lost:        { variant: 'danger',  label: 'Проиграна' },
+      };
+
+      function getUserName(id) {
+        const u = MOCK.users.find(u => u.id === id);
+        return u ? u.name : id;
+      }
+
+      // ─── group deals by client ────────────────────────────────────────────────
+      const groupMap = {};
+      MOCK.deals.forEach(deal => {
+        if (!groupMap[deal.clientId]) groupMap[deal.clientId] = [];
+        groupMap[deal.clientId].push(deal);
+      });
+
+      // Build client-group entries with sum, sort by sum desc
+      const groups = Object.entries(groupMap)
+        .map(([clientId, deals]) => {
+          const client = MOCK.clients.find(c => c.id === clientId) || { id: clientId, name: clientId, type: 'company' };
+          const sumOfDeals = deals.reduce((acc, d) => acc + d.amount, 0);
+          const sortedDeals = [...deals].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          return { client, deals: sortedDeals, sumOfDeals };
+        })
+        .filter(g => g.deals.length > 0)
+        .sort((a, b) => b.sumOfDeals - a.sumOfDeals);
+
+      // ─── render ──────────────────────────────────────────────────────────────
+      const root = document.querySelector('#groups-root');
+
+      groups.forEach(({ client, deals, sumOfDeals }) => {
+        const tableId = `client-${client.id}-deals`;
+
+        const section = document.createElement('section');
+        section.className = 'client-group';
+        section.innerHTML = `
+          <div class="client-group-header">
+            <div style="display:flex; align-items:center; gap: var(--space-3);">
+              ${CRM.renderAvatar(client.name, 'sm')}
+              <div>
+                <div style="font-family:var(--font-serif); font-size:18px; font-weight:500;">${client.name}</div>
+                <div style="font-size:12px; color: var(--text-muted);">${client.id} · ${typeLabel[client.type] || client.type}</div>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:12px; color: var(--text-secondary);">Сделок ${deals.length} · Сумма</div>
+              <div class="num" style="font-size:16px; font-weight:500;">${CRM.formatMoney(sumOfDeals)}</div>
+            </div>
+          </div>
+          <div class="card-flush" style="overflow:hidden;">
+            <div id="${tableId}"></div>
+          </div>
+        `;
+        root.appendChild(section);
+
+        // Render nested table for this client
+        CRM.renderTable(`#${tableId}`, {
+          columns: [
+            {
+              key: 'number', label: 'НОМЕР',
+              render: r => `<span class="id-chip">${r.number}</span>`
+            },
+            {
+              key: 'title', label: 'НАЗВАНИЕ',
+              render: r => `<span style="font-size:14px;font-weight:500;color:var(--text-primary);line-height:1.35;">${r.title}</span>`
+            },
+            {
+              key: 'stage', label: 'ЭТАП',
+              render: r => {
+                const s = stageMap[r.stage] || { variant: 'neutral', label: r.stage };
+                return CRM.renderBadge(s.variant, s.label);
+              }
+            },
+            {
+              key: 'amount', label: 'СУММА', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.amount)}</span>`
+            },
+            {
+              key: 'responsible', label: 'ОТВЕТСТВЕННЫЙ',
+              render: r => {
+                const name = getUserName(r.responsible);
+                const firstName = name.split(' ').slice(0, 2).join(' ');
+                return `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(name,'sm')}<span style="font-size:13px;">${firstName}</span></span>`;
+              }
+            },
+            {
+              key: 'lastActionAt', label: 'АКТИВНОСТЬ',
+              render: r => `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.lastActionAt)}</span>`
+            },
+            {
+              key: '_actions', label: '',
+              render: () => `<span class="row-actions">
+                <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+                <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="pencil"></i></button>
+              </span>`
+            },
+          ],
+          rows: deals,
+          empty: { title: 'Нет сделок', body: '' }
+        });
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
