@@ -15,10 +15,6 @@ import {
 import { catalogRangeAttributeKeys, getCatalogAttributeDefinition, getCatalogAttributeKeysForCategory } from "@/lib/catalog-attribute-registry";
 import { buildCatalogBrandFilterOptions } from "@/lib/catalog-brand-filters";
 import { buildCategoryPath, buildCategoryTree, collectDescendantCategoryIds, type CategoryTreeItem, type FlatCategory } from "@/lib/catalog-tree";
-import {
-  type NormalizedCatalogCacheKey,
-  normalizeCatalogCacheArgs,
-} from "@/lib/catalog-cache-key";
 import { interleaveByTopCategory } from "@/lib/catalog-interleave";
 import { hasCatalogFacetContext, normalizeCatalogBrandValues, type CatalogSort } from "@/lib/catalog-query";
 import {
@@ -446,54 +442,7 @@ async function getCatalogAttributeRangeGroups(baseWhere: Prisma.ProductWhereInpu
   return buildCatalogAttributeRangeGroups(rows, allowedKeys);
 }
 
-/**
- * Public entry: normalize the query into a stable cache key, then delegate
- * to the cached wrapper. Equivalent queries (different brand case, different
- * filter order) hit the same cache entry.
- */
 export async function getCatalogPage(query: CatalogQuery) {
-  const cacheKey = normalizeCatalogCacheArgs(query);
-  return getCatalogPageCached(cacheKey);
-}
-
-/**
- * Cached layer. Keyed entirely by the normalized args — no raw `query`
- * reaches `unstable_cache`, so case/order variations don't fragment the cache.
- */
-const getCatalogPageCached = unstable_cache(
-  async (cacheKey: NormalizedCatalogCacheKey) => {
-    return getCatalogPageImpl(cacheKeyToQuery(cacheKey));
-  },
-  ["catalog-page"],
-  { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] },
-);
-
-/**
- * Reconstruct a CatalogQuery from the normalized cache key so the impl
- * sees the same shape as before this refactor.
- */
-function cacheKeyToQuery(key: NormalizedCatalogCacheKey): CatalogQuery {
-  return {
-    categorySlug: key.categorySlug ?? undefined,
-    query: key.query ?? undefined,
-    brands: key.brands.length > 0 ? key.brands : undefined,
-    available: key.available || undefined,
-    withPhoto: key.withPhoto || undefined,
-    minPrice: key.minPrice ?? undefined,
-    maxPrice: key.maxPrice ?? undefined,
-    page: key.page,
-    sort: key.sort ?? undefined,
-    specFilters: key.specFilters.length > 0 ? key.specFilters : undefined,
-    attributeFilters: key.attributeFilters.length > 0 ? key.attributeFilters : undefined,
-    attributeRangeFilters: key.attributeRangeFilters.length > 0 ? key.attributeRangeFilters : undefined,
-  };
-}
-
-/**
- * Internal implementation — original `getCatalogPage` body unchanged.
- * Only called via the cached wrapper above.
- */
-async function getCatalogPageImpl(query: CatalogQuery) {
   const page = Math.max(query.page ?? 1, 1);
   const selectedBrands = normalizeCatalogBrandValues([...(query.brands ?? []), query.brand]);
   const allCategories = await getActiveCategories();
