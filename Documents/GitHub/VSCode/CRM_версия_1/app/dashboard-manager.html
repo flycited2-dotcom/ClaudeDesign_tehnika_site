@@ -1,0 +1,777 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мой рабочий день · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    /* ── Hero strip ── */
+    .hero-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px 32px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 100% 0%, var(--accent-soft) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-greeting {
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .hero-subtitle {
+      margin-top: 6px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .hero-metrics {
+      display: flex;
+      gap: 32px;
+      flex-shrink: 0;
+    }
+    .hero-metric {
+      text-align: right;
+    }
+    .hero-metric-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .hero-metric-value {
+      font-family: var(--font-serif);
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+    .hero-metric-divider {
+      width: 1px;
+      background: var(--border-subtle);
+      align-self: stretch;
+    }
+    @media (max-width: 900px) {
+      .hero-metrics { display: none; }
+    }
+
+    /* ── Two-column row ── */
+    .two-col-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 1024px) {
+      .two-col-row { grid-template-columns: 1fr; }
+    }
+
+    /* ── KPI strip ── */
+    #mgr-kpis .kpi {
+      min-height: 116px;
+    }
+
+    /* ── Deal mini-grid ── */
+    .deal-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .deal-mini-card {
+      background: var(--bg-app);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      transition: box-shadow var(--dur-fast) var(--ease-spring),
+                  border-color var(--dur-fast) var(--ease-spring);
+    }
+    .deal-mini-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--border-strong);
+    }
+    .deal-mini-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .deal-mini-client {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .deal-mini-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .deal-mini-amount {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    /* ── Messages list ── */
+    .msg-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .msg-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .msg-item:last-child {
+      border-bottom: none;
+    }
+    .msg-icon {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+    }
+    .msg-icon svg { width: 15px; height: 15px; }
+    .msg-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .msg-author {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .msg-reply-tag {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .msg-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .msg-ts {
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── Leads list ── */
+    .lead-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .lead-item:last-child {
+      border-bottom: none;
+    }
+    .lead-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .lead-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lead-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .lead-ts {
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── Offer list ── */
+    .offer-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .offer-item:last-child {
+      border-bottom: none;
+    }
+    .offer-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .offer-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+    .offer-client {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .offer-amount {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .offer-sent-at {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* ── Quick actions ── */
+    .quick-actions-title {
+      font-family: var(--font-serif);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      margin-bottom: 16px;
+    }
+    .quick-actions-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .quick-actions-stack .btn {
+      justify-content: flex-start;
+      gap: 8px;
+    }
+    .quick-actions-stack .btn svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    /* ── Stage label map ── */
+  </style>
+</head>
+<body data-route="dashboard" data-title="Мой рабочий день">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Мой рабочий день</h1>
+            <p class="text-secondary" id="mgr-header-sub">Морозова Екатерина · менеджер</p>
+          </div>
+          <div class="flex items-center gap-2"><!-- page actions --></div>
+        </header>
+
+        <!-- MAIN GRID -->
+        <div style="display:flex; flex-direction:column; gap:24px;">
+
+          <!-- 1. HERO STRIP -->
+          <section id="mgr-hero">
+            <div class="hero-card">
+              <div class="hero-overlay"></div>
+              <div style="position:relative; z-index:1;">
+                <div class="hero-greeting">С возвращением, Екатерина</div>
+                <div class="hero-subtitle" id="mgr-hero-subtitle">подсчёт задач…</div>
+              </div>
+              <div class="hero-metrics" style="position:relative; z-index:1;">
+                <div class="hero-metric">
+                  <div class="hero-metric-label">Мои сделки</div>
+                  <div class="hero-metric-value" id="mgr-hero-deals">—</div>
+                </div>
+                <div class="hero-metric-divider"></div>
+                <div class="hero-metric">
+                  <div class="hero-metric-label">Закрыто в месяце</div>
+                  <div class="hero-metric-value" id="mgr-hero-won">—</div>
+                </div>
+                <div class="hero-metric-divider"></div>
+                <div class="hero-metric">
+                  <div class="hero-metric-label">На контроле КП</div>
+                  <div class="hero-metric-value" id="mgr-hero-offers">—</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. KPI STRIP -->
+          <section id="mgr-kpis" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px;"></section>
+
+          <!-- 3. TWO-COLUMN ROW -->
+          <section class="two-col-row">
+
+            <!-- Left column -->
+            <div style="display:flex; flex-direction:column; gap:24px;">
+
+              <!-- 3a. Мои задачи на сегодня -->
+              <div class="card" style="padding:0; overflow:hidden;">
+                <div style="padding: 20px 24px 16px;">
+                  <div class="card-head" style="margin-bottom:0;">
+                    <span class="card-head-title">Мои задачи на сегодня</span>
+                    <span class="card-head-sub" id="tasks-count-sub">N задач</span>
+                  </div>
+                </div>
+                <div id="mgr-tasks-table"></div>
+              </div>
+
+              <!-- 3b. Активные сделки -->
+              <div class="card">
+                <div class="card-head">
+                  <span class="card-head-title">Активные сделки</span>
+                  <span class="card-head-sub" id="deals-count-sub">N сделок</span>
+                </div>
+                <div class="deal-mini-grid" id="mgr-deals-grid"></div>
+                <div id="mgr-deals-empty" style="display:none;">
+                  <div class="empty"><h3>Нет активных сделок</h3><p>Создайте новую сделку, чтобы начать работу.</p></div>
+                </div>
+              </div>
+
+              <!-- 3c. Последние сообщения -->
+              <div class="card">
+                <div class="card-head">
+                  <span class="card-head-title">Последние сообщения</span>
+                  <span class="card-head-sub">последние 6</span>
+                </div>
+                <div class="msg-list" id="mgr-messages"></div>
+              </div>
+
+            </div>
+
+            <!-- Right column -->
+            <div style="display:flex; flex-direction:column; gap:24px;">
+
+              <!-- 3d. Новые лиды -->
+              <div class="card">
+                <div class="card-head">
+                  <span class="card-head-title">Новые лиды</span>
+                  <span class="card-head-sub" id="leads-count-sub">N</span>
+                </div>
+                <div id="mgr-leads-list"></div>
+              </div>
+
+              <!-- 3e. КП на контроле -->
+              <div class="card">
+                <div class="card-head">
+                  <span class="card-head-title">КП на контроле</span>
+                  <span class="card-head-sub" id="offers-count-sub">N</span>
+                </div>
+                <div id="mgr-offers-list"></div>
+              </div>
+
+              <!-- 3f. Быстрые действия -->
+              <div class="card">
+                <div class="quick-actions-title">Быстрые действия</div>
+                <div class="quick-actions-stack">
+                  <button class="btn btn-secondary" data-action="open-create-client">
+                    <i data-lucide="user-plus"></i>
+                    <span>+ Клиент</span>
+                  </button>
+                  <button class="btn btn-secondary" data-action="open-create-deal">
+                    <i data-lucide="briefcase"></i>
+                    <span>+ Сделка</span>
+                  </button>
+                  <button class="btn btn-secondary" data-action="open-create-task">
+                    <i data-lucide="check-square"></i>
+                    <span>+ Задача</span>
+                  </button>
+                  <button class="btn btn-secondary" data-action="open-create-offer">
+                    <i data-lucide="file-text"></i>
+                    <span>+ КП</span>
+                  </button>
+                  <button class="btn btn-secondary" data-action="open-create-comment">
+                    <i data-lucide="message-square"></i>
+                    <span>+ Комментарий</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+      const now  = Date.now();
+
+      const MGR_ID = 'USR-003';
+
+      // ─── HELPERS ──────────────────────────────────────────────────────────────
+      const todayStr      = new Date().toISOString().slice(0, 10);
+      const todayDateStr  = new Date().toDateString();
+
+      const days   = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+      const months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+      const today  = new Date();
+      const heroDateStr = `${days[today.getDay()]}, ${today.getDate()} ${months[today.getMonth()]}`;
+
+      // Use reference date pattern same as owner dashboard (latest date with data if today has none)
+      const allSessionDates = [...new Set(MOCK.workSessions.map(s => s.date))].sort();
+      const referenceDate   = allSessionDates.includes(todayStr)
+        ? todayStr
+        : allSessionDates[allSessionDates.length - 1];
+      const referenceDateStr = new Date(referenceDate).toDateString();
+
+      function stageLabel(stage) {
+        const m = { new: 'Новая', qualified: 'Квалификация', offer_sent: 'КП отправлено', negotiation: 'Переговоры', won: 'Выигран', lost: 'Проигран' };
+        return m[stage] || stage;
+      }
+      function stageVariant(stage) {
+        const m = { new: 'info', qualified: 'warning', offer_sent: 'warning', negotiation: 'neutral', won: 'success', lost: 'danger' };
+        return m[stage] || 'neutral';
+      }
+      function priorityVariant(p) {
+        const m = { high: 'danger', normal: 'neutral', low: 'info' };
+        return m[p] || 'neutral';
+      }
+      function priorityLabel(p) {
+        const m = { high: 'Высокий', normal: 'Норма', low: 'Низкий' };
+        return m[p] || p;
+      }
+      function statusVariant(s) {
+        const m = { new: 'info', in_work: 'warning', review: 'neutral', done: 'success', overdue: 'danger' };
+        return m[s] || 'neutral';
+      }
+      function statusLabel(s) {
+        const m = { new: 'Новая', in_work: 'В работе', review: 'На проверке', done: 'Готово', overdue: 'Просрочена' };
+        return m[s] || s;
+      }
+
+      // ─── HERO METRICS ──────────────────────────────────────────────────────────
+      const myActiveDeals = MOCK.deals.filter(d =>
+        d.responsible === MGR_ID && !['won','lost'].includes(d.stage)
+      );
+
+      const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1).getTime();
+      const myWonThisMonth = MOCK.deals.filter(d =>
+        d.responsible === MGR_ID &&
+        d.stage === 'won' &&
+        new Date(d.lastActionAt).getTime() >= thisMonthStart
+      );
+
+      const myOffersOnControl = MOCK.offers.filter(o =>
+        o.manager === MGR_ID && (o.sentAt !== null && o.viewedAt === null)
+      );
+      // "sent" = sentAt set + viewedAt null; "viewed" = viewedAt set
+      const myOffersControl = MOCK.offers.filter(o =>
+        o.manager === MGR_ID &&
+        o.sentAt !== null &&
+        (o.viewedAt === null || o.viewedAt !== null) &&
+        o.sentAt !== null
+      ).filter(o => {
+        // status 'sent' = sentAt not null, viewedAt null
+        // status 'viewed' = viewedAt not null
+        return o.sentAt !== null; // includes both sent and viewed
+      });
+      // Refined: sent = sentAt set, viewedAt null; viewed = viewedAt set
+      const myOffersTracked = MOCK.offers.filter(o =>
+        o.manager === MGR_ID && o.sentAt !== null
+      );
+
+      document.getElementById('mgr-hero-deals').textContent   = myActiveDeals.length;
+      document.getElementById('mgr-hero-won').textContent     = myWonThisMonth.length;
+      document.getElementById('mgr-hero-offers').textContent  = myOffersTracked.length;
+
+      // ─── HERO SUBTITLE ────────────────────────────────────────────────────────
+      const tasksToday = MOCK.tasks.filter(t =>
+        t.assignee === MGR_ID &&
+        !['done'].includes(t.status) &&
+        new Date(t.deadline).toDateString() === referenceDateStr
+      );
+      document.getElementById('mgr-hero-subtitle').textContent =
+        `${heroDateStr} · ${tasksToday.length} задач до конца дня`;
+
+      // ─── KPI STRIP ────────────────────────────────────────────────────────────
+      const kpiSect = document.getElementById('mgr-kpis');
+
+      const kpi1 = MOCK.tasks.filter(t =>
+        t.assignee === MGR_ID &&
+        new Date(t.deadline).toDateString() === referenceDateStr
+      ).length;
+
+      const kpi2 = MOCK.tasks.filter(t =>
+        t.assignee === MGR_ID && t.status === 'overdue'
+      ).length;
+
+      const kpi3 = MOCK.leads.filter(l =>
+        (l.responsible === MGR_ID || l.responsible === null) && l.status === 'new'
+      ).length;
+
+      const kpi4 = myActiveDeals.length;
+
+      const kpis = [
+        { value: kpi1, label: 'Задачи на сегодня',    delta: kpi1 > 0 ? `${kpi1} к выполнению`  : 'нет задач', trend: kpi1 > 0 ? 'up' : 'up' },
+        { value: kpi2, label: 'Просроченные',          delta: kpi2 > 0 ? `+${kpi2} требуют срочно` : '−1 vs вчера', trend: kpi2 > 0 ? 'down' : 'up' },
+        { value: kpi3, label: 'Новые лиды',            delta: '+1 vs вчера',  trend: 'up' },
+        { value: kpi4, label: 'Активные сделки',       delta: 'в работе',     trend: 'up' },
+      ];
+
+      kpis.forEach(k => {
+        kpiSect.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k));
+      });
+
+      // ─── MY TASKS TABLE ────────────────────────────────────────────────────────
+      const myTasks = MOCK.tasks.filter(t =>
+        t.assignee === MGR_ID && t.status !== 'done'
+      ).sort((a, b) => new Date(a.deadline) - new Date(b.deadline)).slice(0, 6);
+
+      document.getElementById('tasks-count-sub').textContent = `${myTasks.length} задач`;
+
+      function getRelatedLabel(task) {
+        if (!task.relatedType || !task.relatedId) return '—';
+        if (task.relatedType === 'deal') {
+          const d = MOCK.deals.find(x => x.id === task.relatedId);
+          return d ? `<span class="badge badge--neutral badge--flat" style="font-size:11px;">${d.number}</span>` : task.relatedId;
+        }
+        if (task.relatedType === 'client') {
+          const c = MOCK.clients.find(x => x.id === task.relatedId);
+          return c ? `<span style="font-size:12px;color:var(--text-secondary);">${c.name.split(' ')[0]}</span>` : task.relatedId;
+        }
+        if (task.relatedType === 'tender') {
+          return `<span class="badge badge--info badge--flat" style="font-size:11px;">${task.relatedId}</span>`;
+        }
+        return task.relatedId;
+      }
+
+      CRM.renderTable('#mgr-tasks-table', {
+        columns: [
+          {
+            key: 'priority', label: 'ПРИОРИТЕТ',
+            render: r => CRM.renderBadge(priorityVariant(r.priority), priorityLabel(r.priority))
+          },
+          {
+            key: 'title', label: 'ЗАДАЧА',
+            render: r => `<span style="font-size:13px;font-weight:500;max-width:260px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.title}">${r.title}</span>`
+          },
+          {
+            key: 'relatedId', label: 'СВЯЗЬ',
+            render: r => getRelatedLabel(r)
+          },
+          {
+            key: 'deadline', label: 'ДЕДЛАЙН',
+            render: r => {
+              const rel = CRM.formatRelative(r.deadline);
+              const isOverdue = r.status === 'overdue' || new Date(r.deadline) < new Date();
+              return isOverdue
+                ? `<span class="badge badge--danger badge--flat">${rel}</span>`
+                : `<span class="num" style="font-size:12px;">${rel}</span>`;
+            }
+          },
+          {
+            key: 'status', label: 'СТАТУС',
+            render: r => CRM.renderBadge(statusVariant(r.status), statusLabel(r.status))
+          },
+        ],
+        rows: myTasks,
+        empty: { title: 'Нет задач на сегодня', body: 'Отличная работа — все задачи выполнены!' }
+      });
+
+      // ─── ACTIVE DEALS MINI-GRID ────────────────────────────────────────────────
+      const mgr_deals = MOCK.deals.filter(d =>
+        d.responsible === MGR_ID && !['won','lost'].includes(d.stage)
+      ).slice(0, 6);
+
+      document.getElementById('deals-count-sub').textContent = `${mgr_deals.length} сделок`;
+
+      const dealsGrid = document.getElementById('mgr-deals-grid');
+      if (mgr_deals.length === 0) {
+        document.getElementById('mgr-deals-empty').style.display = '';
+      } else {
+        dealsGrid.innerHTML = mgr_deals.map(d => {
+          const client = MOCK.clients.find(c => c.id === d.clientId);
+          return `
+            <div class="deal-mini-card">
+              <div class="deal-mini-title" title="${d.title}">${d.title}</div>
+              <div class="deal-mini-client">${client ? client.name : d.clientId}</div>
+              <div class="deal-mini-footer">
+                <span class="deal-mini-amount">${CRM.formatMoney(d.amount)}</span>
+                ${CRM.renderBadge(stageVariant(d.stage), stageLabel(d.stage))}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ─── MESSAGES ─────────────────────────────────────────────────────────────
+      const channelIconMap = {
+        email:    'mail',
+        telegram: 'send',
+        whatsapp: 'message-circle',
+        internal: 'message-square',
+      };
+
+      const recentMessages = [...MOCK.messages]
+        .sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt))
+        .slice(0, 6);
+
+      const msgList = document.getElementById('mgr-messages');
+      msgList.innerHTML = recentMessages.map(m => {
+        const icon = channelIconMap[m.channel] || 'message-circle';
+        const isReply = m.direction === 'out';
+        const authorDisplay = isReply
+          ? (MOCK.users.find(u => u.id === m.author)?.name?.split(' ').slice(0,2).join(' ') || m.author)
+          : m.author.split(' ').slice(0,2).join(' ');
+        return `
+          <div class="msg-item">
+            <div class="msg-icon">
+              <i data-lucide="${icon}"></i>
+            </div>
+            <div class="msg-body">
+              <div class="msg-header">
+                <span class="msg-author">${authorDisplay}</span>
+                ${isReply ? '<span class="msg-reply-tag">↳ ответ</span>' : ''}
+              </div>
+              <div class="msg-text" title="${m.text}">${m.text}</div>
+            </div>
+            <div class="msg-ts">${CRM.formatRelative(m.sentAt)}</div>
+          </div>
+        `;
+      }).join('');
+
+      // ─── NEW LEADS ────────────────────────────────────────────────────────────
+      const LEAD_STALE_MS = 15 * 60_000;
+      const newLeads = MOCK.leads.filter(l =>
+        (l.responsible === MGR_ID || l.responsible === null) && l.status === 'new'
+      ).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+      const leadsLimit = 5;
+      const leadsShown = newLeads.slice(0, leadsLimit);
+      const leadsExtra = newLeads.length - leadsShown.length;
+
+      document.getElementById('leads-count-sub').textContent = newLeads.length;
+
+      const leadsList = document.getElementById('mgr-leads-list');
+      if (leadsShown.length === 0) {
+        leadsList.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:4px 0;">Нет новых лидов</p>';
+      } else {
+        const staleEntries = leadsShown.map(l => {
+          const ageMs = now - new Date(l.createdAt).getTime();
+          const isStale = ageMs > LEAD_STALE_MS;
+          const staleMins = Math.round(ageMs / 60000);
+          return `
+            <div class="lead-item">
+              <div class="lead-body">
+                <div class="lead-title" title="${l.title}">${l.title}</div>
+                <div class="lead-meta">
+                  <span class="badge badge--neutral" style="font-size:11px;padding:2px 6px;">${l.source}</span>
+                  ${l.phone ? `<span>${l.phone}</span>` : ''}
+                  ${isStale ? CRM.renderBadge('danger', `горит ${staleMins} мин`) : ''}
+                </div>
+              </div>
+              <div class="lead-ts">${CRM.formatRelative(l.createdAt)}</div>
+            </div>
+          `;
+        }).join('');
+        leadsList.innerHTML = staleEntries +
+          (leadsExtra > 0 ? `<div class="problem-more">… +${leadsExtra} ещё</div>` : '');
+      }
+
+      // ─── OFFERS ON CONTROL ────────────────────────────────────────────────────
+      const myOffers = MOCK.offers.filter(o =>
+        o.manager === MGR_ID && o.sentAt !== null
+      ).slice(0, 5);
+
+      document.getElementById('offers-count-sub').textContent = myOffers.length;
+
+      const offersList = document.getElementById('mgr-offers-list');
+      if (myOffers.length === 0) {
+        offersList.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:4px 0;">Нет отправленных КП</p>';
+      } else {
+        offersList.innerHTML = myOffers.map(o => {
+          const client = MOCK.clients.find(c => c.id === o.clientId);
+          const offerStatus = o.viewedAt ? 'viewed' : 'sent';
+          const offerStatusLabel = o.viewedAt ? 'Просмотрено' : 'Отправлено';
+          const offerStatusVariant = o.viewedAt ? 'success' : 'info';
+          return `
+            <div class="offer-item">
+              <div class="offer-body">
+                <div class="offer-header">
+                  <span class="badge badge--neutral" style="font-size:11px;padding:2px 6px;">${o.number}</span>
+                  <span class="offer-client" title="${client ? client.name : o.clientId}">${client ? client.name : o.clientId}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <span class="offer-amount">${CRM.formatMoney(o.amount)}</span>
+                  ${CRM.renderBadge(offerStatusVariant, offerStatusLabel)}
+                  <span class="offer-sent-at">отправлено ${CRM.formatRelative(o.sentAt)}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Re-run lucide after DOM mutations
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
