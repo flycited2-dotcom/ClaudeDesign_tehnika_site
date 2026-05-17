@@ -94,90 +94,6 @@
       color: var(--text-primary);
       margin-bottom: 16px;
     }
-    .problem-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .problem-item:last-child {
-      border-bottom: none;
-    }
-    .problem-item-text {
-      flex: 1;
-      min-width: 0;
-      font-size: 13px;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .problem-item-ts {
-      font-size: 12px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-      margin-left: auto;
-      white-space: nowrap;
-    }
-    .problem-more {
-      margin-top: 10px;
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: center;
-    }
-
-    /* ── Notifications panel ── */
-    .notif-list {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .notif-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 10px;
-      border-radius: var(--radius-md);
-      cursor: default;
-      transition: background var(--dur-fast) var(--ease-spring);
-    }
-    .notif-item:hover {
-      background: var(--bg-hover);
-    }
-    .notif-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      margin-top: 4px;
-    }
-    .notif-body {
-      flex: 1;
-      min-width: 0;
-    }
-    .notif-title {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-      line-height: 1.35;
-    }
-    .notif-text {
-      font-size: 13px;
-      color: var(--text-secondary);
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      margin-top: 2px;
-    }
-    .notif-ts {
-      font-size: 12px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-      white-space: nowrap;
-      margin-top: 2px;
-    }
 
     /* ── Two-column row ── */
     .two-col-row {
@@ -189,25 +105,6 @@
       .two-col-row {
         grid-template-columns: 1fr;
       }
-    }
-
-    /* ── Card header ── */
-    .card-head {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-    .card-head-title {
-      font-family: var(--font-serif);
-      font-size: 18px;
-      font-weight: 500;
-      letter-spacing: -0.01em;
-      color: var(--text-primary);
-    }
-    .card-head-sub {
-      font-size: 13px;
-      color: var(--text-secondary);
     }
 
     /* ── Online indicator on shift ── */
@@ -326,6 +223,13 @@
       const CRM  = window.CRM;
       const now  = Date.now();
 
+      const THRESHOLD = {
+        LEAD_STALE_MS:    15 * 60_000,
+        DEAL_STUCK_MS:     3 * 86_400_000,
+        TENDER_URGENT_MS: 48 * 3_600_000,
+        OFFER_WAITING_MS:  1 * 86_400_000,
+      };
+
       // ─── HELPERS ──────────────────────────────────────────────────────────────
       const todayStr = new Date().toISOString().slice(0, 10);
       const todayDateStr = new Date().toDateString();
@@ -378,7 +282,7 @@
       const kpi6_online    = MOCK.workSessions.filter(s => s.date === referenceDate && s.logoutAt === null).length;
       const kpi7_tender48  = MOCK.tenders.filter(t =>
         !['won','lost'].includes(t.status) &&
-        (new Date(t.deadlineSubmit).getTime() - now) < 48*3600000 &&
+        (new Date(t.deadlineSubmit).getTime() - now) < THRESHOLD.TENDER_URGENT_MS &&
         (new Date(t.deadlineSubmit).getTime() - now) > 0
       ).length;
 
@@ -462,62 +366,15 @@
       });
 
       // ─── NOTIFICATIONS PANEL ─────────────────────────────────────────────────
-      const severityColor = {
-        info:    'var(--status-info-fg)',
-        success: 'var(--status-success-fg)',
-        warning: 'var(--status-warning-fg)',
-        danger:  'var(--status-danger-fg)',
-        neutral: 'var(--status-neutral-fg)',
-      };
-
-      const sorted = [...MOCK.notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 6);
-      const notifList = document.getElementById('notif-list');
-
-      notifList.innerHTML = sorted.map(n => `
-        <div class="notif-item">
-          <div class="notif-dot" style="background:${severityColor[n.severity] || severityColor.neutral};"></div>
-          <div class="notif-body">
-            <div class="notif-title">${n.title}</div>
-            <div class="notif-text">${n.body}</div>
-          </div>
-          <div class="notif-ts">${CRM.formatRelative(n.createdAt)}</div>
-        </div>
-      `).join('');
+      CRM.renderNotifList('#notif-list', MOCK.notifications);
 
       // ─── PROBLEM ZONE CARDS ──────────────────────────────────────────────────
-      function renderProblemItem(badge, text, ts) {
-        return `
-          <div class="problem-item">
-            <div style="flex-shrink:0;">${badge}</div>
-            <div class="problem-item-text" title="${text}">${text}</div>
-            <div class="problem-item-ts">${CRM.formatRelative(ts)}</div>
-          </div>
-        `;
-      }
-
-      function renderProblemCard(title, items) {
-        const cap = 5;
-        const shown = items.slice(0, cap);
-        const extra = items.length - shown.length;
-        return `
-          <div class="card">
-            <div class="problem-card-title">${title}</div>
-            ${shown.map(i => renderProblemItem(
-              CRM.renderBadge(i.severity, i.label),
-              i.text,
-              i.ts
-            )).join('')}
-            ${shown.length === 0 ? '<p style="font-size:13px;color:var(--text-muted);">Нет проблем</p>' : ''}
-            ${extra > 0 ? `<div class="problem-more">… +${extra} ещё</div>` : ''}
-          </div>
-        `;
-      }
 
       // Card A — Лиды (deduped: if a lead is both stale AND has no owner, show only the danger entry)
       const cardAItems = [];
       const staleLeadIds = new Set(
         MOCK.leads
-          .filter(l => l.status === 'new' && (now - new Date(l.createdAt).getTime()) > 15*60000)
+          .filter(l => l.status === 'new' && (now - new Date(l.createdAt).getTime()) > THRESHOLD.LEAD_STALE_MS)
           .map(l => l.id)
       );
       // Danger entries first (stale new leads)
@@ -532,7 +389,7 @@
 
       // Card B — Сделки
       const cardBItems = [];
-      activeDeals.filter(d => (now - new Date(d.lastActionAt).getTime()) > 3*86400000).forEach(d => {
+      activeDeals.filter(d => (now - new Date(d.lastActionAt).getTime()) > THRESHOLD.DEAL_STUCK_MS).forEach(d => {
         const daysStuck = Math.round((now - new Date(d.lastActionAt).getTime()) / 86400000);
         const client = MOCK.clients.find(c => c.id === d.clientId);
         cardBItems.push({ severity: 'warning', label: `Без движения ${daysStuck} дн`, text: `${d.number} · ${client ? client.name : d.clientId}`, ts: d.lastActionAt });
@@ -545,14 +402,14 @@
 
       // Card D — КП и тендеры
       const cardDItems = [];
-      MOCK.offers.filter(o => o.sentAt && (now - new Date(o.sentAt).getTime()) > 86400000 && !o.viewedAt).forEach(o => {
+      MOCK.offers.filter(o => o.sentAt && (now - new Date(o.sentAt).getTime()) > THRESHOLD.OFFER_WAITING_MS && !o.viewedAt).forEach(o => {
         const client = MOCK.clients.find(c => c.id === o.clientId);
         const daysWaiting = Math.round((now - new Date(o.sentAt).getTime()) / 86400000);
         cardDItems.push({ severity: 'warning', label: `Нет ответа ${daysWaiting} дн`, text: `${o.number} · ${client ? client.name : o.clientId}`, ts: o.sentAt });
       });
       MOCK.tenders.filter(t => {
         const dl = new Date(t.deadlineSubmit).getTime();
-        return !['won','lost'].includes(t.status) && (dl - now) < 48*3600000 && (dl - now) > 0;
+        return !['won','lost'].includes(t.status) && (dl - now) < THRESHOLD.TENDER_URGENT_MS && (dl - now) > 0;
       }).forEach(t => {
         const ms = new Date(t.deadlineSubmit).getTime() - now;
         const totalHours = Math.floor(ms / 3600000);
@@ -564,10 +421,10 @@
 
       const problemGrid = document.getElementById('problem-grid');
       problemGrid.innerHTML = [
-        renderProblemCard('Лиды', cardAItems),
-        renderProblemCard('Сделки', cardBItems),
-        renderProblemCard('Задачи', cardCItems),
-        renderProblemCard('КП и тендеры', cardDItems),
+        CRM.renderProblemCard('Лиды', cardAItems),
+        CRM.renderProblemCard('Сделки', cardBItems),
+        CRM.renderProblemCard('Задачи', cardCItems),
+        CRM.renderProblemCard('КП и тендеры', cardDItems),
       ].join('');
 
       // ─── HERO SUBTITLE (computed from deduped card arrays) ───────────────────

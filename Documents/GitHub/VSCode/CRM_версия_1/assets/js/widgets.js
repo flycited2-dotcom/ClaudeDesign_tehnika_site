@@ -72,5 +72,57 @@
     }
   }
 
-  window.CRM = Object.assign(window.CRM || {}, { renderAvatar, renderBadge, renderKpiCard, renderTable, renderKanban, renderTabs, initials, avatarColor });
+  function renderNotifList(selector, notifications, limit) {
+    const root = document.querySelector(selector);
+    if (!root) return;
+    const severityColor = {
+      info:    'var(--status-info-fg)',
+      success: 'var(--status-success-fg)',
+      warning: 'var(--status-warning-fg)',
+      danger:  'var(--status-danger-fg)',
+      neutral: 'var(--status-neutral-fg)',
+    };
+    const cap = limit !== undefined ? limit : 6;
+    const sorted = [...notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, cap);
+    root.innerHTML = sorted.map(n => `
+      <div class="notif-item">
+        <div class="notif-dot" style="background:${severityColor[n.severity] || severityColor.neutral};"></div>
+        <div class="notif-body">
+          <div class="notif-title">${n.title}</div>
+          <div class="notif-text">${n.body}</div>
+        </div>
+        <div class="notif-ts">${window.CRM.formatRelative(n.createdAt)}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderProblemItem(badge, text, ts) {
+    return `
+      <div class="problem-item">
+        <div style="flex-shrink:0;">${badge}</div>
+        <div class="problem-item-text" title="${text}">${text}</div>
+        <div class="problem-item-ts">${window.CRM.formatRelative(ts)}</div>
+      </div>
+    `;
+  }
+
+  function renderProblemCard(title, items, cap) {
+    const limit = cap !== undefined ? cap : 5;
+    const shown = items.slice(0, limit);
+    const extra = items.length - shown.length;
+    return `
+      <div class="card">
+        <div class="problem-card-title">${title}</div>
+        ${shown.map(i => renderProblemItem(
+          window.CRM.renderBadge(i.severity, i.label),
+          i.text,
+          i.ts
+        )).join('')}
+        ${shown.length === 0 ? '<p style="font-size:13px;color:var(--text-muted);">Нет проблем</p>' : ''}
+        ${extra > 0 ? `<div class="problem-more">… +${extra} ещё</div>` : ''}
+      </div>
+    `;
+  }
+
+  window.CRM = Object.assign(window.CRM || {}, { renderAvatar, renderBadge, renderKpiCard, renderTable, renderKanban, renderTabs, renderNotifList, renderProblemItem, renderProblemCard, initials, avatarColor });
 })();
