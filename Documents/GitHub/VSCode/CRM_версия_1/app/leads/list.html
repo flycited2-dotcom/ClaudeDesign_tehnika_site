@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Лиды · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    /* Source chip icon sizing */
+    .badge i { width: 12px; height: 12px; }
+    /* Segmented control with anchor links */
+    .segmented a {
+      border: 0;
+      background: transparent;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .segmented a.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+    /* Stale row highlight — subtle amber left border */
+    .table-app tbody tr.row-stale td:first-child {
+      box-shadow: inset 3px 0 0 var(--status-danger-fg);
+    }
+  </style>
+</head>
+<body data-route="leads" data-title="Лиды">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Лиды</h1>
+            <p class="text-secondary">18 лидов</p>
+          </div>
+          <div class="flex items-center" style="gap:8px;">
+            <div class="segmented">
+              <a href="/app/leads/list.html" class="is-active">Список</a>
+              <a href="/app/leads/kanban.html">Канбан</a>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="source">
+              <i data-lucide="filter"></i>Источник<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="responsible">
+              <i data-lucide="user"></i>Ответственный<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="date">
+              <i data-lucide="calendar"></i>Дата<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Лид
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+      const now  = Date.now();
+      const STALE_MS = 15 * 60 * 1000; // 15 minutes
+
+      // ─── helpers ────────────────────────────────────────────────────────────
+      const statusMap = {
+        new:       { variant: 'info',    label: 'Новый' },
+        in_work:   { variant: 'warning', label: 'В работе' },
+        qualified: { variant: 'success', label: 'Квалифицирован' },
+        rejected:  { variant: 'neutral', label: 'Отказ' },
+      };
+
+      const sourceIconMap = {
+        'Сайт основной':               'globe',
+        'Сайт opt':                    'globe',
+        'Тендерная площадка ZakupKi':  'gavel',
+        'Telegram-бот':                'send',
+        'Звонок входящий':             'phone',
+      };
+
+      function isStale(lead) {
+        return lead.status === 'new' && (now - new Date(lead.createdAt)) > STALE_MS;
+      }
+
+      function staleMins(lead) {
+        return Math.round((now - new Date(lead.createdAt)) / 60000);
+      }
+
+      function renderSourceChip(source) {
+        const icon = sourceIconMap[source] || 'help-circle';
+        return `<span class="badge badge--neutral badge--flat" style="font-size:12px; gap:4px;"><i data-lucide="${icon}"></i>${source}</span>`;
+      }
+
+      function getUserById(id) {
+        return MOCK.users.find(u => u.id === id) || null;
+      }
+
+      // ─── sort: stale leads pinned first (asc by createdAt so oldest stale is top)
+      //          then rest by createdAt desc
+      const staleLeads = MOCK.leads
+        .filter(l => isStale(l))
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+      const otherLeads = MOCK.leads
+        .filter(l => !isStale(l))
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      const rows = [...staleLeads, ...otherLeads];
+
+      // ─── render table ───────────────────────────────────────────────────────
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'id', label: 'ID',
+            render: r => `<span class="id-chip">${r.id}</span>`
+          },
+          {
+            key: 'source', label: 'ИСТОЧНИК',
+            render: r => renderSourceChip(r.source)
+          },
+          {
+            key: 'title', label: 'НАЗВАНИЕ',
+            render: r => {
+              const sub = r.clientCandidate
+                ? `<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${r.clientCandidate}</div>`
+                : '';
+              return `<span><strong style="font-size:14px; color:var(--text-primary); font-weight:500;">${r.title}</strong>${sub}</span>`;
+            }
+          },
+          {
+            key: 'phone', label: 'ТЕЛЕФОН',
+            render: r => r.phone
+              ? `<span class="num" style="font-size:13px;">${r.phone}</span>`
+              : '<span class="text-muted">—</span>'
+          },
+          {
+            key: 'responsible', label: 'ОТВЕТСТВЕННЫЙ',
+            render: r => {
+              if (!r.responsible) {
+                return '<span class="text-muted" style="font-style:italic; font-size:13px;">Не назначен</span>';
+              }
+              const user = getUserById(r.responsible);
+              if (!user) return '<span class="text-muted">—</span>';
+              const firstName = user.name.split(' ').slice(0, 2).join(' ');
+              return `<span style="display:inline-flex; align-items:center; gap:6px;">${CRM.renderAvatar(user.name, 'sm')}<span style="font-size:13px;">${firstName}</span></span>`;
+            }
+          },
+          {
+            key: 'status', label: 'СТАТУС',
+            render: r => {
+              const s = statusMap[r.status] || { variant: 'neutral', label: r.status };
+              let html = CRM.renderBadge(s.variant, s.label);
+              if (isStale(r)) {
+                html += ` ${CRM.renderBadge('danger', 'Горит ' + staleMins(r) + ' мин')}`;
+              }
+              return `<span style="display:inline-flex; gap:6px; align-items:center; flex-wrap:wrap;">${html}</span>`;
+            }
+          },
+          {
+            key: 'createdAt', label: 'ПОСТУПИЛ',
+            render: r => `<span style="font-size:13px; color:var(--text-secondary);">${CRM.formatRelative(r.createdAt)}</span>`
+          },
+          {
+            key: '_actions', label: '',
+            render: () => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Назначить ответственного"><i data-lucide="user-plus"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Перевести в сделку"><i data-lucide="check"></i></button>
+            </span>`
+          },
+        ],
+        rows,
+        empty: { title: 'Нет лидов', body: 'Новые заявки появятся здесь.' }
+      });
+
+      // ─── mark stale rows ─────────────────────────────────────────────────
+      // After renderTable inserts rows, add class to stale ones
+      const staleCount = staleLeads.length;
+      const tableRows = document.querySelectorAll('#table-root .table-app tbody tr');
+      for (let i = 0; i < staleCount; i++) {
+        if (tableRows[i]) tableRows[i].classList.add('row-stale');
+      }
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Лиды · Канбан · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    /* Segmented control with anchor links */
+    .segmented a {
+      border: 0;
+      background: transparent;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .segmented a.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+    /* Kanban board fills content area */
+    #kanban-root.kanban {
+      min-height: 480px;
+      align-items: flex-start;
+    }
+    /* Column color accents per status */
+    .kanban-col[data-status="new"]       { border-top: 2px solid var(--status-info-fg); }
+    .kanban-col[data-status="in_work"]   { border-top: 2px solid var(--status-warning-fg); }
+    .kanban-col[data-status="qualified"] { border-top: 2px solid var(--status-success-fg); }
+    .kanban-col[data-status="rejected"]  { border-top: 2px solid var(--status-neutral-fg); }
+    /* Stale card pulsing danger outline */
+    .kanban-card.is-stale {
+      border-color: var(--status-danger-fg);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--status-danger-fg) 18%, transparent);
+    }
+  </style>
+</head>
+<body data-route="leads" data-title="Лиды · канбан">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Лиды · канбан</h1>
+            <p class="text-secondary">Поток заявок</p>
+          </div>
+          <div class="flex items-center" style="gap:8px;">
+            <div class="segmented">
+              <a href="/app/leads/list.html">Список</a>
+              <a href="/app/leads/kanban.html" class="is-active">Канбан</a>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="source">
+              <i data-lucide="filter"></i>Источник<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="responsible">
+              <i data-lucide="user"></i>Ответственный<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="date">
+              <i data-lucide="calendar"></i>Дата<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Лид
+            </button>
+          </div>
+        </header>
+
+        <div id="kanban-root"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+      const now  = Date.now();
+      const STALE_MS = 15 * 60 * 1000; // 15 minutes
+
+      // ─── helpers ─────────────────────────────────────────────────────────────
+      function isStale(lead) {
+        return lead.status === 'new' && (now - new Date(lead.createdAt)) > STALE_MS;
+      }
+
+      function staleMins(lead) {
+        return Math.round((now - new Date(lead.createdAt)) / 60000);
+      }
+
+      function getUserName(id) {
+        const u = MOCK.users.find(u => u.id === id);
+        return u ? u.name : id;
+      }
+
+      function staleBadge(lead) {
+        if (!isStale(lead)) return '';
+        return CRM.renderBadge('danger', 'Горит ' + staleMins(lead) + ' мин');
+      }
+
+      // ─── card renderer ───────────────────────────────────────────────────────
+      function cardRenderer(lead) {
+        const responsibleHtml = lead.responsible
+          ? CRM.renderAvatar(getUserName(lead.responsible), 'sm')
+          : '<span class="text-muted" style="font-size:11px; font-style:italic;">—</span>';
+
+        const phoneHtml = lead.phone
+          ? `<span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">${lead.phone}</span>`
+          : '';
+
+        const staleClass = isStale(lead) ? ' is-stale' : '';
+        const staleBadgeHtml = staleBadge(lead);
+
+        return `<article class="kanban-card${staleClass}">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: var(--space-2);">
+    <span class="id-chip">${lead.id}</span>
+    ${staleBadgeHtml || ''}
+  </div>
+  <div style="font-size:14px; font-weight:500; color:var(--text-primary); margin-bottom: var(--space-1); line-height: 1.35;">${lead.title}</div>
+  <div style="font-size:12px; color:var(--text-secondary); margin-bottom: var(--space-3);">${lead.clientCandidate || ''}</div>
+  <div style="display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:6px;">
+      ${phoneHtml}
+    </div>
+    ${responsibleHtml}
+  </div>
+  <div style="margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--border-subtle); font-size:11px; color:var(--text-muted);">${CRM.formatRelative(lead.createdAt)}</div>
+</article>`;
+      }
+
+      // ─── columns & grouping ──────────────────────────────────────────────────
+      const columns = [
+        { id: 'new',       label: 'Новый' },
+        { id: 'in_work',   label: 'В работе' },
+        { id: 'qualified', label: 'Квалифицирован' },
+        { id: 'rejected',  label: 'Отказ' },
+      ];
+
+      const cardsByColumn = {};
+      columns.forEach(col => { cardsByColumn[col.id] = []; });
+      MOCK.leads.forEach(lead => {
+        if (cardsByColumn[lead.status]) {
+          cardsByColumn[lead.status].push(lead);
+        }
+      });
+
+      // Sort each column: stale first (oldest on top), then by createdAt desc
+      columns.forEach(col => {
+        const arr = cardsByColumn[col.id];
+        const stale = arr.filter(isStale).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const rest  = arr.filter(l => !isStale(l)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        cardsByColumn[col.id] = [...stale, ...rest];
+      });
+
+      // ─── render ──────────────────────────────────────────────────────────────
+      CRM.renderKanban('#kanban-root', { columns, cardsByColumn, cardRenderer });
+
+      // Apply data-status attributes to columns for CSS accent borders
+      document.querySelectorAll('#kanban-root .kanban-col').forEach((colEl, idx) => {
+        colEl.setAttribute('data-status', columns[idx].id);
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
