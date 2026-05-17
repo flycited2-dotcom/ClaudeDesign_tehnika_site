@@ -24,6 +24,35 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-18 ~01:13 — Iter 18 + Iter 18B (FAILED, prod в broken state)
+
+**⚠️ ВНИМАНИЕ:** На момент завершения этой сессии прод **не восстановлен** — `/catalog/*` отвечают 30–60 сек timeouts. Первый шаг следующей сессии — force clean rebuild на VPS (см. [`docs/superpowers/notes/2026-05-18-cold-start-fix-status.md`](docs/superpowers/notes/2026-05-18-cold-start-fix-status.md) → секция «КРИТИЧНО»).
+
+**Iter 18** ('use cache' migration) — RECOVERED через revert:
+- Spec: `docs/superpowers/specs/2026-05-17-iter18-use-cache-migration-design.md` (с revision note).
+- Plan: `docs/superpowers/plans/2026-05-17-iter18-use-cache-migration.md`.
+- Commit `08c408c` (cacheComponents flag) → revert `aecd790`. Не дошло до прода.
+- **Failure mode:** `cacheComponents: true` в Next 16 несовместим с `export const dynamic = "force-dynamic"` (у нас 24 routes admin/login/checkout/api).
+
+**Iter 18B** (`unstable_cache` wrap на getCatalogPage) — REVERTED, прод сломан:
+- Plan: `docs/superpowers/plans/2026-05-18-iter18b-unstable-cache-fix.md`.
+- Commits: `7ebec85` (spec revision + plan), Tasks 1+2 для cache-key helper, Task 3 `936c535` (wrap) → revert `c9528f7`.
+- Локально: lint clean, 151/151 tests, build success.
+- На проде: cold-start стал **хуже** (топ-категория 2.2 → 30+ сек, не-топ → 60+ сек timeout).
+- **Failure mode (гипотеза):** `getCatalogPage` возвращает огромный payload (24 products + 120 brands + facets + categories tree) — сотни KB JSON. `unstable_cache` serialize/deserialize медленнее оригинальных Prisma queries.
+- **Revert pushed:** `c9528f7`. `deploy_vps.py` отработан, но **`rm -rf .next && next build` на VPS НЕ сделан** — turbopack cache trap. Прод крутит broken код.
+
+**Что осталось чистым в репо (полезное на будущее):**
+- `src/lib/catalog-cache-key.ts` + 10 unit-тестов — `normalizeCatalogCacheArgs` работает корректно. Не используется после revert, но готов к re-use в другом подходе.
+
+**Подробности (mandatory read для следующей сессии):** [`docs/superpowers/notes/2026-05-18-cold-start-fix-status.md`](docs/superpowers/notes/2026-05-18-cold-start-fix-status.md).
+
+**Open debt:** cold-start fix всё ещё не закрыт. Подходы которые НЕ пробовали:
+1. Granular `unstable_cache` отдельно на `findMany` + `count` + facets (small payloads).
+2. Nginx proxy_cache для `/api/product-images/*`.
+3. Pre-computed snapshot в БД (jsonb column, cron pre-aggregates).
+4. Профайлинг с `console.time` для нахождения hot spot до выбора подхода.
+
 ### 2026-05-17 12:36 — Iter 17: top-category round-robin diversity on home + /catalog root
 
 - Commit: `4059310`
