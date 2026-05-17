@@ -15,6 +15,7 @@ import {
 import { catalogRangeAttributeKeys, getCatalogAttributeDefinition, getCatalogAttributeKeysForCategory } from "@/lib/catalog-attribute-registry";
 import { buildCatalogBrandFilterOptions } from "@/lib/catalog-brand-filters";
 import { buildCategoryPath, buildCategoryTree, collectDescendantCategoryIds, type CategoryTreeItem, type FlatCategory } from "@/lib/catalog-tree";
+import { interleaveByTopCategory } from "@/lib/catalog-interleave";
 import { hasCatalogFacetContext, normalizeCatalogBrandValues, type CatalogSort } from "@/lib/catalog-query";
 import {
   attachCatalogSpecFilterCounts,
@@ -182,10 +183,14 @@ export const getHomeSnapshot = unstable_cache(async () => {
       },
     },
     orderBy: [{ hasImage: "desc" }, { updatedAt: "desc" }],
-    take: 8,
+    // Fetch a wider pool so we can rebalance across top-categories. Without
+    // this the largest category (Компьютерная техника) would crowd out the
+    // page and the storefront would look like a laptop shop.
+    take: 80,
   });
 
-  return { categories, products };
+  const balanced = interleaveByTopCategory(products, allCategories, 8, 2);
+  return { categories, products: balanced };
 }, ["home-snapshot"], { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] });
 
 const getCatalogBrands = unstable_cache(async (where: Prisma.ProductWhereInput) => {
@@ -507,14 +512,22 @@ export async function getCatalogPage(query: CatalogQuery) {
     if (query.minPrice) priceFilter.gte = query.minPrice;
     if (query.maxPrice) priceFilter.lte = query.maxPrice;
     filteredWhere.retailPrice = priceFilter;
-  } else if (
+  }
+
+  // True only on the bare /catalog root: no category, no search, no brand, no
+  // attribute filters, default popular sort. Used for both the mass-market
+  // price band below and the top-category interleave during fetch.
+  const isDefaultPopularRoot =
     !query.categorySlug &&
     !query.query &&
     !selectedBrands.length &&
     !activeAttributeFilters.length &&
     !activeAttributeRangeFilters.length &&
-    (query.sort ?? "popular") === "popular"
-  ) {
+    (query.sort ?? "popular") === "popular" &&
+    !query.minPrice &&
+    !query.maxPrice;
+
+  if (isDefaultPopularRoot && !filteredWhere.retailPrice) {
     // Default mass-market price band on /catalog root with no filters.
     // Hides niche B2B gear (servers, storage, virtualization) priced in
     // millions and sub-1 000 ₽ commodity stationery from the first page.
@@ -570,8 +583,15 @@ export async function getCatalogPage(query: CatalogQuery) {
 
   applySelectedBrands(filteredWhere, selectedBrands);
 
+  // Page 1 of bare /catalog root: fetch a wider pool and round-robin across
+  // top-level categories so the page doesn't fill up with one dominant
+  // category (Компьютерная техника has 16k mass-market vs everyone else < 10k).
+  const useInterleave = isDefaultPopularRoot && page === 1;
+  const fetchTake = useInterleave ? PRODUCTS_PER_PAGE * 5 : PRODUCTS_PER_PAGE;
+  const fetchSkip = useInterleave ? 0 : (page - 1) * PRODUCTS_PER_PAGE;
+
   // Keep catalog DB reads sequential to avoid P2024 timeouts during cold cache revalidation.
-  const products = await prisma.product.findMany({
+  const rawProducts = await prisma.product.findMany({
     where: filteredWhere,
     include: {
       category: true,
@@ -594,9 +614,12 @@ export async function getCatalogPage(query: CatalogQuery) {
       },
     },
     orderBy: catalogProductOrderBy(query.sort),
-    skip: (page - 1) * PRODUCTS_PER_PAGE,
-    take: PRODUCTS_PER_PAGE,
+    skip: fetchSkip,
+    take: fetchTake,
   });
+  const products = useInterleave
+    ? interleaveByTopCategory(rawProducts, allCategories, PRODUCTS_PER_PAGE, 3)
+    : rawProducts;
   const total = await prisma.product.count({ where: filteredWhere });
   const categories = await getCatalogCategoryTree(allCategories);
   const brands = await getCatalogBrands(brandWhere);
