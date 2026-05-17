@@ -168,6 +168,7 @@
 .entity-sub span { display: inline-flex; align-items: center; gap: var(--space-1); }
 .entity-sub i { width: 14px; height: 14px; }
 .entity-header-actions { display: flex; gap: var(--space-2); flex-shrink: 0; padding-top: var(--space-1); }
+.entity-id-block { min-width: 0; flex: 1; }
 
 /* ---------- entity body 2-column ---------- */
 .entity-body { display: grid; grid-template-columns: 1fr 320px; gap: var(--space-6); align-items: start; }
@@ -215,6 +216,7 @@
 .timeline-dot--success { border-color: var(--status-success-fg); }
 .timeline-dot--warning { border-color: var(--status-warning-fg); }
 .timeline-dot--neutral { border-color: var(--text-muted); }
+.timeline-dot--danger { border-color: var(--status-danger-fg); }
 .timeline-meta { display: flex; gap: var(--space-2); font-size: 12px; color: var(--text-muted); margin-bottom: 4px; align-items: center; }
 .timeline-kind { font-weight: 500; color: var(--text-secondary); padding: 1px 6px; background: var(--bg-sidebar); border-radius: var(--radius-pill); font-size: 11px; }
 .timeline-actor { color: var(--text-secondary); }
