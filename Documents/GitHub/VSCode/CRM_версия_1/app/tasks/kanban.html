@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Задачи · Канбан · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    /* Segmented control with anchor links */
+    .segmented a {
+      border: 0;
+      background: transparent;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .segmented a.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+    /* Kanban board fills content area */
+    #kanban-root.kanban {
+      min-height: 520px;
+      align-items: flex-start;
+    }
+    /* Column color accents per status */
+    .kanban-col[data-status="new"]      { border-top: 2px solid var(--status-info-fg); }
+    .kanban-col[data-status="in_work"]  { border-top: 2px solid var(--status-warning-fg); }
+    .kanban-col[data-status="review"]   { border-top: 2px solid var(--status-neutral-fg); }
+    .kanban-col[data-status="done"]     { border-top: 2px solid var(--status-success-fg); }
+    .kanban-col[data-status="overdue"]  { border-top: 2px solid var(--status-danger-fg); }
+  </style>
+</head>
+<body data-route="tasks" data-title="Задачи · канбан">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Задачи · канбан</h1>
+            <p class="text-secondary">По статусам</p>
+          </div>
+          <div class="flex items-center" style="gap:8px;">
+            <div class="segmented">
+              <a href="/app/tasks/my.html" data-tab-key="my">Мои</a>
+              <a href="/app/tasks/dept.html" data-tab-key="dept">Отдел</a>
+              <a href="/app/tasks/all.html" data-tab-key="all">Все</a>
+              <a href="/app/tasks/kanban.html" class="is-active" data-tab-key="kanban">Канбан</a>
+              <a href="/app/tasks/calendar.html" data-tab-key="calendar">Календарь</a>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="assignee">
+              <i data-lucide="user"></i>Исполнитель<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="priority">
+              <i data-lucide="flag"></i>Приоритет<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="deadline">
+              <i data-lucide="calendar"></i>Дедлайн<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Задача
+            </button>
+          </div>
+        </header>
+
+        <div id="kanban-root"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── helpers ─────────────────────────────────────────────────────────────
+      const priorityMap = {
+        high:   { variant: 'danger',  label: 'Высокий' },
+        normal: { variant: 'neutral', label: 'Обычный' },
+        low:    { variant: 'info',    label: 'Низкий'  },
+      };
+
+      function getUser(id) {
+        return MOCK.users.find(u => u.id === id) || { name: id };
+      }
+
+      function getRelatedLabel(t) {
+        if (!t.relatedType) return null;
+        if (t.relatedType === 'client') {
+          const c = MOCK.clients.find(x => x.id === t.relatedId);
+          return c ? 'CL · ' + c.name : t.relatedId;
+        }
+        if (t.relatedType === 'deal') {
+          const d = MOCK.deals.find(x => x.id === t.relatedId);
+          return d ? d.number : t.relatedId;
+        }
+        if (t.relatedType === 'tender') {
+          const tn = MOCK.tenders.find(x => x.id === t.relatedId);
+          return tn ? tn.title.slice(0, 28) + '…' : t.relatedId;
+        }
+        return t.relatedId;
+      }
+
+      // ─── card renderer ───────────────────────────────────────────────────────
+      function cardRenderer(task) {
+        const p = priorityMap[task.priority] || { variant: 'neutral', label: task.priority };
+        const priorityBadge = CRM.renderBadge(p.variant, p.label);
+        const relatedLabel = getRelatedLabel(task);
+        const user = getUser(task.assignee);
+        const deadlineColor = task.status === 'overdue' ? 'color: var(--status-danger-fg);' : '';
+
+        return `<article class="kanban-card${task.status === 'overdue' ? ' is-stale' : ''}">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: var(--space-2);">
+    <span class="id-chip">${task.id}</span>
+    ${priorityBadge}
+  </div>
+  <div style="font-size:14px; font-weight:500; color:var(--text-primary); margin-bottom: var(--space-1); line-height: 1.35;">${task.title}</div>
+  ${relatedLabel
+    ? `<div style="font-size:12px; color:var(--text-secondary); margin-bottom: var(--space-2);">${relatedLabel}</div>`
+    : '<div style="margin-bottom: var(--space-2);"></div>'}
+  <div style="display:flex; align-items:center; justify-content:space-between; padding-top: var(--space-2); border-top: 1px solid var(--border-subtle); font-size:11px; color:var(--text-muted);">
+    ${CRM.renderAvatar(user.name, 'sm')}
+    <span style="${deadlineColor}">${CRM.formatRelative(task.deadline)}</span>
+  </div>
+</article>`;
+      }
+
+      // ─── columns & grouping ──────────────────────────────────────────────────
+      const columns = [
+        { id: 'new',     label: 'Новая' },
+        { id: 'in_work', label: 'В работе' },
+        { id: 'review',  label: 'На проверке' },
+        { id: 'done',    label: 'Выполнена' },
+        { id: 'overdue', label: 'Просрочена' },
+      ];
+
+      const cardsByColumn = {};
+      columns.forEach(col => { cardsByColumn[col.id] = []; });
+      MOCK.tasks.forEach(task => {
+        if (cardsByColumn[task.status] !== undefined) {
+          cardsByColumn[task.status].push(task);
+        }
+      });
+
+      // Sort each column by deadline asc (overdue: most overdue on top)
+      columns.forEach(col => {
+        cardsByColumn[col.id].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+      });
+
+      // ─── render ──────────────────────────────────────────────────────────────
+      CRM.renderKanban('#kanban-root', { columns, cardsByColumn, cardRenderer });
+
+      // Apply data-status attributes for CSS column accent borders
+      document.querySelectorAll('#kanban-root .kanban-col').forEach((colEl, idx) => {
+        colEl.setAttribute('data-status', columns[idx].id);
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

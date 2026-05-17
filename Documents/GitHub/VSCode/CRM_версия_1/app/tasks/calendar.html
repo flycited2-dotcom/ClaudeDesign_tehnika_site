@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Задачи · Календарь · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .segmented a {
+      border: 0;
+      background: transparent;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .segmented a.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+    /* Month navigation */
+    .month-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    .month-nav-btn {
+      width: 28px; height: 28px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-strong);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background var(--dur-fast) var(--ease-spring);
+    }
+    .month-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+  </style>
+</head>
+<body data-route="tasks" data-title="Задачи · календарь">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Задачи · календарь</h1>
+            <p class="text-secondary" id="month-label">Май 2026</p>
+          </div>
+          <div class="flex items-center" style="gap:8px;">
+            <div class="segmented">
+              <a href="/app/tasks/my.html" data-tab-key="my">Мои</a>
+              <a href="/app/tasks/dept.html" data-tab-key="dept">Отдел</a>
+              <a href="/app/tasks/all.html" data-tab-key="all">Все</a>
+              <a href="/app/tasks/kanban.html" data-tab-key="kanban">Канбан</a>
+              <a href="/app/tasks/calendar.html" class="is-active" data-tab-key="calendar">Календарь</a>
+            </div>
+            <div class="month-nav">
+              <button class="month-nav-btn" aria-label="Предыдущий месяц">
+                <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
+              </button>
+              <span id="month-nav-label">Май 2026</span>
+              <button class="month-nav-btn" aria-label="Следующий месяц">
+                <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+              </button>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="assignee">
+              <i data-lucide="user"></i>Исполнитель<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="priority">
+              <i data-lucide="flag"></i>Приоритет<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="deadline">
+              <i data-lucide="calendar"></i>Дедлайн<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Задача
+            </button>
+          </div>
+        </header>
+
+        <div id="calendar-root"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── date setup ──────────────────────────────────────────────────────────
+      const now   = new Date();
+      const year  = now.getFullYear();
+      const month = now.getMonth(); // 0-indexed
+
+      const todayStr = [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2,'0'),
+        String(now.getDate()).padStart(2,'0')
+      ].join('-');
+
+      // Find the Monday on or before the 1st of the month
+      const firstDay = new Date(year, month, 1);
+      const dow = firstDay.getDay(); // 0=Sun, 1=Mon ...
+      const mondayOffset = dow === 0 ? -6 : 1 - dow;
+      const calStart = new Date(firstDay);
+      calStart.setDate(calStart.getDate() + mondayOffset);
+
+      // Build 42 cells
+      const cells = [];
+      for (let i = 0; i < 42; i++) {
+        const d = new Date(calStart);
+        d.setDate(calStart.getDate() + i);
+        cells.push(d);
+      }
+
+      // ─── task lookup by date ──────────────────────────────────────────────────
+      function dateStr(d) {
+        return [
+          d.getFullYear(),
+          String(d.getMonth() + 1).padStart(2,'0'),
+          String(d.getDate()).padStart(2,'0')
+        ].join('-');
+      }
+
+      // Group tasks by deadline date
+      const tasksByDate = {};
+      MOCK.tasks.forEach(t => {
+        const dl = new Date(t.deadline);
+        const key = dateStr(dl);
+        if (!tasksByDate[key]) tasksByDate[key] = [];
+        tasksByDate[key].push(t);
+      });
+
+      // ─── chip class by priority/status ───────────────────────────────────────
+      function chipClass(task) {
+        if (task.status === 'overdue') return 'cal-chip cal-chip--overdue';
+        if (task.priority === 'high')   return 'cal-chip cal-chip--high';
+        if (task.priority === 'low')    return 'cal-chip cal-chip--low';
+        return 'cal-chip cal-chip--normal';
+      }
+
+      // ─── render calendar ─────────────────────────────────────────────────────
+      const dow_labels = ['пн','вт','ср','чт','пт','сб','вс'];
+
+      const weekHtml = dow_labels.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+      const cellsHtml = cells.map(d => {
+        const key  = dateStr(d);
+        const isOther = d.getMonth() !== month;
+        const isToday = key === todayStr;
+        const tasks = tasksByDate[key] || [];
+        const visible = tasks.slice(0, 3);
+        const overflow = tasks.length - 3;
+
+        const chipsHtml = visible.map(t =>
+          `<div class="${chipClass(t)}" title="${t.title}">${t.title}</div>`
+        ).join('');
+
+        const moreLine = overflow > 0
+          ? `<div class="cal-more">+${overflow} ещё</div>`
+          : '';
+
+        const classes = ['cal-cell'];
+        if (isOther) classes.push('is-other');
+        if (isToday) classes.push('is-today');
+
+        return `<div class="${classes.join(' ')}">
+  <div class="cal-day-num">${d.getDate()}</div>
+  ${chipsHtml}${moreLine}
+</div>`;
+      }).join('');
+
+      document.getElementById('calendar-root').innerHTML = `
+<div class="cal">
+  <div class="cal-week">${weekHtml}</div>
+  <div class="cal-grid">${cellsHtml}</div>
+</div>`;
+
+      // Update month labels
+      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      const label = monthNames[month] + ' ' + year;
+      const navLabel = document.getElementById('month-nav-label');
+      const subtitleLabel = document.getElementById('month-label');
+      if (navLabel) navLabel.textContent = label;
+      if (subtitleLabel) subtitleLabel.textContent = label;
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

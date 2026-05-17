@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Все задачи · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .segmented a {
+      border: 0;
+      background: transparent;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      border-radius: var(--radius-pill);
+      transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring);
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    .segmented a.is-active {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      font-weight: 500;
+    }
+  </style>
+</head>
+<body data-route="tasks" data-title="Все задачи">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Все задачи</h1>
+            <p class="text-secondary">Полный список (35)</p>
+          </div>
+          <div class="flex items-center" style="gap:8px;">
+            <div class="segmented">
+              <a href="/app/tasks/my.html" data-tab-key="my">Мои</a>
+              <a href="/app/tasks/dept.html" data-tab-key="dept">Отдел</a>
+              <a href="/app/tasks/all.html" class="is-active" data-tab-key="all">Все</a>
+              <a href="/app/tasks/kanban.html" data-tab-key="kanban">Канбан</a>
+              <a href="/app/tasks/calendar.html" data-tab-key="calendar">Календарь</a>
+            </div>
+            <button class="btn btn-secondary btn-sm" data-filter="assignee">
+              <i data-lucide="user"></i>Исполнитель<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="priority">
+              <i data-lucide="flag"></i>Приоритет<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="status">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm" data-filter="deadline">
+              <i data-lucide="calendar"></i>Дедлайн<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Задача
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── helpers ─────────────────────────────────────────────────────────────
+      const priorityMap = {
+        high:   { variant: 'danger',  label: 'Высокий' },
+        normal: { variant: 'neutral', label: 'Обычный' },
+        low:    { variant: 'info',    label: 'Низкий'  },
+      };
+      const statusMap = {
+        new:      { variant: 'info',    label: 'Новая' },
+        in_work:  { variant: 'warning', label: 'В работе' },
+        review:   { variant: 'neutral', label: 'На проверке' },
+        done:     { variant: 'success', label: 'Выполнена' },
+        overdue:  { variant: 'danger',  label: 'Просрочена' },
+      };
+      const statusOrder = { overdue: 0, in_work: 1, new: 2, review: 3, done: 4 };
+
+      function getUser(id) {
+        return MOCK.users.find(u => u.id === id) || { name: id };
+      }
+
+      function getRelatedLabel(t) {
+        if (!t.relatedType) return null;
+        if (t.relatedType === 'client') {
+          const c = MOCK.clients.find(x => x.id === t.relatedId);
+          return c ? 'CL · ' + c.name : t.relatedId;
+        }
+        if (t.relatedType === 'deal') {
+          const d = MOCK.deals.find(x => x.id === t.relatedId);
+          return d ? d.number : t.relatedId;
+        }
+        if (t.relatedType === 'tender') {
+          const tn = MOCK.tenders.find(x => x.id === t.relatedId);
+          return tn ? tn.title.slice(0, 28) + '…' : t.relatedId;
+        }
+        return t.relatedId;
+      }
+
+      function relatedIcon(type) {
+        if (type === 'client') return 'users';
+        if (type === 'deal')   return 'briefcase';
+        if (type === 'tender') return 'gavel';
+        return 'link';
+      }
+
+      function pluralRu(n, one, few, many) {
+        const abs = Math.abs(n);
+        const mod10 = abs % 10;
+        const mod100 = abs % 100;
+        if (mod100 >= 11 && mod100 <= 14) return many;
+        if (mod10 === 1) return one;
+        if (mod10 >= 2 && mod10 <= 4) return few;
+        return many;
+      }
+
+      function sortTasks(tasks) {
+        return [...tasks].sort((a, b) => {
+          const oa = statusOrder[a.status] ?? 99;
+          const ob = statusOrder[b.status] ?? 99;
+          if (oa !== ob) return oa - ob;
+          if (a.status === 'done' && b.status === 'done') {
+            return new Date(b.doneAt) - new Date(a.doneAt);
+          }
+          return new Date(a.deadline) - new Date(b.deadline);
+        });
+      }
+
+      // ─── no filter: all 35 tasks ──────────────────────────────────────────────
+      const rows = sortTasks(MOCK.tasks);
+
+      // ─── render ──────────────────────────────────────────────────────────────
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'id', label: 'ID',
+            render: r => `<span class="id-chip">${r.id}</span>`
+          },
+          {
+            key: 'priority', label: 'ПРИОРИТЕТ',
+            render: r => {
+              const p = priorityMap[r.priority] || { variant: 'neutral', label: r.priority };
+              return CRM.renderBadge(p.variant, p.label);
+            }
+          },
+          {
+            key: 'title', label: 'ЗАДАЧА',
+            render: r => {
+              const commentLine = r.comments > 0
+                ? `<div class="text-muted" style="font-size:12px;margin-top:2px;">${r.comments} ${pluralRu(r.comments,'комментарий','комментария','комментариев')}</div>`
+                : '';
+              return `<span><strong style="font-size:14px;color:var(--text-primary);">${r.title}</strong>${commentLine}</span>`;
+            }
+          },
+          {
+            key: 'relation', label: 'СВЯЗЬ',
+            render: r => {
+              const label = getRelatedLabel(r);
+              if (!label) return '<span class="text-muted">—</span>';
+              return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary);background:var(--bg-app);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:2px 7px;white-space:nowrap;">
+                <i data-lucide="${relatedIcon(r.relatedType)}" style="width:11px;height:11px;flex-shrink:0;"></i>${label}
+              </span>`;
+            }
+          },
+          {
+            key: 'assignee', label: 'ИСПОЛНИТЕЛЬ',
+            render: r => {
+              const u = getUser(r.assignee);
+              const first = u.name.split(' ').slice(0,2).join(' ');
+              return `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(u.name,'sm')}<span style="font-size:13px;">${first}</span></span>`;
+            }
+          },
+          {
+            key: 'creator', label: 'ПОСТАНОВЩИК',
+            render: r => {
+              const u = getUser(r.creator);
+              const first = u.name.split(' ').slice(0,2).join(' ');
+              return `<span class="text-muted" style="font-size:12px;">${first}</span>`;
+            }
+          },
+          {
+            key: 'deadline', label: 'ДЕДЛАЙН',
+            render: r => {
+              const rel = CRM.formatRelative(r.deadline);
+              if (r.status === 'overdue') return CRM.renderBadge('danger', rel);
+              return `<span style="font-size:13px;color:var(--text-secondary);">${rel}</span>`;
+            }
+          },
+          {
+            key: 'status', label: 'СТАТУС',
+            render: r => {
+              const s = statusMap[r.status] || { variant: 'neutral', label: r.status };
+              return CRM.renderBadge(s.variant, s.label);
+            }
+          },
+          {
+            key: '_actions', label: '',
+            render: () => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Выполнить"><i data-lucide="check"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="pencil"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Ещё"><i data-lucide="more-vertical"></i></button>
+            </span>`
+          },
+        ],
+        rows,
+        empty: { title: 'Нет задач', body: 'Задачи отсутствуют.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

@@ -134,6 +134,25 @@
 /* ---------- stale highlight ---------- */
 .kanban-card.is-stale { border-color: color-mix(in srgb, var(--status-danger-fg) 35%, var(--border-subtle)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-danger-fg) 8%, transparent), var(--shadow-sm); }
 
+/* ---------- calendar grid ---------- */
+.cal { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); overflow: hidden; }
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border-subtle); background: var(--bg-sidebar); }
+.cal-dow { padding: 10px 12px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); text-align: left; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-cell { min-height: 120px; padding: 8px; border-right: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 4px; background: var(--bg-surface); position: relative; }
+.cal-cell:nth-child(7n) { border-right: none; }
+.cal-cell.is-other { background: var(--bg-app); }
+.cal-cell.is-today { background: var(--accent-soft); }
+.cal-cell.is-today .cal-day-num { color: var(--accent); font-weight: 600; }
+.cal-day-num { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+.cal-cell.is-other .cal-day-num { color: var(--text-muted); }
+.cal-chip { display: block; font-size: 11px; padding: 3px 6px; border-radius: var(--radius-sm); background: var(--bg-sidebar); color: var(--text-primary); border-left: 3px solid var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.cal-chip--high { border-left-color: var(--status-danger-fg); }
+.cal-chip--normal { border-left-color: var(--status-info-fg); }
+.cal-chip--low { border-left-color: var(--status-neutral-fg); }
+.cal-chip--overdue { background: var(--status-danger-bg); color: var(--status-danger-fg); border-left-color: var(--status-danger-fg); }
+.cal-more { font-size: 11px; color: var(--text-muted); padding: 0 6px; }
+
 /* ---------- problem item ---------- */
 .problem-item { display: flex; align-items: center; gap: 10px; padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); }
 .problem-item:last-child { border-bottom: none; }
