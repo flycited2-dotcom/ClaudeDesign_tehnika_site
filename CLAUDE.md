@@ -167,9 +167,16 @@ WEB_STORE_VPS_PASSWORD='...' python scripts/deploy_vps.py
 4. **`deploy_vps.py` сбрасывает chmod +x на bash-скриптах** — tar восстанавливает
    permissions из исходника, git не хранит x-bit по умолчанию. После каждого
    деплоя `chmod +x scripts/*.sh` руками. Один раз — `git update-index --chmod=+x`.
-5. **`npm run build` обязательно** перед деплоем — он ловит RSC-ошибки, которые
+5. **`deploy_vps.py` НЕ делает `npm install` на VPS.** Если ты добавил
+   новую npm-зависимость локально (`npm install <pkg>`) — на VPS её НЕ будет
+   после deploy, build упадёт `module not found`, pm2 уйдёт в loop, прод 502.
+   Лечится `cd /var/www/climat-simf.ru && npm install --include=dev` +
+   полный rebuild + pm2 restart. Один раз ловили на Iter 16 (`nodemailer`).
+   **TODO:** добавить шаг `npm ci` или `npm install --include=dev` в
+   `deploy_vps.py` сразу после tar-extract.
+6. **`npm run build` обязательно** перед деплоем — он ловит RSC-ошибки, которые
    `lint` + `test` пропускают (они проверяют отдельные модули, не сборку).
-4. **Cold-start крупных категорий** (50k+ товаров) рендерится 8-11 с. Кэш
+7. **Cold-start крупных категорий** (50k+ товаров) рендерится 8-11 с. Кэш
    греется через `unstable_cache` с `revalidate: 300`. На первый запрос —
    медленно. Curl-таймаут default 30 с — может казаться, что страница «не
    работает», нужно `--max-time 60`.

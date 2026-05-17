@@ -24,6 +24,30 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-17 12:36 — Iter 17: top-category round-robin diversity on home + /catalog root
+
+- Commit: `4059310`
+- Deploy backup: `/var/www/climat-simf.ru.source-backup-20260517123512.tar.gz`
+- Жалоба пользователя: на главной и /catalog первая страница были одни ноутбуки. Диагностика показала: «Компьютерная техника» имеет 16k mass-market товаров с фото vs ~10k у следующей категории → доминирует в любой sort.
+
+**Что вошло:**
+- **`src/lib/catalog-interleave.ts`** (НОВЫЙ) — `interleaveByTopCategory(products, allCats, take, maxPerCategory)`. Round-robin по top-level категориям (resolves через `buildCategoryPath`). Soft cap: после RR-цикла overflow-fill добивает до `take` если cap не дал достаточно.
+- **`src/lib/catalog-interleave.test.ts`** (НОВЫЙ) — 7 unit-тестов: RR ratation, cap, order preservation, orphans (categoryId=null), empty input, take=0, overflow fill.
+- **`getHomeSnapshot`**: fetch pool 80 (вместо take 8), потом `interleaveByTopCategory(..., take=8, maxPerCategory=2)`.
+- **`getCatalogPage`**: новая переменная `isDefaultPopularRoot` (no category/query/brand/attr/price filters, sort=popular). Когда `isDefaultPopularRoot && page === 1` — fetch pool `PRODUCTS_PER_PAGE * 5 = 120` без skip, потом interleave → 24, maxPerCategory=3. Pages 2+ и любые user-фильтры — обычная pagination (consistent UX).
+
+**Verification:**
+- `npm run lint` чисто, `npm run test` **141/141** (+7 новых для interleave).
+- Prod-smoke `/` Популярные → **8 товаров из 8 разных top-категорий** (насос/SSD/ТВ/аккумулятор/пылесос/опрыскиватель/скотч/плата).
+- Prod-smoke `/catalog` first page → **24 товара из ~10+ разных категорий** (пилы/холодильник/кресла/мониторы/варочные/болгарки/...). Никакого засилья ноутбуков.
+
+**Ловушка пользователю и мне:**
+- Кэш `getHomeSnapshot` (TTL 1h) может временно держать старый snapshot после deploy. Прод-инвалидация через `rm -rf .next && next build` решает.
+- На VPS произошёл down 502 во время этой итерации из-за того, что `deploy_vps.py` НЕ делает `npm install` после добавления зависимостей (я добавил `nodemailer` в предыдущей Iter 16, deploy не подтянул его на VPS, pm2 ушёл в loop). Лечится `npm install --include=dev` на VPS вручную. **Зафиксировать в CLAUDE.md как новый ловушку deploy.**
+
+**Параллельно в этой сессии:**
+- **Iter 16 (SMTP):** код `lib/mailer.ts` переписан на nodemailer SMTP с graceful-degradation (если env не задано — console fallback). Ожидает credentials Sprinthost (host/port/login/password для `noreply@climat-simf.ru`). Когда придут — `vi /var/www/climat-simf.ru/.env` + pm2 restart, всё заработает.
+
 ### 2026-05-17 01:30 — Iter 15E: tokenized product search + degraded filter
 
 - Commits: `e30cfeb` (tokenize), `0db90ce` (degraded filter), `58d66e1` (collide-safe AND in suggest)
