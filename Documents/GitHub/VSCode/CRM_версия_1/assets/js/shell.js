@@ -1,7 +1,7 @@
 (function () {
   const ROLE_KEY = 'crm.role';
-  const ROLES = { owner: { name: 'Анна Царёва', initials: 'АЦ', home: '/app/dashboard-owner.html' },
-                  manager: { name: 'Иван Петров', initials: 'ИП', home: '/app/dashboard-manager.html' } };
+  const ROLES = { owner:   { id: 'USR-001', name: 'Анна Царёва',              initials: 'АЦ', home: '/app/dashboard-owner.html' },
+                  manager: { id: 'USR-003', name: 'Морозова Екатерина',         initials: 'МЕ', home: '/app/dashboard-manager.html' } };
 
   function getRole() { return localStorage.getItem(ROLE_KEY) || 'owner'; }
   function setRole(r) { localStorage.setItem(ROLE_KEY, r); }
