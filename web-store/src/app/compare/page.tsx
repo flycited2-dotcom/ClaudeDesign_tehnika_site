@@ -3,7 +3,7 @@
 import { Trash2 } from "lucide-react";
 import Link from "next/link";
 import { clearCompare, COMPARE_MAX, useCompare } from "@/lib/sku-list-storage";
-import { SkuListGrid } from "@/components/sku-list-grid";
+import { CompareTable } from "@/components/compare-table";
 
 export default function ComparePage() {
   const compare = useCompare();
@@ -32,13 +32,7 @@ export default function ComparePage() {
         )}
       </div>
 
-      <SkuListGrid
-        skus={compare}
-        emptyTitle="Сравнивать пока нечего"
-        emptySubtitle={`Нажимайте на иконку сравнения в карточке товара. До ${COMPARE_MAX} товаров одновременно.`}
-        emptyCtaLabel="В каталог"
-        emptyCtaHref="/catalog"
-      />
+      <CompareTable skus={compare} />
     </>
   );
 }
