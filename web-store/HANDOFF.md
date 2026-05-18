@@ -24,6 +24,26 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-18 — Iter 19 (re-applied on Iter 17 base) — RECOVERY успешен ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `e3b75ed` — "Iter 19 (re-applied on Iter 17 base): cold-start fix via granular unstable_cache"
+- **Backup VPS перед деплоем:** `climat-simf.ru.source-backup-<timestamp>.tar.gz` (создан перед deploy)
+- **Дополнительно загружено:** `package.json`, `package-lock.json`, `prisma/schema.prisma` (VPS имел устаревшие файлы от bad Iter 19 deploy)
+- **Что изменено:** Iter 19 cold-start fix (4 granular `unstable_cache` wrappers в `catalog.ts`: getCachedCatalogProducts, getCachedSpecFilterCounts, getCachedAttributeFilterGroups, getCachedAttributeRangeGroups) повторно применён поверх Iter 17 базы
+- **Root cause регрессии (2026-05-18 ~17:00):** Предыдущий Iter 19 deploy использовал worktree branched от main (Iter 11), не содержавший Iter 13-17 файлов; `rm -rf src` уничтожил их. Также VPS package.json был от Iter 11 (без nodemailer), Prisma schema — без RoleUpgradeRequest
+- **Recovery strategy:** Switched to `affectionate-shamir-feac14`, re-applied Iter 19 без `rm -rf src` (additive tar extract), обновил package.json + schema.prisma, запустил prisma db push
+- **Lint:** ✅ чистый | **Tests:** ✅ 151/151 | **Build:** ✅ успешный
+- **Проверено на проде:**
+  - cold-start warm: первый запрос 2.5s, второй 0.79s (кэш)
+  - `/service`: 200 ✅
+  - `/bot`: 200 ✅
+  - `/api/catalog/categories/flat`: 200 ✅
+  - `/api/search/suggest?q=холодильник`: JSON ответ ✅
+  - Главная — diverse категории: ноутбуки, смартфоны, генераторы, аэрогрили, триммеры ✅
+  - `/`, `/catalog`, `/b2b`, `/compare`, `/favorites`: все 200 ✅
+- **Известные ограничения:** None additional beyond existing CLAUDE.md debt
+
 ### 2026-05-18 ~01:13 — Iter 18 + Iter 18B (FAILED, prod в broken state)
 
 **⚠️ ВНИМАНИЕ:** На момент завершения этой сессии прод **не восстановлен** — `/catalog/*` отвечают 30–60 сек timeouts. Первый шаг следующей сессии — force clean rebuild на VPS (см. [`docs/superpowers/notes/2026-05-18-cold-start-fix-status.md`](docs/superpowers/notes/2026-05-18-cold-start-fix-status.md) → секция «КРИТИЧНО»).
