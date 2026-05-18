@@ -31,6 +31,7 @@ const PRODUCTS_PER_PAGE = 24;
 // 1 hour. Pair with cron cache warmer (scripts/warm_all.sh) every 30 min so
 // every category route is always hot for the first user request.
 const STOREFRONT_CACHE_SECONDS = 3600;
+const PRODUCT_QUERY_CACHE_SECONDS = 600;
 
 export type CatalogQuery = {
   categorySlug?: string;
@@ -442,6 +443,56 @@ async function getCatalogAttributeRangeGroups(baseWhere: Prisma.ProductWhereInpu
   return buildCatalogAttributeRangeGroups(rows, allowedKeys);
 }
 
+const getCachedCatalogProducts = unstable_cache(
+  async (where: Prisma.ProductWhereInput, sort: CatalogSort | undefined, fetchSkip: number, fetchTake: number) => {
+    const [rawProducts, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          category: true,
+          images: {
+            where: { deleted: false },
+            orderBy: { priority: "asc" },
+            take: 1,
+          },
+          attributes: {
+            where: { source: { in: ["manual", "name"] } },
+            orderBy: [{ key: "asc" }, { value: "asc" }],
+          },
+        },
+        orderBy: catalogProductOrderBy(sort),
+        skip: fetchSkip,
+        take: fetchTake,
+      }),
+      prisma.product.count({ where }),
+    ]);
+    return { rawProducts, total };
+  },
+  ["catalog-page-products"],
+  { revalidate: PRODUCT_QUERY_CACHE_SECONDS, tags: ["catalog", "products"] },
+);
+
+const getCachedSpecFilterCounts = unstable_cache(
+  async (options: CatalogSpecFilterOption[], baseWhere: Prisma.ProductWhereInput): Promise<Record<string, number>> => {
+    const counts = await getCatalogSpecFilterCounts(options, baseWhere);
+    return Object.fromEntries(counts);
+  },
+  ["catalog-spec-filter-counts"],
+  { revalidate: PRODUCT_QUERY_CACHE_SECONDS, tags: ["catalog", "products"] },
+);
+
+const getCachedAttributeFilterGroups = unstable_cache(
+  getCatalogAttributeFilterGroups,
+  ["catalog-attribute-filter-groups"],
+  { revalidate: PRODUCT_QUERY_CACHE_SECONDS, tags: ["catalog", "products"] },
+);
+
+const getCachedAttributeRangeGroups = unstable_cache(
+  getCatalogAttributeRangeGroups,
+  ["catalog-attribute-range-groups"],
+  { revalidate: PRODUCT_QUERY_CACHE_SECONDS, tags: ["catalog", "products"] },
+);
+
 export async function getCatalogPage(query: CatalogQuery) {
   const page = Math.max(query.page ?? 1, 1);
   const selectedBrands = normalizeCatalogBrandValues([...(query.brands ?? []), query.brand]);
@@ -590,44 +641,22 @@ export async function getCatalogPage(query: CatalogQuery) {
   const fetchTake = useInterleave ? PRODUCTS_PER_PAGE * 5 : PRODUCTS_PER_PAGE;
   const fetchSkip = useInterleave ? 0 : (page - 1) * PRODUCTS_PER_PAGE;
 
-  // Keep catalog DB reads sequential to avoid P2024 timeouts during cold cache revalidation.
-  const rawProducts = await prisma.product.findMany({
-    where: filteredWhere,
-    include: {
-      category: true,
-      images: {
-        where: {
-          deleted: false,
-        },
-        orderBy: {
-          priority: "asc",
-        },
-        take: 1,
-      },
-      attributes: {
-        where: {
-          source: {
-            in: ["manual", "name"],
-          },
-        },
-        orderBy: [{ key: "asc" }, { value: "asc" }],
-      },
-    },
-    orderBy: catalogProductOrderBy(query.sort),
-    skip: fetchSkip,
-    take: fetchTake,
-  });
+  const { rawProducts, total } = await getCachedCatalogProducts(filteredWhere, query.sort, fetchSkip, fetchTake);
   const products = useInterleave
     ? interleaveByTopCategory(rawProducts, allCategories, PRODUCTS_PER_PAGE, 3)
     : rawProducts;
-  const total = await prisma.product.count({ where: filteredWhere });
   const categories = await getCatalogCategoryTree(allCategories);
   const brands = await getCatalogBrands(brandWhere);
-  const specFilterCounts = specFilterOptions.length ? await getCatalogSpecFilterCounts(specFilterOptions, specCountBaseWhere) : new Map();
+  const specFilterCountsRecord = specFilterOptions.length
+    ? await getCachedSpecFilterCounts(specFilterOptions, specCountBaseWhere)
+    : {};
+  const specFilterCounts = new Map(Object.entries(specFilterCountsRecord)) as Map<CatalogSpecFilterValue, number>;
   const attributeFilterGroups = visibleAttributeKeys.length
-    ? await getCatalogAttributeFilterGroups(attributeFacetBaseWhere, activeAttributeFilters, visibleAttributeKeys)
+    ? await getCachedAttributeFilterGroups(attributeFacetBaseWhere, activeAttributeFilters, visibleAttributeKeys)
     : [];
-  const attributeRangeGroups = visibleAttributeKeys.length ? await getCatalogAttributeRangeGroups(attributeRangeFacetBaseWhere, visibleAttributeKeys) : [];
+  const attributeRangeGroups = visibleAttributeKeys.length
+    ? await getCachedAttributeRangeGroups(attributeRangeFacetBaseWhere, visibleAttributeKeys)
+    : [];
 
   return {
     category,
