@@ -171,6 +171,12 @@ body.app {
   letter-spacing: -0.02em;
   color: var(--text);
 }
+.p-card .p-price-row .old {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-soft);
+  text-decoration: line-through;
+}
 .p-card .p-card-actions {
   padding: 0 18px 18px;
   display: grid;

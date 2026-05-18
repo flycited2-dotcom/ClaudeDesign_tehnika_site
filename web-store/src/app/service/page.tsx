@@ -10,6 +10,7 @@ import {
   Microwave,
   Phone,
   Refrigerator,
+  Settings,
   Settings2,
   ShieldCheck,
   Snowflake,
@@ -44,6 +45,7 @@ const INSTALLATIONS: Install[] = [
   { icon: UtensilsCrossed, label: "Посудомойка", price: "от 3 000 ₽" },
   { icon: Wind, label: "Вытяжка", price: "от 3 000 ₽" },
   { icon: Droplet, label: "Бойлер", price: "от 3 000 ₽" },
+  { icon: Settings, label: "Сезонное обслуживание (ТО) кондиционеров", price: "от 2 000 ₽" },
 ];
 
 type AscPhone = { label: string; tel: string };
@@ -219,9 +221,11 @@ export default function ServicePage() {
           ))}
         </div>
 
-        <CallbackButton variant="inline">
-          Заказать установку — обратный звонок
-        </CallbackButton>
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
+          <CallbackButton variant="inline" className="btn btn-primary">
+            Заказать услугу — обратный звонок
+          </CallbackButton>
+        </div>
       </section>
 
       {/* === Ремонт === */}

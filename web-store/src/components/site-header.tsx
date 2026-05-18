@@ -412,8 +412,8 @@ export function SiteHeader() {
                             margin: 0,
                             padding: "10px 12px",
                             borderRadius: 12,
-                            background: "rgba(255,255,255,0.45)",
-                            border: "1px solid var(--glass-stroke)",
+                            background: "rgba(255,255,255,0.7)",
+                            border: "1px solid rgba(33,52,108,0.22)",
                             cursor: "pointer",
                             textAlign: "left",
                           }}
@@ -434,8 +434,8 @@ export function SiteHeader() {
                             margin: 0,
                             padding: "10px 12px",
                             borderRadius: 12,
-                            background: "rgba(255,255,255,0.45)",
-                            border: "1px solid var(--glass-stroke)",
+                            background: "rgba(255,255,255,0.7)",
+                            border: "1px solid rgba(33,52,108,0.22)",
                           }}
                         >
                           <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>{category.name}</span>
