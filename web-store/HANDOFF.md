@@ -24,6 +24,33 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-18 — Iter 21: реальная страница сравнения (CompareTable) ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `3f819e6` — "Iter 21: real comparison table on /compare (CompareTable replaces SkuListGrid)"
+- **Backup VPS:** `climat-simf.ru.source-backup-20260518232142.tar.gz`
+- **Что изменено:**
+  - `src/lib/compare-table-data.ts` (NEW) — pure `buildCompareRows(products)` строит строки таблицы: union атрибутов всех товаров + базовые поля (бренд, цена, наличие, артикул, гарантия, вес, объём). Каждая строка маркирована `hasDiff`. Логика: «всё пусто = не diff», «у одних есть, у других нет = diff», «значения разные = diff».
+  - `src/lib/compare-table-data.test.ts` (NEW) — 10 unit-тестов для buildCompareRows.
+  - `src/components/compare-table.tsx` (NEW) — client component с таблицей: sticky первая колонка (лейблы), карточки товаров в шапке (фото + бренд + название + цена + крестик удалить + В корзину), подсветка строк с отличиями, toggle «Только отличия» + счётчик отличий.
+  - `src/app/compare/page.tsx` — заменил `SkuListGrid` (был общий с /favorites) на `CompareTable`. `/favorites` не тронут.
+  - `src/app/globals.css` — стили `.compare-*` для таблицы, sticky scroll, подсветка `.diff` rows.
+- **Тесты:** 161/161 (10 новых).
+- **Smoke prod:** /=200/2.3s, /service=200, /bot=200, /catalog=200/2.4s, **/compare=200/0.26s**, /favorites=200, /api/catalog/categories/flat=200.
+- **Известные ограничения:** атрибуты грузятся с source ∈ {manual, name}; source='registry' не показываются (так же как везде в /api/catalog/products-by-sku). На мобиле таблица горизонтально скроллится (min-width 600px).
+
+### 2026-05-18 — Iter 20: UI polish (dropdown borders, /service, RRP strikethrough) ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `0bc7a3b` — "Iter 20: UI polish — dropdown borders, /service ТО tile, RRP strikethrough"
+- **Backup VPS:** `climat-simf.ru.source-backup-20260518231406.tar.gz`
+- **Что изменено:**
+  - `src/components/site-header.tsx` — кнопки категорий в dropdown каталога: border `rgba(33,52,108,0.22)` (было еле видимый `var(--glass-stroke)`) + фон `rgba(255,255,255,0.7)` (было 0.45).
+  - `src/app/service/page.tsx` — добавлена 10-я плитка установки: «Сезонное обслуживание (ТО) кондиционеров — от 2 000 ₽» (иконка `Settings`). Кнопка «Заказать установку» → flex-center div + `className="btn btn-primary"` + новый текст «Заказать услугу — обратный звонок».
+  - `src/app/globals.css` — добавлен `.p-card .p-price-row .old` (line-through + serif + soft color + smaller size). Лечит давний баг «цена дважды» — RRP визуально выглядел как обычная цена, потому что для класса `.old` в `.p-price-row` не было стиля. Фикс работает везде где `.p-card` (главная, каталог, похожие, фавориты, сравнение).
+- **Тесты:** 151/151.
+- **Smoke prod:** все 7 ключевых маршрутов 200.
+
 ### 2026-05-18 — Iter 19 (re-applied on Iter 17 base) — RECOVERY успешен ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
