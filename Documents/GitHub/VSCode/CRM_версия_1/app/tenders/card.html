@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тендер · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+
+  <style>
+    /* ---------- result-card (tender-specific) ---------- */
+    .result-card { display: flex; flex-direction: column; align-items: center; padding: var(--space-12); text-align: center; gap: var(--space-3); border-radius: var(--radius-lg); }
+    .result-card i { width: 48px; height: 48px; }
+    .result-card.is-pending { background: var(--bg-sidebar); color: var(--text-secondary); }
+    .result-card.is-won { background: color-mix(in srgb, var(--status-success-bg) 70%, var(--bg-surface)); color: var(--status-success-fg); }
+    .result-card.is-lost { background: color-mix(in srgb, var(--status-danger-bg) 70%, var(--bg-surface)); color: var(--status-danger-fg); }
+    .result-card .result-title { font-family: var(--font-serif); font-size: 28px; font-weight: 500; letter-spacing: -0.02em; color: var(--text-primary); }
+    .result-card .result-sub { font-size: 14px; color: var(--text-secondary); }
+
+    /* ---------- pricing grid ---------- */
+    .pricing-grid { display: grid; grid-template-columns: 1fr 280px; gap: var(--space-6); }
+    @media (max-width: 900px) { .pricing-grid { grid-template-columns: 1fr; } }
+    .pricing-cost-row { display: flex; align-items: center; justify-content: space-between; padding: var(--space-2) 0; border-bottom: 1px solid var(--border-subtle); gap: var(--space-4); }
+    .pricing-cost-row:last-child { border-bottom: none; }
+    .pricing-cost-row.is-total { padding-top: var(--space-3); margin-top: var(--space-2); border-top: 2px solid var(--border-strong); border-bottom: none; font-weight: 600; }
+    .pricing-cost-name { font-size: 14px; color: var(--text-primary); flex: 1; }
+    .pricing-cost-input { font-family: var(--font-mono); font-size: 14px; text-align: right; background: var(--bg-app); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 4px 10px; color: var(--text-primary); width: 160px; }
+    .pricing-kv { display: flex; flex-direction: column; gap: var(--space-4); }
+    .pricing-kv-block { background: var(--bg-sidebar); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+    .pricing-kv-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 500; }
+    .pricing-kv-value { font-family: var(--font-serif); font-size: 26px; font-weight: 500; letter-spacing: -0.02em; color: var(--text-primary); line-height: 1; }
+    .pricing-kv-sub { font-size: 13px; color: var(--text-secondary); }
+    .risk-pills { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+    .risk-pill { font-size: 12px; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-muted); }
+    .risk-pill.is-active-low { background: var(--status-success-bg); color: var(--status-success-fg); border-color: transparent; font-weight: 600; }
+    .risk-pill.is-active-medium { background: var(--status-warning-bg); color: var(--status-warning-fg); border-color: transparent; font-weight: 600; }
+    .risk-pill.is-active-high { background: var(--status-danger-bg); color: var(--status-danger-fg); border-color: transparent; font-weight: 600; }
+
+    /* ---------- dates list ---------- */
+    .dates-list { display: flex; flex-direction: column; gap: var(--space-3); }
+    .dates-row { display: flex; align-items: center; justify-content: space-between; font-size: 14px; gap: var(--space-4); }
+    .dates-row-label { color: var(--text-muted); font-size: 13px; min-width: 160px; }
+    .dates-row-value { color: var(--text-primary); display: inline-flex; align-items: center; gap: var(--space-2); }
+
+    /* ---------- lot sub-list ---------- */
+    .lot-list { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: var(--space-2); }
+    .lot-item { display: flex; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--text-secondary); }
+  </style>
+</head>
+<body data-route="tenders" data-title="Тендер">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+
+        <!-- Entity header -->
+        <header class="entity-header" id="entity-header">
+          <div class="entity-header-main" style="flex:1; min-width:0;">
+            <div class="entity-id-block" style="flex:1;">
+              <div class="entity-meta" id="entity-meta"></div>
+              <h1 class="h-display" id="entity-name" style="font-size:28px;margin-top:4px;line-height:1.25;"></h1>
+              <div class="entity-sub" id="entity-sub"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-3);flex-shrink:0;">
+            <div class="deal-amount num" id="entity-amount"></div>
+            <div class="text-caps" style="margin-top:-4px;">НМЦ</div>
+            <div class="entity-header-actions">
+              <a href="#" class="btn btn-ghost"><i data-lucide="external-link"></i>Площадка</a>
+              <button class="btn btn-secondary"><i data-lucide="edit-3"></i>Редактировать</button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Countdown row -->
+        <div id="countdown-row"></div>
+
+        <!-- Two-column body -->
+        <div class="entity-body">
+
+          <!-- LEFT: tabs + panels -->
+          <div>
+            <div id="tab-bar"></div>
+
+            <!-- TAB: Обзор -->
+            <section data-tab-panel="overview" style="margin-top:var(--space-6);">
+              <div class="card" id="panel-overview-desc" style="margin-bottom:var(--space-4);"></div>
+              <div class="card" id="panel-overview-dates"></div>
+            </section>
+
+            <!-- TAB: Документы -->
+            <section data-tab-panel="documents" style="margin-top:var(--space-6);display:none;">
+              <div class="card" id="panel-documents"></div>
+            </section>
+
+            <!-- TAB: Расчёт -->
+            <section data-tab-panel="pricing" style="margin-top:var(--space-6);display:none;">
+              <div class="card" id="panel-pricing"></div>
+            </section>
+
+            <!-- TAB: Задачи -->
+            <section data-tab-panel="tasks" style="margin-top:var(--space-6);display:none;">
+              <div class="card-flush" id="panel-tasks"></div>
+            </section>
+
+            <!-- TAB: Результат -->
+            <section data-tab-panel="result" style="margin-top:var(--space-6);display:none;">
+              <div id="panel-result"></div>
+            </section>
+          </div>
+
+          <!-- RIGHT RAIL -->
+          <aside class="entity-rail">
+            <!-- Actions card -->
+            <div class="card" id="rail-actions"></div>
+            <!-- Parameters card -->
+            <div class="card" id="rail-params"></div>
+          </aside>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── Time helpers ───────────────────────────────────────────────────────
+      const _now = Date.now();
+      function hr(h)  { return new Date(_now + h * 3600000).toISOString(); }
+      function day(d) { return hr(d * 24); }
+
+      // ─── Parse tender id from URL ───────────────────────────────────────────
+      const params   = new URLSearchParams(location.search);
+      const tenderId = params.get('id') || MOCK.tenders[0].id;
+      const tender   = MOCK.tenders.find(t => t.id === tenderId) || MOCK.tenders[0];
+
+      // ─── Helper lookups ─────────────────────────────────────────────────────
+      function getUser(id) {
+        return MOCK.users.find(u => u.id === id) || { name: id, id };
+      }
+      function firstName(name) {
+        const parts = name.split(/\s+/);
+        return parts.length >= 2 ? parts[1] : parts[0];
+      }
+
+      const manager = getUser(tender.manager);
+
+      // ─── Date format helpers ────────────────────────────────────────────────
+      const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+      function formatDate(iso) {
+        const d = new Date(iso);
+        return d.getDate() + ' ' + RU_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+      }
+      function formatDuration(ms) {
+        const totalMin = Math.abs(Math.round(ms / 60000));
+        const days  = Math.floor(totalMin / 1440);
+        const hours = Math.floor((totalMin % 1440) / 60);
+        const mins  = totalMin % 60;
+        if (days > 0 && hours > 0) return days + ' д ' + hours + ' ч';
+        if (days > 0)              return days + ' д';
+        if (hours > 0 && mins > 0) return hours + ' ч ' + mins + ' мин';
+        if (hours > 0)             return hours + ' ч';
+        return mins + ' мин';
+      }
+
+      // ─── Status helpers ─────────────────────────────────────────────────────
+      const STATUS_MAP = {
+        searching:  { severity: 'info',    label: 'Поиск' },
+        preparing:  { severity: 'warning', label: 'Готовится' },
+        submitted:  { severity: 'neutral', label: 'Подано' },
+        won:        { severity: 'success', label: 'Выигран' },
+        lost:       { severity: 'danger',  label: 'Проигран' },
+      };
+      function statusSeverity(s) { return (STATUS_MAP[s] || { severity: 'neutral' }).severity; }
+      function statusLabel(s)    { return (STATUS_MAP[s] || { label: s }).label; }
+
+      // ─── Activity kind helpers ──────────────────────────────────────────────
+      function kindLabel(k) {
+        return { note:'Заметка', status_change:'Смена статуса', call:'Звонок', email:'Email', task_created:'Создана задача', offer_sent:'КП отправлено' }[k] || k;
+      }
+      function kindSeverity(k) {
+        return { note:'neutral', status_change:'info', call:'warning', email:'info', task_created:'info', offer_sent:'success' }[k] || 'neutral';
+      }
+      function fileIcon(name) {
+        if (/\.pdf$/i.test(name))            return 'file-text';
+        if (/\.docx?$/i.test(name))          return 'file-text';
+        if (/\.xlsx?$/i.test(name))          return 'file-spreadsheet';
+        if (/\.(jpg|jpeg|png|gif|webp)$/i.test(name)) return 'file-image';
+        return 'file';
+      }
+
+      // ─── Task status/priority maps ──────────────────────────────────────────
+      const priorityMap = {
+        high:   { severity: 'danger',  label: 'Высокий' },
+        normal: { severity: 'neutral', label: 'Обычный' },
+        low:    { severity: 'info',    label: 'Низкий' },
+      };
+      const taskStatusMap = {
+        new:     { severity: 'info',    label: 'Новая' },
+        in_work: { severity: 'warning', label: 'В работе' },
+        review:  { severity: 'neutral', label: 'На проверке' },
+        done:    { severity: 'success', label: 'Выполнена' },
+        overdue: { severity: 'danger',  label: 'Просрочена' },
+      };
+
+      // ─── Document title ─────────────────────────────────────────────────────
+      document.title = tender.title + ' · CRM';
+      document.body.dataset.title = tender.title;
+
+      // ─── Entity header ──────────────────────────────────────────────────────
+      document.getElementById('entity-meta').innerHTML =
+        `<span class="id-chip">${tender.id}</span>` +
+        CRM.renderBadge(statusSeverity(tender.status), statusLabel(tender.status)) +
+        `<span class="badge badge--neutral badge--flat"><i data-lucide="globe"></i>${tender.platform}</span>` +
+        (tender.lots > 1 ? `<span class="text-caps">${tender.lots} лота</span>` : '');
+
+      document.getElementById('entity-name').textContent = tender.title;
+
+      document.getElementById('entity-sub').innerHTML =
+        `<span><i data-lucide="building-2"></i>${tender.customer}</span>` +
+        `<span><i data-lucide="map-pin"></i>${tender.region}</span>` +
+        `<span><i data-lucide="user"></i>${manager.name}</span>`;
+
+      document.getElementById('entity-amount').textContent = CRM.formatMoney(tender.nmcAmount);
+
+      // ─── Countdown row ──────────────────────────────────────────────────────
+      (function renderCountdown() {
+        const msToDeadline = new Date(tender.deadlineSubmit) - Date.now();
+        const isFinished   = tender.status === 'won' || tender.status === 'lost';
+        let cls   = 'countdown';
+        let label = '';
+        let value = '';
+
+        if (isFinished) {
+          label = '<i data-lucide="check-circle-2"></i>Завершён';
+          value = statusLabel(tender.status);
+        } else if (msToDeadline > 0 && msToDeadline < 48 * 3600000) {
+          cls  += ' is-urgent';
+          label = '<i data-lucide="clock"></i>До дедлайна подачи';
+          value = formatDuration(msToDeadline);
+        } else if (msToDeadline > 0) {
+          label = '<i data-lucide="clock"></i>До дедлайна подачи';
+          value = formatDuration(msToDeadline);
+        } else {
+          cls  += ' is-urgent';
+          label = '<i data-lucide="alert-triangle"></i>Дедлайн пропущен';
+          value = 'прошло ' + formatDuration(msToDeadline);
+        }
+
+        document.getElementById('countdown-row').innerHTML =
+          `<div class="${cls}">` +
+            `<span class="countdown-label">${label}</span>` +
+            `<span class="countdown-value">${value}</span>` +
+            `<span class="countdown-meta">Подача до ${formatDate(tender.deadlineSubmit)}</span>` +
+          `</div>`;
+      }());
+
+      // ─── Right rail: Actions ────────────────────────────────────────────────
+      (function renderRailActions() {
+        const isPreparing  = tender.status === 'preparing';
+        const isSubmitted  = tender.status === 'submitted';
+        const submitCls    = isPreparing  ? 'btn btn-primary'   : 'btn btn-secondary';
+        const resultCls    = isSubmitted  ? 'btn btn-primary'   : 'btn btn-secondary';
+
+        document.getElementById('rail-actions').innerHTML =
+          `<div class="card-head" style="margin-bottom:var(--space-3);">` +
+            `<span class="card-head-title">Действия</span>` +
+          `</div>` +
+          `<div class="rail-actions">` +
+            `<button class="btn btn-secondary" style="width:100%;"><i data-lucide="check-square"></i>+ Задача</button>` +
+            `<button class="btn btn-secondary" style="width:100%;"><i data-lucide="upload"></i>Загрузить документ</button>` +
+            `<button class="btn btn-secondary" style="width:100%;"><i data-lucide="calculator"></i>Рассчитать цену</button>` +
+            `<button class="${submitCls}" style="width:100%;"><i data-lucide="send"></i>Подать заявку</button>` +
+            `<button class="${resultCls}" style="width:100%;"><i data-lucide="flag"></i>Записать результат</button>` +
+            `<hr style="border:none;border-top:1px solid var(--border-subtle);margin:var(--space-2) 0;">` +
+            `<button class="btn btn-ghost" style="width:100%;color:var(--status-danger-fg);"><i data-lucide="x-circle"></i>Закрыть тендер</button>` +
+          `</div>`;
+      }());
+
+      // ─── Right rail: Parameters ─────────────────────────────────────────────
+      (function renderRailParams() {
+        document.getElementById('rail-params').innerHTML =
+          `<div class="card-head" style="margin-bottom:var(--space-3);">` +
+            `<span class="card-head-title">Параметры</span>` +
+          `</div>` +
+          `<dl class="kv-list">` +
+            `<dt>Площадка</dt><dd>${tender.platform}</dd>` +
+            `<dt>Заказчик</dt><dd>${tender.customer}</dd>` +
+            `<dt>Регион</dt><dd>${tender.region}</dd>` +
+            `<dt>НМЦ</dt><dd class="num" style="font-size:14px;font-weight:600;">${CRM.formatMoney(tender.nmcAmount)}</dd>` +
+            `<dt>Лотов</dt><dd>${tender.lots}</dd>` +
+            `<dt>Подача до</dt><dd>${formatDate(tender.deadlineSubmit)}</dd>` +
+            `<dt>Исполнение до</dt><dd>${formatDate(tender.deadlineExecution)}</dd>` +
+            `<dt>Менеджер</dt><dd style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(manager.name,'sm')}<span>${firstName(manager.name)}</span></dd>` +
+          `</dl>`;
+      }());
+
+      // ─── TAB SYSTEM ────────────────────────────────────────────────────────
+      const TABS = [
+        { id: 'overview',   label: 'Обзор' },
+        { id: 'documents',  label: 'Документы' },
+        { id: 'pricing',    label: 'Расчёт' },
+        { id: 'tasks',      label: 'Задачи' },
+        { id: 'result',     label: 'Результат' },
+      ];
+
+      const hashMatch = location.hash.match(/tab=(\w+)/);
+      let activeTab = (hashMatch && TABS.find(t => t.id === hashMatch[1])) ? hashMatch[1] : 'overview';
+
+      function showTab(id) {
+        activeTab = id;
+        history.replaceState(null, '', location.pathname + location.search + '#tab=' + id);
+        document.querySelectorAll('[data-tab-panel]').forEach(el => {
+          el.style.display = el.dataset.tabPanel === id ? 'block' : 'none';
+        });
+        document.querySelectorAll('#tab-bar .tab').forEach(el => {
+          el.classList.toggle('is-active', el.dataset.tab === id);
+        });
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      CRM.renderTabs('#tab-bar', { tabs: TABS, activeId: activeTab, onChange: showTab });
+
+      document.querySelectorAll('[data-tab-panel]').forEach(el => {
+        el.style.display = el.dataset.tabPanel === activeTab ? 'block' : 'none';
+      });
+
+      // ─── TAB: Обзор ────────────────────────────────────────────────────────
+      (function renderOverview() {
+        // Description card
+        document.getElementById('panel-overview-desc').innerHTML =
+          `<div class="card-head"><span class="card-head-title">Описание</span></div>` +
+          `<div style="line-height:1.7;color:var(--text-primary);font-size:14px;display:flex;flex-direction:column;gap:var(--space-3);">` +
+            `<p>Заказчик объявляет конкурс на поставку ${tender.title.toLowerCase()}. Поставка осуществляется в адрес ${tender.customer} (${tender.region}). Срок исполнения контракта — до ${formatDate(tender.deadlineExecution)}.</p>` +
+            `<p>Технические требования и спецификация изложены в Приложении 1. Подача предложения — через ЭТП ${tender.platform}. Обеспечение заявки: 2% от НМЦ. Обеспечение контракта: 5%.</p>` +
+            `<p>Победитель определяется по совокупности критериев: цена (60%), сроки поставки (20%), опыт исполнения аналогичных контрактов (20%).</p>` +
+          `</div>`;
+
+        // Key dates card
+        const deadlineMs   = new Date(tender.deadlineSubmit).getTime();
+        const DAY_MS       = 86400000;
+        const published    = new Date(deadlineMs - 14 * DAY_MS).toISOString();
+        const queryDeadline= new Date(deadlineMs -  3 * DAY_MS).toISOString();
+        const results      = new Date(deadlineMs +  7 * DAY_MS).toISOString();
+        const isDeadlineUrgent = (new Date(tender.deadlineSubmit) - Date.now()) < 48 * 3600000 && tender.status !== 'won' && tender.status !== 'lost';
+
+        document.getElementById('panel-overview-dates').innerHTML =
+          `<div class="card-head"><span class="card-head-title">Ключевые даты</span></div>` +
+          `<div class="dates-list">` +
+            `<div class="dates-row">` +
+              `<span class="dates-row-label"><i data-lucide="calendar" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Опубликован</span>` +
+              `<span class="dates-row-value">${CRM.formatRelative(published)}</span>` +
+            `</div>` +
+            `<div class="dates-row">` +
+              `<span class="dates-row-label"><i data-lucide="calendar" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Запросы до</span>` +
+              `<span class="dates-row-value">${CRM.formatRelative(queryDeadline)}</span>` +
+            `</div>` +
+            `<div class="dates-row">` +
+              `<span class="dates-row-label"><i data-lucide="clock" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Подача до</span>` +
+              `<span class="dates-row-value">` +
+                (isDeadlineUrgent
+                  ? CRM.renderBadge('danger', CRM.formatRelative(tender.deadlineSubmit))
+                  : `<span>${CRM.formatRelative(tender.deadlineSubmit)}</span>`) +
+              `</span>` +
+            `</div>` +
+            `<div class="dates-row">` +
+              `<span class="dates-row-label"><i data-lucide="calendar" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Подведение итогов</span>` +
+              `<span class="dates-row-value">${CRM.formatRelative(results)}</span>` +
+            `</div>` +
+            `<div class="dates-row">` +
+              `<span class="dates-row-label"><i data-lucide="calendar-check" style="width:13px;height:13px;display:inline;margin-right:4px;"></i>Исполнение до</span>` +
+              `<span class="dates-row-value">${CRM.formatRelative(tender.deadlineExecution)}</span>` +
+            `</div>` +
+          `</div>`;
+      }());
+
+      // ─── TAB: Документы ────────────────────────────────────────────────────
+      (function renderDocuments() {
+        const files = [
+          { name: 'Извещение о закупке.pdf',          sizeLabel: '380 КБ', uploadedAt: day(-14), uploadedBy: tender.manager },
+          { name: 'Техническое задание.docx',          sizeLabel: '720 КБ', uploadedAt: day(-14), uploadedBy: tender.manager },
+          { name: 'Спецификация Приложение 1.xlsx',    sizeLabel: '210 КБ', uploadedAt: day(-13), uploadedBy: tender.manager },
+          { name: 'Проект контракта.pdf',              sizeLabel: '1.4 МБ', uploadedAt: day(-12), uploadedBy: tender.manager },
+          { name: 'Расчёт обеспечения.xlsx',           sizeLabel: '46 КБ',  uploadedAt: day(-5),  uploadedBy: tender.manager },
+        ];
+
+        const root = document.getElementById('panel-documents');
+        root.innerHTML =
+          `<div class="card-head">` +
+            `<span class="card-head-title">Документы</span>` +
+            `<span style="display:flex;align-items:center;gap:var(--space-3);">` +
+              `<span class="card-head-sub">${files.length}</span>` +
+              `<button class="btn btn-secondary btn-sm"><i data-lucide="upload"></i>Загрузить</button>` +
+            `</span>` +
+          `</div>` +
+          `<div class="files-grid">` +
+            files.map(f =>
+              `<article class="file-card">` +
+                `<div class="file-icon"><i data-lucide="${fileIcon(f.name)}"></i></div>` +
+                `<div class="file-name">${f.name}</div>` +
+                `<div class="file-meta"><span>${f.sizeLabel}</span>·<span>${CRM.formatRelative(f.uploadedAt)}</span></div>` +
+                `<div class="file-by">${getUser(f.uploadedBy).name}</div>` +
+              `</article>`
+            ).join('') +
+          `</div>`;
+      }());
+
+      // ─── TAB: Расчёт ───────────────────────────────────────────────────────
+      (function renderPricing() {
+        const nmc = tender.nmcAmount;
+        const costLines = [
+          { name: 'Себестоимость товара',    amount: Math.round(nmc * 0.60) },
+          { name: 'Логистика',               amount: Math.round(nmc * 0.05) },
+          { name: 'Обеспечение заявки (2%)', amount: Math.round(nmc * 0.02) },
+          { name: 'Обеспечение контракта (5%)', amount: Math.round(nmc * 0.05) },
+          { name: 'Налоги и накладные',      amount: Math.round(nmc * 0.08) },
+        ];
+        const totalCosts = costLines.reduce((s, l) => s + l.amount, 0);
+        const ourOffer   = Math.round(nmc * 0.95);
+        const margin     = ourOffer - totalCosts;
+        const marginPct  = ((margin / ourOffer) * 100).toFixed(1);
+
+        // Risk score mapping
+        const RISK_MAP = {
+          searching:  'low',
+          preparing:  'medium',
+          submitted:  'medium',
+          won:        'low',
+          lost:       'high',
+        };
+        const riskLevel = RISK_MAP[tender.status] || 'medium';
+
+        document.getElementById('panel-pricing').innerHTML =
+          `<div class="card-head"><span class="card-head-title">Расчёт стоимости</span></div>` +
+          `<div class="pricing-grid">` +
+            // Left: cost lines table
+            `<div>` +
+              `<div style="display:flex;flex-direction:column;gap:0;">` +
+                costLines.map(l =>
+                  `<div class="pricing-cost-row">` +
+                    `<span class="pricing-cost-name">${l.name}</span>` +
+                    `<input class="pricing-cost-input" value="${CRM.formatMoney(l.amount)}" disabled>` +
+                  `</div>`
+                ).join('') +
+                `<div class="pricing-cost-row is-total">` +
+                  `<span class="pricing-cost-name" style="font-weight:600;">Итого затрат</span>` +
+                  `<input class="pricing-cost-input" value="${CRM.formatMoney(totalCosts)}" disabled style="font-weight:700;">` +
+                `</div>` +
+              `</div>` +
+            `</div>` +
+            // Right: KV blocks
+            `<div class="pricing-kv">` +
+              `<div class="pricing-kv-block">` +
+                `<span class="pricing-kv-label">НМЦ</span>` +
+                `<span class="pricing-kv-value">${CRM.formatMoney(nmc)}</span>` +
+              `</div>` +
+              `<div class="pricing-kv-block">` +
+                `<span class="pricing-kv-label">Наше предложение</span>` +
+                `<input class="pricing-cost-input" value="${CRM.formatMoney(ourOffer)}" disabled style="font-size:18px;width:100%;">` +
+              `</div>` +
+              `<div class="pricing-kv-block">` +
+                `<span class="pricing-kv-label">Маржа</span>` +
+                `<span class="pricing-kv-value" style="font-size:32px;">${marginPct}%</span>` +
+                `<span class="pricing-kv-sub">Прибыль ${CRM.formatMoney(margin)}</span>` +
+              `</div>` +
+              `<div class="pricing-kv-block">` +
+                `<span class="pricing-kv-label">Risk-score</span>` +
+                `<div class="risk-pills">` +
+                  `<span class="risk-pill ${riskLevel === 'low' ? 'is-active-low' : ''}">Низкий</span>` +
+                  `<span class="risk-pill ${riskLevel === 'medium' ? 'is-active-medium' : ''}">Средний</span>` +
+                  `<span class="risk-pill ${riskLevel === 'high' ? 'is-active-high' : ''}">Высокий</span>` +
+                `</div>` +
+              `</div>` +
+            `</div>` +
+          `</div>`;
+      }());
+
+      // ─── TAB: Задачи ───────────────────────────────────────────────────────
+      (function renderTasks() {
+        const tasksList = MOCK.tasks.filter(t => t.relatedType === 'tender' && t.relatedId === tender.id);
+
+        const root = document.getElementById('panel-tasks');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Задачи</span>` +
+              `<span style="display:flex;align-items:center;gap:var(--space-3);">` +
+                `<span class="card-head-sub">${tasksList.length}</span>` +
+                `<button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Задача</button>` +
+              `</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="tasks-table-inner"></div>`;
+
+        CRM.renderTable('#tasks-table-inner', {
+          columns: [
+            {
+              key: 'priority', label: 'ПРИОРИТЕТ',
+              render: r => CRM.renderBadge((priorityMap[r.priority]||{severity:'neutral'}).severity, (priorityMap[r.priority]||{label:r.priority}).label)
+            },
+            {
+              key: 'title', label: 'ЗАДАЧА',
+              render: r => `<span style="font-size:13px;">${r.title}</span>`
+            },
+            {
+              key: 'assignee', label: 'ИСПОЛНИТЕЛЬ',
+              render: r => `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(getUser(r.assignee).name,'sm')}<span style="font-size:13px;">${firstName(getUser(r.assignee).name)}</span></span>`
+            },
+            {
+              key: 'deadline', label: 'ДЕДЛАЙН',
+              render: r => {
+                const isOverdue = r.status === 'overdue' || new Date(r.deadline) < new Date();
+                const label = CRM.formatRelative(r.deadline);
+                return isOverdue && r.status !== 'done'
+                  ? CRM.renderBadge('danger', label)
+                  : `<span style="font-size:13px;color:var(--text-secondary);">${label}</span>`;
+              }
+            },
+            {
+              key: 'status', label: 'СТАТУС',
+              render: r => CRM.renderBadge((taskStatusMap[r.status]||{severity:'neutral'}).severity, (taskStatusMap[r.status]||{label:r.status}).label)
+            },
+            {
+              key: '_actions', label: '',
+              render: r => `<span class="row-actions"><button class="btn btn-ghost btn-icon btn-sm" aria-label="Выполнить"><i data-lucide="check"></i></button><button class="btn btn-ghost btn-icon btn-sm" aria-label="Редактировать"><i data-lucide="edit-2"></i></button></span>`
+            },
+          ],
+          rows: tasksList,
+          empty: {
+            title: 'Задач пока нет',
+            body: '<button class="btn btn-primary btn-sm" style="margin-top:12px;"><i data-lucide="plus"></i>Задача</button>',
+          },
+        });
+      }());
+
+      // ─── TAB: Результат ────────────────────────────────────────────────────
+      (function renderResult() {
+        const root = document.getElementById('panel-result');
+        const DAY_MS    = 86400000;
+        const resultsDate = new Date(new Date(tender.deadlineSubmit).getTime() + 7 * DAY_MS).toISOString();
+        let mainHtml = '';
+
+        if (tender.status === 'won') {
+          mainHtml =
+            `<div class="result-card is-won">` +
+              `<i data-lucide="trophy"></i>` +
+              `<div class="result-title">Тендер выигран</div>` +
+              `<div class="result-sub">Сумма контракта: ${CRM.formatMoney(Math.round(tender.nmcAmount * 0.95))}</div>` +
+              `<button class="btn btn-primary" style="margin-top:var(--space-3);"><i data-lucide="plus-circle"></i>Создать сделку</button>` +
+            `</div>`;
+        } else if (tender.status === 'lost') {
+          mainHtml =
+            `<div class="result-card is-lost">` +
+              `<i data-lucide="x-circle"></i>` +
+              `<div class="result-title">Тендер проигран</div>` +
+              `<div class="result-sub">Победитель: ООО ПромРесурс (цена 0.92 НМЦ)</div>` +
+            `</div>`;
+        } else {
+          mainHtml =
+            `<div class="result-card is-pending">` +
+              `<i data-lucide="hourglass"></i>` +
+              `<div class="result-title">Результаты ещё не подведены</div>` +
+              `<div class="result-sub">Итоги конкурса будут опубликованы после ${formatDate(resultsDate)}.</div>` +
+            `</div>`;
+        }
+
+        // Lots sub-list if more than 1
+        let lotsHtml = '';
+        if (tender.lots > 1) {
+          const lotItems = [];
+          for (let i = 1; i <= tender.lots; i++) {
+            let lotStatus = '';
+            if (tender.status === 'won') {
+              lotStatus = i % 2 === 0 ? 'проигран' : 'выигран';
+            } else if (tender.status === 'lost') {
+              lotStatus = 'проигран';
+            } else {
+              lotStatus = 'ожидание';
+            }
+            lotItems.push(
+              `<div class="lot-item">` +
+                `<span class="text-muted">Лот ${i}</span>` +
+                `<span style="color:var(--border-strong);">—</span>` +
+                `<span>${lotStatus}</span>` +
+              `</div>`
+            );
+          }
+          lotsHtml =
+            `<div class="card" style="margin-top:var(--space-4);">` +
+              `<div class="card-head"><span class="card-head-title">Лоты</span><span class="card-head-sub">${tender.lots} лота</span></div>` +
+              `<div class="lot-list">${lotItems.join('')}</div>` +
+            `</div>`;
+        }
+
+        root.innerHTML =
+          `<div class="card">${mainHtml}</div>` +
+          lotsHtml;
+      }());
+
+      // Expose showTab for inline onclick
+      window.showTab = showTab;
+
+      // ─── Final lucide pass ─────────────────────────────────────────────────
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

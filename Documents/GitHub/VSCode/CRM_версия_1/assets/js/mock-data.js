@@ -282,6 +282,7 @@
     { id: 'TN-0004', title: 'Поставка продовольственных товаров (гос. контракт)',platform: 'Сбербанк-АСТ',  customer: 'ФГУП НИИ Технологий',           region: 'г. Москва',           nmcAmount: 3400000, deadlineSubmit: day(12),  deadlineExecution: day(90),  manager: 'USR-007', status: 'searching',  lots: 5 },
     { id: 'TN-0005', title: 'Обслуживание спортивных объектов',                  platform: 'ZakupKi',       customer: 'ГАУ Спортивная школа №3',       region: 'г. Москва',           nmcAmount: 480000,  deadlineSubmit: day(8),   deadlineExecution: day(120), manager: 'USR-007', status: 'searching',  lots: 1 },
     { id: 'TN-0006', title: 'Поставка мебели для административных помещений',    platform: 'Сбербанк-АСТ',  customer: 'МКУ Администрация Центрального р-на', region: 'г. Казань',    nmcAmount: 630000,  deadlineSubmit: day(-5),  deadlineExecution: day(30),  manager: 'USR-007', status: 'won',        lots: 2 },
+    { id: 'TN-0007', title: 'Поставка лабораторного оборудования',              platform: 'ZakupKi',       customer: 'ФГУП НИИ Технологий',           region: 'г. Москва',           nmcAmount: 920000,  deadlineSubmit: day(-12), deadlineExecution: day(60),  manager: 'USR-007', status: 'lost',       lots: 1 },
   ];
 
   // ─── MESSAGES ─────────────────────────────────────────────────────────────
