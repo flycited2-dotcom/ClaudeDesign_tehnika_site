@@ -11,7 +11,11 @@
   <link rel="stylesheet" href="/assets/css/tokens.css">
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
-<body data-route="clients" data-title="Клиенты">
+<body data-route="clients" data-title="Клиенты"
+      data-empty-icon="users"
+      data-empty-title="Нет клиентов"
+      data-empty-desc="Добавьте первого клиента, чтобы начать управлять базой."
+      data-empty-create="client">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -63,6 +67,16 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
+      if (new URLSearchParams(location.search).has('skeleton')) {
+        window.CRM.renderSkeleton('#table-root', { rows: 8, type: 'table' });
+        setTimeout(() => {
+          const u = new URL(location.href);
+          u.searchParams.delete('skeleton');
+          location.replace(u.toString());
+        }, 600);
+        return;
+      }
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
 

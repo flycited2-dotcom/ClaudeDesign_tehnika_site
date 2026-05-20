@@ -124,5 +124,40 @@
     `;
   }
 
-  window.CRM = Object.assign(window.CRM || {}, { renderAvatar, renderBadge, renderKpiCard, renderTable, renderKanban, renderTabs, renderNotifList, renderProblemItem, renderProblemCard, initials, avatarColor });
+  function checkEmptyState() {
+    if (!new URLSearchParams(location.search).has('empty')) return false;
+    const b = document.body;
+    const icon  = b.dataset.emptyIcon  || 'inbox';
+    const title = b.dataset.emptyTitle || 'Нет данных';
+    const desc  = b.dataset.emptyDesc  || 'Добавьте первую запись, чтобы начать работу.';
+    const create = b.dataset.emptyCreate || '';
+    const el = document.querySelector('.card-flush, .kanban-board, [data-empty-target]');
+    if (!el) return false;
+    el.innerHTML = `
+      <div class="empty">
+        <i data-lucide="${icon}" style="width:40px;height:40px;margin-bottom:16px;opacity:0.35;color:var(--accent);"></i>
+        <h3>${title}</h3>
+        <p style="margin-bottom:20px;">${desc}</p>
+        ${create ? `<button class="btn btn-primary" data-action="open-create" data-type="${create}"><i data-lucide="plus"></i>Создать</button>` : ''}
+      </div>`;
+    if (window.lucide) window.lucide.createIcons();
+    return true;
+  }
+
+  function renderSkeleton(selector, { rows = 5, type = 'table' } = {}) {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    if (type === 'table') {
+      el.innerHTML = Array.from({ length: rows }, () =>
+        '<div class="skel skel-row"></div>').join('');
+    } else if (type === 'kanban') {
+      el.innerHTML = Array.from({ length: 4 }, () =>
+        '<div class="skel skel-card" style="margin-bottom:12px;"></div>').join('');
+    } else if (type === 'kpi') {
+      el.innerHTML = Array.from({ length: rows }, () =>
+        '<div class="skel skel-kpi"></div>').join('');
+    }
+  }
+
+  window.CRM = Object.assign(window.CRM || {}, { renderAvatar, renderBadge, renderKpiCard, renderTable, renderKanban, renderTabs, renderNotifList, renderProblemItem, renderProblemCard, renderSkeleton, checkEmptyState, initials, avatarColor });
 })();

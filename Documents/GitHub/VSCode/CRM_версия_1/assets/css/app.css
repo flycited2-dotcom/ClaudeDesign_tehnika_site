@@ -334,3 +334,21 @@
 .countdown-value { font-family: var(--font-serif); font-size: 22px; font-weight: 500; letter-spacing: -0.01em; }
 .countdown.is-urgent .countdown-value { color: var(--status-danger-fg); }
 .countdown-meta { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+
+/* ---------- skeleton shimmer ---------- */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.skel {
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--border-subtle) 37%, var(--bg-hover) 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: var(--radius-sm);
+}
+.skel-line { height: 14px; margin-bottom: 8px; }
+.skel-text { height: 12px; width: 60%; }
+.skel-h    { height: 20px; width: 40%; }
+.skel-kpi  { height: 64px; border-radius: var(--radius-md); }
+.skel-row  { height: 48px; border-radius: var(--radius-sm); margin-bottom: 4px; }
+.skel-card { height: 120px; border-radius: var(--radius-md); }

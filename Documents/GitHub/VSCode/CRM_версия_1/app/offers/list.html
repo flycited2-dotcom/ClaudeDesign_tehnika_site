@@ -11,7 +11,11 @@
   <link rel="stylesheet" href="/assets/css/tokens.css">
   <link rel="stylesheet" href="/assets/css/app.css">
 </head>
-<body data-route="offers" data-title="Коммерческие предложения">
+<body data-route="offers" data-title="Коммерческие предложения"
+      data-empty-icon="file-text"
+      data-empty-title="Нет коммерческих предложений"
+      data-empty-desc="Создайте первое КП для клиента."
+      data-empty-create="offer">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -54,6 +58,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
       const now  = Date.now();

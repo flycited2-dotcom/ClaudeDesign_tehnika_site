@@ -35,7 +35,11 @@
     .client-group-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); margin-bottom: var(--space-3); }
   </style>
 </head>
-<body data-route="deals" data-title="Сделки · по клиентам">
+<body data-route="deals" data-title="Сделки · по клиентам"
+      data-empty-icon="briefcase"
+      data-empty-title="Нет сделок"
+      data-empty-desc="Ни один клиент пока не связан со сделками."
+      data-empty-create="deal">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -81,6 +85,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
 

@@ -43,7 +43,11 @@
     .kanban-col[data-stage="won"]         { border-top: 2px solid var(--status-success-fg); }
   </style>
 </head>
-<body data-route="deals" data-title="Сделки">
+<body data-route="deals" data-title="Сделки"
+      data-empty-icon="briefcase"
+      data-empty-title="Нет сделок"
+      data-empty-desc="Создайте первую сделку — она появится в канбан-доске."
+      data-empty-create="deal">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -75,7 +79,7 @@
           </div>
         </header>
 
-        <div id="kanban-root"></div>
+        <div id="kanban-root" data-empty-target></div>
 
       </div>
     </main>
@@ -89,6 +93,16 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
+      if (new URLSearchParams(location.search).has('skeleton')) {
+        window.CRM.renderSkeleton('#kanban-root', { rows: 4, type: 'kanban' });
+        setTimeout(() => {
+          const u = new URL(location.href);
+          u.searchParams.delete('skeleton');
+          location.replace(u.toString());
+        }, 600);
+        return;
+      }
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
       const now  = Date.now();

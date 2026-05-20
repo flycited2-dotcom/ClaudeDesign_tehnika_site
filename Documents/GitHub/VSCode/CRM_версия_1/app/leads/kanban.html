@@ -47,7 +47,11 @@
     }
   </style>
 </head>
-<body data-route="leads" data-title="Лиды · канбан">
+<body data-route="leads" data-title="Лиды · канбан"
+      data-empty-icon="target"
+      data-empty-title="Нет лидов"
+      data-empty-desc="Добавьте первый лид — он появится в канбан-доске."
+      data-empty-create="lead">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -81,7 +85,7 @@
           </div>
         </header>
 
-        <div id="kanban-root"></div>
+        <div id="kanban-root" data-empty-target></div>
 
       </div>
     </main>
@@ -95,6 +99,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
       const now  = Date.now();

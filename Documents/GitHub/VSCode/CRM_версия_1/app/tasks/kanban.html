@@ -43,7 +43,11 @@
     .kanban-col[data-status="overdue"]  { border-top: 2px solid var(--status-danger-fg); }
   </style>
 </head>
-<body data-route="tasks" data-title="Задачи · канбан">
+<body data-route="tasks" data-title="Задачи · канбан"
+      data-empty-icon="check-square"
+      data-empty-title="Нет задач"
+      data-empty-desc="Создайте первую задачу — она появится на доске."
+      data-empty-create="task">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -80,7 +84,7 @@
           </div>
         </header>
 
-        <div id="kanban-root"></div>
+        <div id="kanban-root" data-empty-target></div>
 
       </div>
     </main>
@@ -94,6 +98,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
 

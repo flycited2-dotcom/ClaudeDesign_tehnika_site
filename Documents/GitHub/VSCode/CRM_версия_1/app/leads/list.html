@@ -38,7 +38,11 @@
     }
   </style>
 </head>
-<body data-route="leads" data-title="Лиды">
+<body data-route="leads" data-title="Лиды"
+      data-empty-icon="target"
+      data-empty-title="Нет лидов"
+      data-empty-desc="Добавьте первый лид или подключите источник входящих заявок."
+      data-empty-create="lead">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -88,6 +92,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
       const now  = Date.now();

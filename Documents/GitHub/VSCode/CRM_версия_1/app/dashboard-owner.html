@@ -219,6 +219,20 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (new URLSearchParams(location.search).has('skeleton')) {
+        const CRM = window.CRM;
+        CRM.renderSkeleton('#kpis', { rows: 7, type: 'kpi' });
+        CRM.renderSkeleton('#employees-table', { rows: 6, type: 'table' });
+        CRM.renderSkeleton('#problem-grid', { rows: 4, type: 'card' });
+        document.getElementById('notif-list').innerHTML =
+          Array.from({ length: 4 }, () => '<div class="skel skel-row" style="margin-bottom:8px;"></div>').join('');
+        setTimeout(() => {
+          const u = new URL(location.href);
+          u.searchParams.delete('skeleton');
+          location.replace(u.toString());
+        }, 600);
+        return;
+      }
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
       const now  = Date.now();

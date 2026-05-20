@@ -31,7 +31,11 @@
     }
   </style>
 </head>
-<body data-route="tasks" data-title="Мои задачи">
+<body data-route="tasks" data-title="Мои задачи"
+      data-empty-icon="check-square"
+      data-empty-title="Нет задач"
+      data-empty-desc="Вам пока не назначено задач — отличный день для планирования."
+      data-empty-create="task">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -84,6 +88,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
 

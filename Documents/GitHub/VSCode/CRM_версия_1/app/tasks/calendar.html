@@ -51,7 +51,11 @@
     .month-nav-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
   </style>
 </head>
-<body data-route="tasks" data-title="Задачи · календарь">
+<body data-route="tasks" data-title="Задачи · календарь"
+      data-empty-icon="calendar"
+      data-empty-title="Нет задач"
+      data-empty-desc="Запланируйте задачу — она появится в календаре."
+      data-empty-create="task">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -97,7 +101,7 @@
           </div>
         </header>
 
-        <div id="calendar-root"></div>
+        <div id="calendar-root" data-empty-target></div>
 
       </div>
     </main>
@@ -111,6 +115,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
 

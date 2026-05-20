@@ -32,7 +32,11 @@
     }
   </style>
 </head>
-<body data-route="deals" data-title="Сделки · таблица">
+<body data-route="deals" data-title="Сделки · таблица"
+      data-empty-icon="briefcase"
+      data-empty-title="Нет сделок"
+      data-empty-desc="Создайте первую сделку — она появится здесь и в канбан-доске."
+      data-empty-create="deal">
   <div class="app-shell">
     <div data-shell="sidebar"></div>
     <main class="app-main">
@@ -80,6 +84,7 @@
 
   <script>
     window.addEventListener('load', function () {
+      if (window.CRM.checkEmptyState()) return;
       const MOCK = window.MOCK;
       const CRM  = window.CRM;
       const now  = Date.now();
