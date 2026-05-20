@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>КП · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .version-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-subtle); font-size: 13px; }
+    .version-row:last-child { border-bottom: none; }
+    .version-row.is-current strong { color: var(--accent); }
+  </style>
+</head>
+<body data-route="offers" data-title="КП">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+
+        <!-- Entity header -->
+        <header class="entity-header" id="entity-header" style="padding-top: var(--space-4); padding-bottom: var(--space-4);">
+          <div class="entity-header-main">
+            <div class="entity-id-block">
+              <div class="entity-meta" id="entity-meta"></div>
+              <h1 class="h-display" id="entity-name" style="font-size: 24px; margin-top: 4px;"></h1>
+              <div class="entity-sub" id="entity-sub"></div>
+            </div>
+          </div>
+          <div class="entity-header-actions">
+            <button class="btn btn-ghost btn-icon" aria-label="Ещё"><i data-lucide="more-horizontal"></i></button>
+            <button class="btn btn-secondary"><i data-lucide="edit-3"></i>Редактировать</button>
+          </div>
+        </header>
+
+        <!-- Two-column body -->
+        <div class="entity-body">
+
+          <!-- LEFT: A4 КП preview -->
+          <div>
+            <div id="kp-preview"></div>
+          </div>
+
+          <!-- RIGHT RAIL -->
+          <aside class="entity-rail">
+            <!-- Card 1: Actions -->
+            <div class="card" id="rail-actions">
+              <div class="card-head" style="margin-bottom: var(--space-3);">
+                <span class="card-head-title">Действия</span>
+              </div>
+              <div class="rail-actions">
+                <button class="btn btn-primary" style="width:100%;"><i data-lucide="send"></i>Отправить email</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="send"></i>Отправить в Telegram</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="download"></i>Скачать PDF</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="copy"></i>Создать новую версию</button>
+                <button class="btn btn-ghost" style="width:100%;"><i data-lucide="link"></i>Скопировать ссылку</button>
+              </div>
+            </div>
+            <!-- Card 2: Status & Dates -->
+            <div class="card" id="rail-meta"></div>
+            <!-- Card 3: Versions -->
+            <div class="card" id="rail-versions"></div>
+          </aside>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── Helpers ──────────────────────────────────────────────────────────
+      function getUser(id) {
+        return MOCK.users.find(u => u.id === id) || { name: id, id };
+      }
+      function getClient(id) {
+        return MOCK.clients.find(c => c.id === id) || { name: id, id };
+      }
+      function getDeal(id) {
+        return MOCK.deals.find(d => d.id === id) || { number: id, id };
+      }
+
+      // Local date formatter for document body (long-form Russian date)
+      const RU_MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+      function formatDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.getDate() + ' ' + RU_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+      }
+
+      // ─── Parse offer id from URL ───────────────────────────────────────────
+      const params = new URLSearchParams(location.search);
+      const offerId = params.get('id') || MOCK.offers[0].id;
+      const offer = MOCK.offers.find(o => o.id === offerId) || MOCK.offers[0];
+
+      const client = getClient(offer.clientId);
+      const deal   = getDeal(offer.dealId);
+      const manager = getUser(offer.manager);
+
+      // ─── Status map ────────────────────────────────────────────────────────
+      const STATUS_MAP = {
+        draft:    { severity: 'neutral', label: 'Черновик' },
+        sent:     { severity: 'info',    label: 'Отправлено' },
+        viewed:   { severity: 'warning', label: 'Просмотрено' },
+        accepted: { severity: 'success', label: 'Принято' },
+        rejected: { severity: 'danger',  label: 'Отклонено' },
+      };
+      const statusInfo = STATUS_MAP[offer.status] || { severity: 'neutral', label: offer.status };
+
+      // ─── Document title ────────────────────────────────────────────────────
+      document.title = offer.number + ' · CRM';
+      document.body.dataset.title = offer.number;
+
+      // ─── Entity header ─────────────────────────────────────────────────────
+      document.getElementById('entity-meta').innerHTML =
+        `<span class="id-chip">${offer.number}</span>` +
+        CRM.renderBadge(statusInfo.severity, statusInfo.label) +
+        `<span class="text-caps">версия ${offer.version}</span>`;
+
+      document.getElementById('entity-name').textContent = 'КП для ' + client.name;
+
+      document.getElementById('entity-sub').innerHTML =
+        `<a href="/app/clients/card.html?id=${client.id}" style="display:inline-flex;align-items:center;gap:6px;color:var(--text-primary);text-decoration:none;"><i data-lucide="users"></i>${client.name}</a>` +
+        `<a href="/app/deals/card.html?id=${deal.id}" style="display:inline-flex;align-items:center;gap:6px;color:var(--text-primary);text-decoration:none;"><i data-lucide="briefcase"></i>${deal.number}</a>` +
+        `<span><i data-lucide="user"></i>${manager.name}</span>`;
+
+      // ─── KП document products ──────────────────────────────────────────────
+      const dealProducts = MOCK.dealProducts.filter(p => p.dealId === offer.dealId);
+
+      // If no products for this deal, fabricate generic line items from offer.amount
+      function fabricateRows(totalAmount) {
+        const base = Math.round(totalAmount);
+        const prices = [
+          { name: 'Товар основной (позиция 1)', qty: 5,  unit: 'шт', price: Math.round(base * 0.40 / 5) },
+          { name: 'Комплектующие',              qty: 10, unit: 'шт', price: Math.round(base * 0.25 / 10) },
+          { name: 'Расходные материалы',        qty: 20, unit: 'шт', price: Math.round(base * 0.20 / 20) },
+          { name: 'Монтаж и пусконаладка',      qty: 1,  unit: 'компл', price: Math.round(base * 0.10) },
+          { name: 'Доставка',                   qty: 1,  unit: 'услуга', price: Math.round(base * 0.05) },
+        ];
+        return prices.map((p, i) => ({
+          id: 'F-' + i,
+          name: p.name,
+          qty: p.qty,
+          unit: p.unit,
+          price: p.price,
+          sum: p.qty * p.price,
+        }));
+      }
+
+      const rows = dealProducts.length > 0
+        ? dealProducts.map(p => ({ id: p.id, name: p.name, qty: p.qty, unit: p.unit, price: p.price, sum: p.sum }))
+        : fabricateRows(offer.amount);
+
+      // ─── Totals math ───────────────────────────────────────────────────────
+      const subtotal = rows.reduce((acc, r) => acc + r.sum, 0);
+      let vatLine, grandTotal;
+      if (offer.vatIncluded) {
+        // VAT is already inside subtotal
+        const vatAmount = Math.round(subtotal * 20 / 120);
+        vatLine = `<div class="kp-total-row"><span>в т.ч. НДС 20%</span><span class="num">${CRM.formatMoney(vatAmount)}</span></div>`;
+        grandTotal = subtotal;
+      } else {
+        // VAT added on top
+        const vatAmount = Math.round(subtotal * 0.20);
+        vatLine = `<div class="kp-total-row"><span>НДС 20%</span><span class="num">${CRM.formatMoney(vatAmount)}</span></div>`;
+        grandTotal = subtotal + vatAmount;
+      }
+
+      // ─── Build table rows ──────────────────────────────────────────────────
+      const tableRows = rows.map((r, i) =>
+        `<tr>
+          <td>${i + 1}</td>
+          <td>${r.name}</td>
+          <td class="num-col">${r.qty}</td>
+          <td>${r.unit}</td>
+          <td class="num-col">${CRM.formatMoney(r.price)}</td>
+          <td class="num-col">${CRM.formatMoney(r.sum)}</td>
+        </tr>`
+      ).join('');
+
+      // ─── Render KП preview ─────────────────────────────────────────────────
+      document.getElementById('kp-preview').innerHTML =
+        `<div class="kp-page">
+          <div class="kp-header">
+            <div class="kp-logo-block">
+              ТД Северное Сияние
+              <div class="kp-logo-sub">Оптовые поставки · Москва</div>
+            </div>
+            <div class="kp-req">
+              ИНН 7728123456 · КПП 772801001<br>
+              ОГРН 1147746000000<br>
+              125009, г. Москва, ул. Тверская, 7<br>
+              +7 495 712-08-44 · orders@nordlight.ru
+            </div>
+          </div>
+
+          <h2 class="kp-title">Коммерческое предложение № ${offer.number}</h2>
+          <div class="kp-meta-row">
+            <span>Дата: ${formatDate(offer.createdAt)}</span>
+            <span>Действительно до: ${formatDate(offer.validUntil)}</span>
+            <span>Менеджер: ${manager.name}</span>
+          </div>
+
+          <div class="kp-client-block">
+            <div class="kp-client-title">Покупатель</div>
+            <div class="kp-client-name">${client.name}</div>
+            <div class="kp-client-req">ИНН ${client.inn || '—'} · ${client.legalAddress || '—'}</div>
+          </div>
+
+          <table class="kp-table">
+            <thead>
+              <tr>
+                <th style="width:36px;">№</th>
+                <th>Наименование</th>
+                <th style="width:70px;" class="num-col">Кол-во</th>
+                <th style="width:50px;">Ед.</th>
+                <th style="width:100px;" class="num-col">Цена</th>
+                <th style="width:110px;" class="num-col">Сумма</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+
+          <div class="kp-totals">
+            <div class="kp-total-row"><span>Подытог</span><span class="num">${CRM.formatMoney(subtotal)}</span></div>
+            ${vatLine}
+            <div class="kp-total-row is-grand"><span>Итого</span><span class="num">${CRM.formatMoney(grandTotal)}</span></div>
+          </div>
+
+          <div class="kp-footer">
+            <div>Условия оплаты: 30% предоплата, 70% по факту отгрузки.<br>Срок поставки: 7 рабочих дней.</div>
+            <div class="kp-sign">
+              <span class="kp-sign-label">Подпись и печать продавца</span>
+              <span class="kp-sign-line"></span>
+              <span class="kp-sign-label">${manager.name}</span>
+            </div>
+          </div>
+        </div>`;
+
+      // ─── Rail card 2: Status & Dates ───────────────────────────────────────
+      const now = Date.now();
+      const isOverdue = offer.validUntil && new Date(offer.validUntil).getTime() < now;
+      const validUntilCell = isOverdue
+        ? `${CRM.formatRelative(offer.validUntil)} ${CRM.renderBadge('danger', 'Просрочено')}`
+        : CRM.formatRelative(offer.validUntil);
+
+      document.getElementById('rail-meta').innerHTML =
+        `<div class="card-head" style="margin-bottom:var(--space-3);"><span class="card-head-title">Статус и сроки</span></div>` +
+        `<dl class="kv-list">` +
+          `<dt>Статус</dt><dd>${CRM.renderBadge(statusInfo.severity, statusInfo.label)}</dd>` +
+          `<dt>Создан</dt><dd>${CRM.formatRelative(offer.createdAt)}</dd>` +
+          `<dt>Отправлен</dt><dd>${offer.sentAt ? CRM.formatRelative(offer.sentAt) : '<span class="text-muted">—</span>'}</dd>` +
+          `<dt>Просмотрен</dt><dd>${offer.viewedAt ? CRM.formatRelative(offer.viewedAt) : '<span class="text-muted">—</span>'}</dd>` +
+          `<dt>Действителен до</dt><dd>${validUntilCell}</dd>` +
+          `<dt>Версия</dt><dd>v${offer.version}</dd>` +
+        `</dl>`;
+
+      // ─── Rail card 3: Versions ─────────────────────────────────────────────
+      const totalVersions = offer.version;
+
+      function syntheticDate(v) {
+        // Current version = createdAt; older versions subtract 3 days per step back
+        const stepsBack = totalVersions - v;
+        return new Date(new Date(offer.createdAt).getTime() - stepsBack * 3 * 86400000).toISOString();
+      }
+
+      const versionRows = [];
+      for (let v = totalVersions; v >= 1; v--) {
+        const isCurrent = v === totalVersions;
+        versionRows.push(
+          `<div class="version-row ${isCurrent ? 'is-current' : ''}">` +
+            `<div><strong>v${v}</strong> · ${formatDate(syntheticDate(v))}</div>` +
+            `<div class="text-muted" style="font-size:11px;">${isCurrent ? 'текущая' : 'предыдущая'}</div>` +
+          `</div>`
+        );
+      }
+
+      document.getElementById('rail-versions').innerHTML =
+        `<div class="card-head" style="margin-bottom:var(--space-3);">` +
+          `<span class="card-head-title">Версии</span>` +
+          `<span class="card-head-sub">${totalVersions} ${totalVersions === 1 ? 'версия' : totalVersions < 5 ? 'версии' : 'версий'}</span>` +
+        `</div>` +
+        versionRows.join('');
+
+      // ─── Lucide icons ──────────────────────────────────────────────────────
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

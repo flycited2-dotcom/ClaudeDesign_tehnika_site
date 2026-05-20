@@ -242,3 +242,28 @@
 .btn-future { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-strong); cursor: not-allowed; }
 .btn-future:hover { background: transparent; }
 .btn-future .stage-tag { font-size: 10px; padding: 1px 5px; background: var(--bg-sidebar); border-radius: var(--radius-pill); margin-left: auto; color: var(--text-muted); font-weight: 500; }
+
+/* ---------- kp preview ---------- */
+.kp-page { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-md); padding: 48px 56px; aspect-ratio: 210/297; max-width: 800px; margin: 0 auto; font-size: 13px; line-height: 1.5; color: var(--text-primary); }
+.kp-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: var(--space-5); border-bottom: 2px solid var(--text-primary); margin-bottom: var(--space-6); }
+.kp-logo-block { font-family: var(--font-serif); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+.kp-logo-block .kp-logo-sub { font-family: var(--font-sans); font-size: 11px; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.04em; text-transform: uppercase; margin-top: 4px; }
+.kp-req { font-size: 11px; color: var(--text-secondary); text-align: right; line-height: 1.45; max-width: 280px; }
+.kp-title { font-family: var(--font-serif); font-size: 20px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: var(--space-2); }
+.kp-meta-row { display: flex; gap: var(--space-6); font-size: 11px; color: var(--text-secondary); margin-bottom: var(--space-5); }
+.kp-client-block { background: var(--bg-sidebar); border-radius: var(--radius-sm); padding: var(--space-4); margin-bottom: var(--space-5); }
+.kp-client-block .kp-client-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px; }
+.kp-client-block .kp-client-name { font-weight: 500; color: var(--text-primary); }
+.kp-client-block .kp-client-req { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+.kp-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: var(--space-5); }
+.kp-table thead th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 8px 6px; border-bottom: 1px solid var(--border-strong); font-weight: 500; }
+.kp-table tbody td { padding: 10px 6px; border-bottom: 1px solid var(--border-subtle); vertical-align: top; }
+.kp-table tbody td.num-col { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
+.kp-totals { margin-left: auto; max-width: 320px; padding-top: var(--space-3); }
+.kp-totals .kp-total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; color: var(--text-secondary); }
+.kp-totals .kp-total-row.is-grand { padding-top: var(--space-3); border-top: 1px solid var(--text-primary); margin-top: 4px; font-size: 14px; color: var(--text-primary); font-weight: 600; }
+.kp-totals .kp-total-row .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.kp-footer { margin-top: var(--space-8); padding-top: var(--space-5); border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); }
+.kp-sign { text-align: left; }
+.kp-sign .kp-sign-line { display: block; border-bottom: 1px solid var(--text-primary); width: 180px; margin: var(--space-4) 0 var(--space-1); height: 1px; }
+.kp-sign .kp-sign-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
