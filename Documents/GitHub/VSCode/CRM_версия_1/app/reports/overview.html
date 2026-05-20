@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Обзор · Отчёты · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="reports" data-title="Обзор">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Обзор</h1>
+            <p class="text-secondary">6 ключевых метрик за 30 дней</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/reports/overview.html"  class="is-active" style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-sm);font-weight:500;text-decoration:none;">Обзор</a>
+              <a href="/app/reports/managers.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Менеджеры</a>
+              <a href="/app/reports/tasks.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Задачи</a>
+              <a href="/app/reports/leads.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Лиды</a>
+              <a href="/app/reports/deals.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Сделки</a>
+              <a href="/app/reports/offers.html"    style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">КП</a>
+              <a href="/app/reports/tenders.html"   style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Тендеры</a>
+              <a href="/app/reports/time.html"      style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Время</a>
+            </div>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="calendar"></i>Период: 30 дней<i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+        </header>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-6);">
+
+          <!-- KPI row -->
+          <section id="kpi-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);"></section>
+
+          <!-- Charts row 1 -->
+          <div class="report-grid report-grid--2">
+            <div class="chart-card">
+              <div class="chart-card-title">Сделки по этапам</div>
+              <div class="chart-card-sub">Активные сделки · без учёта «Проигран»</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-stages"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Динамика лидов</div>
+              <div class="chart-card-sub">Лидов в неделю · последние 6 недель</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-leads-dyn"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Charts row 2 -->
+          <div class="report-grid report-grid--2">
+            <div class="chart-card">
+              <div class="chart-card-title">КП по статусам</div>
+              <div class="chart-card-sub">Коммерческие предложения · все</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-offers"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Сотрудники: задачи закрыто</div>
+              <div class="chart-card-sub">Сумма выполненных задач за период</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-emp-tasks"></canvas></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/assets/js/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    // ── Chart.js global defaults ──────────────────────────────────────────────
+    Chart.defaults.color = '#6B6862';
+    Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.borderColor = '#EBE9E2';
+    Chart.defaults.plugins.legend.labels.boxWidth = 12;
+    Chart.defaults.plugins.legend.labels.boxHeight = 12;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1C1B17';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 6;
+    Chart.defaults.elements.bar.borderRadius = 4;
+    Chart.defaults.elements.line.tension = 0.35;
+    Chart.defaults.elements.line.borderWidth = 2;
+    Chart.defaults.elements.point.radius = 3;
+
+    const CHART_PALETTE      = ['#1F4A3A','#3A5C8C','#B5841E','#A8392E','#2F7D5C','#7A4B8A'];
+    const CHART_PALETTE_SOFT = ['#E8EFEB','#E6ECF4','#F7EFDC','#F4E4E1','#E6F1EB','#EDE3F0'];
+
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ── KPI ──────────────────────────────────────────────────────────────────
+      const wonDeals = MOCK.deals.filter(d => d.stage === 'won');
+      const wonSum   = wonDeals.reduce((s,d) => s + (d.amount||0), 0);
+      const wonAvg   = wonDeals.length ? Math.round(wonSum / wonDeals.length) : 0;
+      const convPct  = Math.round(MOCK.leads.filter(l => l.status === 'qualified').length / MOCK.leads.length * 100);
+
+      const kpiEl = document.getElementById('kpi-row');
+      [
+        { value: convPct + '%',          label: 'Конверсия лидов',         delta: '+3% vs прошлый', trend: 'up'   },
+        { value: CRM.formatMoney(wonSum), label: 'Сумма выигранных сделок', delta: 'за 30 дней',     trend: 'up'   },
+        { value: CRM.formatMoney(wonAvg), label: 'Средний чек',             delta: 'по выигранным',  trend: 'up'   },
+        { value: '12 дн',                 label: 'Срок цикла сделки',        delta: '−2 дн vs план',  trend: 'up'   },
+      ].forEach(k => kpiEl.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k)));
+
+      // ── Chart 1: Сделки по этапам (donut) ────────────────────────────────────
+      const stageLabels = { new: 'Новый', qualified: 'Квалифицирован', offer_sent: 'КП отправлено', negotiation: 'Переговоры', won: 'Выигран' };
+      const stageCounts = {};
+      MOCK.deals.filter(d => d.stage !== 'lost').forEach(d => {
+        stageCounts[d.stage] = (stageCounts[d.stage]||0) + 1;
+      });
+      const stageOrder = ['new','qualified','offer_sent','negotiation','won'];
+      new Chart(document.getElementById('chart-stages'), {
+        type: 'doughnut',
+        data: {
+          labels: stageOrder.map(s => stageLabels[s]||s),
+          datasets: [{ data: stageOrder.map(s => stageCounts[s]||0), backgroundColor: CHART_PALETTE, borderWidth: 2, borderColor: '#FAF9F5' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '62%' }
+      });
+
+      // ── Chart 2: Динамика лидов (line) ────────────────────────────────────────
+      const weeksLabels = ['−6 нед','−5 нед','−4 нед','−3 нед','−2 нед','−1 нед'];
+      new Chart(document.getElementById('chart-leads-dyn'), {
+        type: 'line',
+        data: {
+          labels: weeksLabels,
+          datasets: [{
+            label: 'Лиды / неделю', data: [12,8,15,11,14,18],
+            borderColor: CHART_PALETTE[0], backgroundColor: CHART_PALETTE_SOFT[0], fill: true
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: '#EBE9E2', drawBorder: false } }, x: { grid: { display: false } } }
+        }
+      });
+
+      // ── Chart 3: КП по статусам (horizontal bar) ──────────────────────────────
+      const offerStatusLabels = { draft: 'Черновик', sent: 'Отправлено', viewed: 'Просмотрено', accepted: 'Принято', rejected: 'Отклонено' };
+      const offerOrder = ['draft','sent','viewed','accepted','rejected'];
+      const offerCounts = {};
+      MOCK.offers.forEach(o => { offerCounts[o.status] = (offerCounts[o.status]||0) + 1; });
+      new Chart(document.getElementById('chart-offers'), {
+        type: 'bar',
+        data: {
+          labels: offerOrder.map(s => offerStatusLabels[s]),
+          datasets: [{ label: 'КП', data: offerOrder.map(s => offerCounts[s]||0), backgroundColor: CHART_PALETTE }]
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, grid: { color: '#EBE9E2' } }, y: { grid: { display: false } } }
+        }
+      });
+
+      // ── Chart 4: Сотрудники: задачи закрыто (horizontal bar) ──────────────────
+      const managerIds = ['USR-003','USR-004','USR-005','USR-006'];
+      const managerNames = { 'USR-003': 'Морозова', 'USR-004': 'Васильев', 'USR-005': 'Захарова', 'USR-006': 'Тихонов' };
+      const tasksDoneByUser = {};
+      MOCK.workSessions.forEach(s => {
+        if (managerIds.includes(s.userId)) {
+          tasksDoneByUser[s.userId] = (tasksDoneByUser[s.userId]||0) + s.tasksDone;
+        }
+      });
+      new Chart(document.getElementById('chart-emp-tasks'), {
+        type: 'bar',
+        data: {
+          labels: managerIds.map(id => managerNames[id]),
+          datasets: [{ label: 'Задач выполнено', data: managerIds.map(id => tasksDoneByUser[id]||0), backgroundColor: CHART_PALETTE }]
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, grid: { color: '#EBE9E2' } }, y: { grid: { display: false } } }
+        }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

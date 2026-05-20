@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Задачи · Отчёты · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="reports" data-title="Задачи">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Отчёт по задачам</h1>
+            <p class="text-secondary">Распределение и просрочки</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/reports/overview.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Обзор</a>
+              <a href="/app/reports/managers.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Менеджеры</a>
+              <a href="/app/reports/tasks.html"     class="is-active" style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-sm);font-weight:500;text-decoration:none;">Задачи</a>
+              <a href="/app/reports/leads.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Лиды</a>
+              <a href="/app/reports/deals.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Сделки</a>
+              <a href="/app/reports/offers.html"    style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">КП</a>
+              <a href="/app/reports/tenders.html"   style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Тендеры</a>
+              <a href="/app/reports/time.html"      style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Время</a>
+            </div>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="calendar"></i>Период: 30 дней<i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+        </header>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-6);">
+
+          <!-- KPI -->
+          <section id="kpi-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);"></section>
+
+          <!-- Row 1 -->
+          <div class="report-grid report-grid--2">
+            <div class="chart-card">
+              <div class="chart-card-title">Задачи по статусам</div>
+              <div class="chart-card-sub">5 статусов · все задачи</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-status"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Задачи по приоритетам</div>
+              <div class="chart-card-sub">Высокий / Нормальный / Низкий</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-priority"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Row 2 -->
+          <div class="report-grid report-grid--2">
+            <div class="chart-card">
+              <div class="chart-card-title">Просрочки по исполнителям</div>
+              <div class="chart-card-sub">Количество просроченных задач</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-overdue-users"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Загрузка по исполнителям</div>
+              <div class="chart-card-sub">Распределение задач по статусам</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-load"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Overdue table -->
+          <div class="chart-card">
+            <div class="chart-card-title">Просроченные задачи</div>
+            <div class="chart-card-sub">Последние 10 просроченных</div>
+            <div id="overdue-table"></div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/assets/js/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    Chart.defaults.color = '#6B6862';
+    Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.borderColor = '#EBE9E2';
+    Chart.defaults.plugins.legend.labels.boxWidth = 12;
+    Chart.defaults.plugins.legend.labels.boxHeight = 12;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1C1B17';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 6;
+    Chart.defaults.elements.bar.borderRadius = 4;
+    Chart.defaults.elements.line.tension = 0.35;
+    Chart.defaults.elements.line.borderWidth = 2;
+    Chart.defaults.elements.point.radius = 3;
+
+    const CHART_PALETTE      = ['#1F4A3A','#3A5C8C','#B5841E','#A8392E','#2F7D5C','#7A4B8A'];
+    const CHART_PALETTE_SOFT = ['#E8EFEB','#E6ECF4','#F7EFDC','#F4E4E1','#E6F1EB','#EDE3F0'];
+
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      const total   = MOCK.tasks.length;
+      const done    = MOCK.tasks.filter(t => t.status === 'done').length;
+      const overdue = MOCK.tasks.filter(t => t.status === 'overdue').length;
+      const ontimePct = overdue + done > 0 ? Math.round(done / (done + overdue) * 100) : 100;
+
+      const kpiEl = document.getElementById('kpi-row');
+      [
+        { value: total,        label: 'Всего задач',     delta: 'за период',           trend: 'up'   },
+        { value: done,         label: 'Выполнено',       delta: '+5 vs прошлый',        trend: 'up'   },
+        { value: overdue,      label: 'Просрочено',      delta: 'требуют внимания',     trend: 'down' },
+        { value: ontimePct+'%',label: '% on-time',       delta: 'выполнено вовремя',    trend: 'up'   },
+      ].forEach(k => kpiEl.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k)));
+
+      // Chart 1: статусы
+      const statusMap = { new:'Новые', in_work:'В работе', review:'На проверке', done:'Выполнено', overdue:'Просрочено' };
+      const statusColors = [CHART_PALETTE[1], CHART_PALETTE[0], CHART_PALETTE[2], CHART_PALETTE[4], CHART_PALETTE[3]];
+      const statusOrder = ['new','in_work','review','done','overdue'];
+      const statusCounts = {};
+      MOCK.tasks.forEach(t => { statusCounts[t.status] = (statusCounts[t.status]||0) + 1; });
+      new Chart(document.getElementById('chart-status'), {
+        type: 'doughnut',
+        data: {
+          labels: statusOrder.map(s => statusMap[s]),
+          datasets: [{ data: statusOrder.map(s => statusCounts[s]||0), backgroundColor: statusColors, borderWidth: 2, borderColor: '#FAF9F5' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '62%' }
+      });
+
+      // Chart 2: приоритеты
+      const prioMap = { high:'Высокий', normal:'Нормальный', low:'Низкий' };
+      const prioColors = [CHART_PALETTE[3], CHART_PALETTE[1], CHART_PALETTE[2]];
+      const prioOrder = ['high','normal','low'];
+      const prioCounts = {};
+      MOCK.tasks.forEach(t => { prioCounts[t.priority] = (prioCounts[t.priority]||0) + 1; });
+      new Chart(document.getElementById('chart-priority'), {
+        type: 'doughnut',
+        data: {
+          labels: prioOrder.map(p => prioMap[p]),
+          datasets: [{ data: prioOrder.map(p => prioCounts[p]||0), backgroundColor: prioColors, borderWidth: 2, borderColor: '#FAF9F5' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '62%' }
+      });
+
+      // Chart 3: просрочки по исполнителям
+      const allUserIds = ['USR-003','USR-004','USR-005','USR-006','USR-007','USR-008'];
+      const shortNames = { 'USR-003':'Морозова','USR-004':'Васильев','USR-005':'Захарова','USR-006':'Тихонов','USR-007':'Беляева','USR-008':'Громов' };
+      const overdueByUser = {};
+      MOCK.tasks.filter(t => t.status === 'overdue').forEach(t => {
+        overdueByUser[t.assignee] = (overdueByUser[t.assignee]||0) + 1;
+      });
+      const sortedUsers = allUserIds.slice().sort((a,b) => (overdueByUser[b]||0) - (overdueByUser[a]||0));
+      new Chart(document.getElementById('chart-overdue-users'), {
+        type: 'bar',
+        data: {
+          labels: sortedUsers.map(id => shortNames[id]||id),
+          datasets: [{ label: 'Просрочено', data: sortedUsers.map(id => overdueByUser[id]||0), backgroundColor: CHART_PALETTE[3] }]
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#EBE9E2' } }, y: { grid: { display: false } } }
+        }
+      });
+
+      // Chart 4: загрузка (stacked bar)
+      const loadNew  = {}, loadWork = {}, loadDone = {};
+      allUserIds.forEach(id => { loadNew[id]=0; loadWork[id]=0; loadDone[id]=0; });
+      MOCK.tasks.forEach(t => {
+        if (!allUserIds.includes(t.assignee)) return;
+        if (t.status === 'new') loadNew[t.assignee]++;
+        else if (t.status === 'in_work' || t.status === 'review') loadWork[t.assignee]++;
+        else if (t.status === 'done') loadDone[t.assignee]++;
+      });
+      new Chart(document.getElementById('chart-load'), {
+        type: 'bar',
+        data: {
+          labels: allUserIds.map(id => shortNames[id]||id),
+          datasets: [
+            { label: 'Новые',    data: allUserIds.map(id => loadNew[id]),  backgroundColor: CHART_PALETTE[1] },
+            { label: 'В работе', data: allUserIds.map(id => loadWork[id]), backgroundColor: CHART_PALETTE[0] },
+            { label: 'Выполнено',data: allUserIds.map(id => loadDone[id]), backgroundColor: CHART_PALETTE[4] },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, grid: { color: '#EBE9E2' } }
+          }
+        }
+      });
+
+      // Overdue table
+      const overdueTasks = MOCK.tasks.filter(t => t.status === 'overdue').slice(0,10);
+      CRM.renderTable('#overdue-table', {
+        columns: [
+          { key: 'id', label: 'ID', render: r => `<span class="id-chip">${r.id}</span>` },
+          { key: 'title', label: 'ЗАДАЧА', render: r => `<span style="font-size:13px;">${r.title}</span>` },
+          {
+            key: 'assignee', label: 'ИСПОЛНИТЕЛЬ',
+            render: r => {
+              const u = MOCK.users.find(u => u.id === r.assignee);
+              if (!u) return '<span class="text-muted">—</span>';
+              return `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(u.name,'sm')}<span style="font-size:13px;">${u.name.split(' ').slice(0,2).join(' ')}</span></span>`;
+            }
+          },
+          { key: 'deadline', label: 'ДЕДЛАЙН', render: r => `<span style="font-size:13px;color:var(--status-danger-fg);">${CRM.formatRelative(r.deadline)}</span>` },
+          { key: 'status', label: 'СТАТУС', render: r => CRM.renderBadge('danger', 'Просрочена') },
+        ],
+        rows: overdueTasks,
+        empty: { title: 'Нет просрочек', body: 'Все задачи выполнены в срок.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

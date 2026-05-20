@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Менеджеры · Отчёты · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="reports" data-title="Менеджеры">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Отчёт по менеджерам</h1>
+            <p class="text-secondary">Эффективность отдела</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/reports/overview.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Обзор</a>
+              <a href="/app/reports/managers.html"  class="is-active" style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-sm);font-weight:500;text-decoration:none;">Менеджеры</a>
+              <a href="/app/reports/tasks.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Задачи</a>
+              <a href="/app/reports/leads.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Лиды</a>
+              <a href="/app/reports/deals.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Сделки</a>
+              <a href="/app/reports/offers.html"    style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">КП</a>
+              <a href="/app/reports/tenders.html"   style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Тендеры</a>
+              <a href="/app/reports/time.html"      style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Время</a>
+            </div>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="calendar"></i>Период: 30 дней<i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+        </header>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-6);">
+
+          <!-- KPI -->
+          <section id="kpi-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);"></section>
+
+          <!-- Row 1 -->
+          <div class="report-grid report-grid--2">
+            <div class="chart-card">
+              <div class="chart-card-title">Выручка по менеджеру</div>
+              <div class="chart-card-sub">Сумма выигранных сделок, ₽</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-revenue"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Конверсия лидов → клиенты</div>
+              <div class="chart-card-sub">Получено vs квалифицировано по менеджеру</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-conv"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Row 2: line + top manager card -->
+          <div class="report-grid report-grid--3">
+            <div class="chart-card">
+              <div class="chart-card-title">Активность по неделям</div>
+              <div class="chart-card-sub">Задачи закрыто · 6 недель · по менеджеру</div>
+              <div class="chart-canvas-wrap--lg chart-canvas-wrap"><canvas id="chart-activity"></canvas></div>
+            </div>
+            <div class="chart-card" id="top-manager-card" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:var(--space-3);min-height:280px;">
+              <!-- filled by JS -->
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="chart-card">
+            <div class="chart-card-title">Детализация по менеджерам</div>
+            <div class="chart-card-sub">Итоговые показатели</div>
+            <div id="mgr-table"></div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/assets/js/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    Chart.defaults.color = '#6B6862';
+    Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.borderColor = '#EBE9E2';
+    Chart.defaults.plugins.legend.labels.boxWidth = 12;
+    Chart.defaults.plugins.legend.labels.boxHeight = 12;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1C1B17';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 6;
+    Chart.defaults.elements.bar.borderRadius = 4;
+    Chart.defaults.elements.line.tension = 0.35;
+    Chart.defaults.elements.line.borderWidth = 2;
+    Chart.defaults.elements.point.radius = 3;
+
+    const CHART_PALETTE      = ['#1F4A3A','#3A5C8C','#B5841E','#A8392E','#2F7D5C','#7A4B8A'];
+    const CHART_PALETTE_SOFT = ['#E8EFEB','#E6ECF4','#F7EFDC','#F4E4E1','#E6F1EB','#EDE3F0'];
+
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      const managerIds   = ['USR-003','USR-004','USR-005','USR-006'];
+      const shortNames   = { 'USR-003':'Морозова Е.','USR-004':'Васильев И.','USR-005':'Захарова О.','USR-006':'Тихонов А.' };
+      const lastNames    = { 'USR-003':'Морозова','USR-004':'Васильев','USR-005':'Захарова','USR-006':'Тихонов' };
+      // Synthetic revenue (seed with plausible values if real data is zero)
+      const revenueData  = [1850000, 940000, 1320000, 760000];
+      const closedDeals  = 8;
+      const totalRevenue = revenueData.reduce((a,b)=>a+b,0);
+      const offersTotal  = MOCK.offers.length;
+      const avgOffers    = Math.round(offersTotal / managerIds.length);
+
+      const kpiEl = document.getElementById('kpi-row');
+      [
+        { value: 4,                          label: 'Активных менеджеров',     delta: 'USR-003…006',   trend: 'up' },
+        { value: closedDeals,                label: 'Закрытых сделок',          delta: 'за 30 дней',    trend: 'up' },
+        { value: CRM.formatMoney(totalRevenue), label: 'Сумма закрытых сделок', delta: 'синтетика+реал', trend: 'up' },
+        { value: avgOffers,                  label: 'Среднее КП на менеджера', delta: 'КП / 4',         trend: 'up' },
+      ].forEach(k => kpiEl.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k)));
+
+      // Chart 1: Выручка по менеджеру
+      new Chart(document.getElementById('chart-revenue'), {
+        type: 'bar',
+        data: {
+          labels: managerIds.map(id => lastNames[id]),
+          datasets: [{ label: 'Выручка, ₽', data: revenueData, backgroundColor: CHART_PALETTE }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#EBE9E2' }, ticks: { callback: v => CRM.formatMoney(v) } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      // Chart 2: Конверсия лидов
+      const leadsReceived   = [7, 5, 4, 4];  // synthetic
+      const leadsConverted  = [4, 3, 3, 2];  // synthetic
+      new Chart(document.getElementById('chart-conv'), {
+        type: 'bar',
+        data: {
+          labels: managerIds.map(id => lastNames[id]),
+          datasets: [
+            { label: 'Получено лидов', data: leadsReceived,  backgroundColor: CHART_PALETTE[1] },
+            { label: 'Квалифицировано',data: leadsConverted, backgroundColor: CHART_PALETTE[0] },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true, grid: { color: '#EBE9E2' } }, x: { grid: { display: false } } }
+        }
+      });
+
+      // Chart 3: Активность по неделям (line, 4 series)
+      const weekLabels = ['−6 нед','−5 нед','−4 нед','−3 нед','−2 нед','−1 нед'];
+      const activityData = {
+        'USR-003': [8,12,7,10,14,11],
+        'USR-004': [5,8,9,6,11,8],
+        'USR-005': [6,9,11,8,7,12],
+        'USR-006': [4,6,8,5,9,7],
+      };
+      new Chart(document.getElementById('chart-activity'), {
+        type: 'line',
+        data: {
+          labels: weekLabels,
+          datasets: managerIds.map((id, i) => ({
+            label: lastNames[id],
+            data: activityData[id],
+            borderColor: CHART_PALETTE[i],
+            backgroundColor: CHART_PALETTE_SOFT[i],
+            fill: false,
+          }))
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true, grid: { color: '#EBE9E2' } }, x: { grid: { display: false } } }
+        }
+      });
+
+      // Top manager card
+      const topUser = MOCK.users.find(u => u.id === 'USR-003');
+      document.getElementById('top-manager-card').innerHTML = `
+        <div style="font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);font-weight:500;">Топ менеджер месяца</div>
+        <div style="margin:4px auto;">${CRM.renderAvatar(topUser.name, 'lg')}</div>
+        <div style="font-family:var(--font-serif);font-size:18px;font-weight:500;color:var(--text-primary);">${topUser.name.split(' ').slice(0,2).join(' ')}</div>
+        <div style="font-family:var(--font-serif);font-size:28px;font-weight:500;letter-spacing:-0.02em;color:var(--text-primary);">${CRM.formatMoney(1850000)}</div>
+        <div style="font-size:12px;color:var(--text-muted);">закрыто за 30 дней</div>
+        <div style="margin-top:8px;">${CRM.renderBadge('success','Лидер')}</div>
+      `;
+
+      // Managers table
+      const mgrRows = managerIds.map((id, i) => {
+        const u = MOCK.users.find(u => u.id === id);
+        const offersCount = MOCK.offers.filter(o => o.manager === id).length;
+        const activeDls   = MOCK.deals.filter(d => d.responsible === id && !['won','lost'].includes(d.stage)).length;
+        const wonDls      = MOCK.deals.filter(d => d.responsible === id && d.stage === 'won').length;
+        return {
+          id, user: u,
+          leadsReceived: leadsReceived[i],
+          leadsQual: leadsConverted[i],
+          activeDeals: activeDls,
+          wonDeals: wonDls,
+          wonSum: revenueData[i],
+          offersCount,
+        };
+      });
+
+      CRM.renderTable('#mgr-table', {
+        columns: [
+          { key: 'user', label: 'МЕНЕДЖЕР',
+            render: r => `<span style="display:inline-flex;align-items:center;gap:8px;">${CRM.renderAvatar(r.user.name,'sm')}<span style="font-size:13px;font-weight:500;">${r.user.name.split(' ').slice(0,2).join(' ')}</span></span>`
+          },
+          { key: 'leadsReceived', label: 'ЛИДЫ ПОЛУЧЕНО', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.leadsReceived}</span>` },
+          { key: 'leadsQual', label: 'КВАЛИФИЦ.', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.leadsQual}</span>` },
+          { key: 'activeDeals', label: 'СДЕЛКИ АКТИВ.', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.activeDeals}</span>` },
+          { key: 'wonDeals', label: 'СДЕЛКИ ЗАКРЫТО', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.wonDeals}</span>` },
+          { key: 'wonSum', label: 'СУММА ЗАКРЫТЫХ', numeric: true, render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.wonSum)}</span>` },
+          { key: 'offersCount', label: 'КП ОТПРАВЛЕНО', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.offersCount}</span>` },
+        ],
+        rows: mgrRows,
+        empty: { title: 'Нет данных', body: '' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

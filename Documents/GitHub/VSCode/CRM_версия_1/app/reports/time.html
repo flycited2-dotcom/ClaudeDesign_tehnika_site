@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Время · Отчёты · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="reports" data-title="Время">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Отчёт по рабочему времени</h1>
+            <p class="text-secondary">Учёт смен за 7 дней</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/reports/overview.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Обзор</a>
+              <a href="/app/reports/managers.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Менеджеры</a>
+              <a href="/app/reports/tasks.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Задачи</a>
+              <a href="/app/reports/leads.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Лиды</a>
+              <a href="/app/reports/deals.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Сделки</a>
+              <a href="/app/reports/offers.html"    style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">КП</a>
+              <a href="/app/reports/tenders.html"   style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Тендеры</a>
+              <a href="/app/reports/time.html"      class="is-active" style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-sm);font-weight:500;text-decoration:none;">Время</a>
+            </div>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="calendar"></i>Период: 7 дней<i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+        </header>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-6);">
+
+          <section id="kpi-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);"></section>
+
+          <div class="report-grid report-grid--2">
+            <div class="chart-card">
+              <div class="chart-card-title">Часы по сотрудникам</div>
+              <div class="chart-card-sub">Суммарные часы за 7 дней</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-hours"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Время входа в систему</div>
+              <div class="chart-card-sub">Час логина · последний рабочий день</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-login"></canvas></div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-title">Журнал смен</div>
+            <div class="chart-card-sub" id="sessions-sub">Сотрудники · последний рабочий день</div>
+            <div id="sessions-table"></div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/assets/js/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    Chart.defaults.color = '#6B6862';
+    Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.borderColor = '#EBE9E2';
+    Chart.defaults.plugins.legend.labels.boxWidth = 12;
+    Chart.defaults.plugins.legend.labels.boxHeight = 12;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1C1B17';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 6;
+    Chart.defaults.elements.bar.borderRadius = 4;
+    Chart.defaults.elements.line.tension = 0.35;
+    Chart.defaults.elements.line.borderWidth = 2;
+    Chart.defaults.elements.point.radius = 3;
+
+    const CHART_PALETTE      = ['#1F4A3A','#3A5C8C','#B5841E','#A8392E','#2F7D5C','#7A4B8A'];
+    const CHART_PALETTE_SOFT = ['#E8EFEB','#E6ECF4','#F7EFDC','#F4E4E1','#E6F1EB','#EDE3F0'];
+
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      function timeHHMM(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      }
+      function roleLabel(role) {
+        const m = { owner:'Собственник', head_of_sales:'РОП', manager:'Менеджер', tender_specialist:'Тендеры', purchaser:'Закупки' };
+        return m[role] || role;
+      }
+
+      // Last 7 calendar days of sessions
+      const allDates = [...new Set(MOCK.workSessions.map(s => s.date))].sort();
+      const last7Dates = allDates.slice(-7);
+      const refDate   = allDates[allDates.length - 1];
+
+      const userIds = ['USR-001','USR-002','USR-003','USR-004','USR-005','USR-006','USR-007','USR-008'];
+      const shortNames = {
+        'USR-001':'Царёва', 'USR-002':'Лапин', 'USR-003':'Морозова',
+        'USR-004':'Васильев', 'USR-005':'Захарова', 'USR-006':'Тихонов',
+        'USR-007':'Беляева', 'USR-008':'Громов'
+      };
+
+      // Total hours per user across last 7 days
+      const hoursPerUser = {};
+      userIds.forEach(id => { hoursPerUser[id] = 0; });
+      MOCK.workSessions.filter(s => last7Dates.includes(s.date)).forEach(s => {
+        if (userIds.includes(s.userId)) hoursPerUser[s.userId] += (s.hoursWorked||0);
+      });
+
+      const totalHours = Object.values(hoursPerUser).reduce((a,b)=>a+b,0);
+      const avgHours   = (totalHours / userIds.length).toFixed(1);
+
+      const kpiEl = document.getElementById('kpi-row');
+      [
+        { value: 8,         label: 'Сотрудники активны',      delta: 'за период',    trend: 'up' },
+        { value: Math.round(totalHours) + ' ч', label: 'Часов суммарно за неделю', delta: 'все 8 сотрудников', trend: 'up' },
+        { value: avgHours + ' ч', label: 'В среднем на сотрудника', delta: 'в день', trend: 'up' },
+        { value: '11:00–15:00', label: 'Самая активная смена', delta: 'пик активности', trend: 'up' },
+      ].forEach(k => kpiEl.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k)));
+
+      // Chart 1: часы по сотрудникам (horizontal bar)
+      new Chart(document.getElementById('chart-hours'), {
+        type: 'bar',
+        data: {
+          labels: userIds.map(id => shortNames[id]),
+          datasets: [{ label: 'Часов', data: userIds.map(id => +hoursPerUser[id].toFixed(1)), backgroundColor: CHART_PALETTE }]
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, grid: { color: '#EBE9E2' }, ticks: { callback: v => v + ' ч' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+
+      // Chart 2: время входа по пользователям (from refDate sessions)
+      const refSessions = MOCK.workSessions.filter(s => s.date === refDate);
+      const loginHours = userIds.map(id => {
+        const s = refSessions.find(s => s.userId === id);
+        return s ? new Date(s.loginAt).getHours() + (new Date(s.loginAt).getMinutes() / 60) : 0;
+      });
+      new Chart(document.getElementById('chart-login'), {
+        type: 'bar',
+        data: {
+          labels: userIds.map(id => shortNames[id]),
+          datasets: [{ label: 'Час логина', data: loginHours, backgroundColor: CHART_PALETTE[1] }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: false, min: 7, max: 11, grid: { color: '#EBE9E2' },
+              ticks: { callback: v => v + ':00' }
+            },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      // Sessions table
+      const sessionRows = refSessions.map(s => {
+        const user = MOCK.users.find(u => u.id === s.userId) || {};
+        return { ...s, name: user.name || s.userId, role: user.role || '' };
+      }).sort((a,b) => {
+        const order = { owner:0, head_of_sales:1 };
+        return (order[a.role]??99) - (order[b.role]??99);
+      });
+
+      document.getElementById('sessions-sub').textContent = `Сотрудники · ${refDate}`;
+
+      CRM.renderTable('#sessions-table', {
+        columns: [
+          {
+            key: 'name', label: 'СОТРУДНИК',
+            render: r => `<span style="display:inline-flex;align-items:center;gap:8px;">${CRM.renderAvatar(r.name,'sm')}<span style="font-size:13px;font-weight:500;">${r.name.split(' ').slice(0,2).join(' ')}</span></span>`
+          },
+          { key: 'role', label: 'РОЛЬ', render: r => `<span style="font-size:13px;color:var(--text-secondary);">${roleLabel(r.role)}</span>` },
+          { key: 'loginAt',   label: 'ВХОД',    render: r => r.loginAt  ? `<span class="num" style="font-size:13px;">${timeHHMM(r.loginAt)}</span>` : '<span class="text-muted">—</span>' },
+          { key: 'logoutAt',  label: 'ВЫХОД',   render: r => r.logoutAt ? `<span class="num" style="font-size:13px;">${timeHHMM(r.logoutAt)}</span>` : '<span style="font-style:italic;color:var(--status-success-fg);font-size:13px;">на смене</span>' },
+          { key: 'hoursWorked', label: 'ЧАСОВ', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.hoursWorked}</span>` },
+          { key: 'tasksDone',   label: 'ЗАДАЧ',  numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.tasksDone}</span>` },
+          { key: 'tasksOverdue',label: 'ПРОСРОЧЕНО', numeric: true,
+            render: r => r.tasksOverdue > 0 ? `<span class="badge badge--danger badge--flat">${r.tasksOverdue}</span>` : `<span class="num" style="font-size:13px;color:var(--text-muted);">0</span>` },
+          { key: 'offersSent',  label: 'КП', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.offersSent}</span>` },
+          { key: 'activeDeals', label: 'СДЕЛКИ', numeric: true, render: r => `<span class="num" style="font-size:13px;">${r.activeDeals}</span>` },
+        ],
+        rows: sessionRows,
+        empty: { title: 'Нет данных', body: 'Данные по смене недоступны.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

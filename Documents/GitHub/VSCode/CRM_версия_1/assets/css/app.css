@@ -268,6 +268,19 @@
 .kp-sign .kp-sign-line { display: block; border-bottom: 1px solid var(--text-primary); width: 180px; margin: var(--space-4) 0 var(--space-1); height: 1px; }
 .kp-sign .kp-sign-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
+/* ---------- report grid ---------- */
+.report-grid { display: grid; gap: var(--space-6); }
+.report-grid--2 { grid-template-columns: 1fr 1fr; }
+.report-grid--3 { grid-template-columns: 2fr 1fr; }
+.report-grid--4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) { .report-grid--2, .report-grid--3, .report-grid--4 { grid-template-columns: 1fr; } }
+.chart-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: var(--space-5); }
+.chart-card-title { font-family: var(--font-serif); font-size: 18px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: var(--space-1); color: var(--text-primary); }
+.chart-card-sub { font-size: 12px; color: var(--text-muted); margin-bottom: var(--space-4); }
+.chart-canvas-wrap { position: relative; height: 240px; }
+.chart-canvas-wrap--sm { height: 160px; }
+.chart-canvas-wrap--lg { height: 320px; }
+
 /* ---------- countdown ---------- */
 .countdown { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-surface); margin-bottom: var(--space-6); }
 .countdown.is-urgent { border-color: color-mix(in srgb, var(--status-danger-fg) 35%, var(--border-subtle)); background: var(--status-danger-bg); }

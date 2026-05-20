@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Тендеры · Отчёты · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="reports" data-title="Тендеры">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Отчёт по тендерам</h1>
+            <p class="text-secondary">Активность и результаты</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/reports/overview.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Обзор</a>
+              <a href="/app/reports/managers.html"  style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Менеджеры</a>
+              <a href="/app/reports/tasks.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Задачи</a>
+              <a href="/app/reports/leads.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Лиды</a>
+              <a href="/app/reports/deals.html"     style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Сделки</a>
+              <a href="/app/reports/offers.html"    style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">КП</a>
+              <a href="/app/reports/tenders.html"   class="is-active" style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);background:var(--bg-surface);color:var(--text-primary);box-shadow:var(--shadow-sm);font-weight:500;text-decoration:none;">Тендеры</a>
+              <a href="/app/reports/time.html"      style="padding:6px 14px;font-size:13px;border-radius:var(--radius-pill);color:var(--text-secondary);text-decoration:none;">Время</a>
+            </div>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="calendar"></i>Период: 30 дней<i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+        </header>
+
+        <div style="display:flex;flex-direction:column;gap:var(--space-6);">
+
+          <section id="kpi-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--space-4);"></section>
+
+          <div class="report-grid report-grid--2">
+            <div class="chart-card">
+              <div class="chart-card-title">Статусы тендеров</div>
+              <div class="chart-card-sub">Все тендеры по стадиям</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-status"></canvas></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Тендеры по площадкам</div>
+              <div class="chart-card-sub">Количество тендеров по площадке</div>
+              <div class="chart-canvas-wrap"><canvas id="chart-platform"></canvas></div>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-title">Все тендеры</div>
+            <div class="chart-card-sub">Сводная таблица · 7 тендеров</div>
+            <div id="tenders-table"></div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/assets/js/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    Chart.defaults.color = '#6B6862';
+    Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.borderColor = '#EBE9E2';
+    Chart.defaults.plugins.legend.labels.boxWidth = 12;
+    Chart.defaults.plugins.legend.labels.boxHeight = 12;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1C1B17';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 6;
+    Chart.defaults.elements.bar.borderRadius = 4;
+    Chart.defaults.elements.line.tension = 0.35;
+    Chart.defaults.elements.line.borderWidth = 2;
+    Chart.defaults.elements.point.radius = 3;
+
+    const CHART_PALETTE      = ['#1F4A3A','#3A5C8C','#B5841E','#A8392E','#2F7D5C','#7A4B8A'];
+    const CHART_PALETTE_SOFT = ['#E8EFEB','#E6ECF4','#F7EFDC','#F4E4E1','#E6F1EB','#EDE3F0'];
+
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      const inWork  = MOCK.tenders.filter(t => !['won','lost'].includes(t.status));
+      const won     = MOCK.tenders.filter(t => t.status === 'won');
+      const lost    = MOCK.tenders.filter(t => t.status === 'lost');
+      const total   = won.length + lost.length;
+      const winRate = total > 0 ? Math.round(won.length / total * 100) : 0;
+
+      const kpiEl = document.getElementById('kpi-row');
+      [
+        { value: inWork.length, label: 'Тендеров в работе', delta: 'активные',     trend: 'up'   },
+        { value: won.length,    label: 'Выиграно',           delta: 'за период',    trend: 'up'   },
+        { value: lost.length,   label: 'Проиграно',          delta: 'за период',    trend: 'down' },
+        { value: winRate + '%', label: 'Win-rate',           delta: 'из завершённых',trend: 'up'  },
+      ].forEach(k => kpiEl.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k)));
+
+      // Chart 1: статусы (donut)
+      const statusMap   = { preparing:'Подготовка', submitted:'Подана заявка', searching:'Поиск', won:'Выигран', lost:'Проигран' };
+      const statusOrder = ['preparing','submitted','searching','won','lost'];
+      const statusColors = [CHART_PALETTE[0], CHART_PALETTE[1], CHART_PALETTE[2], CHART_PALETTE[4], CHART_PALETTE[3]];
+      const statusCounts = {};
+      MOCK.tenders.forEach(t => { statusCounts[t.status] = (statusCounts[t.status]||0) + 1; });
+      new Chart(document.getElementById('chart-status'), {
+        type: 'doughnut',
+        data: {
+          labels: statusOrder.map(s => statusMap[s]||s),
+          datasets: [{ data: statusOrder.map(s => statusCounts[s]||0), backgroundColor: statusColors, borderWidth: 2, borderColor: '#FAF9F5' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '62%' }
+      });
+
+      // Chart 2: площадки
+      const platformCounts = {};
+      MOCK.tenders.forEach(t => { platformCounts[t.platform] = (platformCounts[t.platform]||0) + 1; });
+      const platforms = Object.keys(platformCounts);
+      new Chart(document.getElementById('chart-platform'), {
+        type: 'bar',
+        data: {
+          labels: platforms,
+          datasets: [{ label: 'Тендеров', data: platforms.map(p => platformCounts[p]), backgroundColor: CHART_PALETTE }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#EBE9E2' } }, x: { grid: { display: false } } }
+        }
+      });
+
+      // Table
+      const statusBadge = {
+        preparing: ['warning','Подготовка'],
+        submitted: ['info',   'Подана заявка'],
+        searching: ['neutral','Поиск'],
+        won:       ['success','Выигран'],
+        lost:      ['danger', 'Проигран'],
+      };
+      CRM.renderTable('#tenders-table', {
+        columns: [
+          { key: 'id', label: 'ID', render: r => `<span class="id-chip">${r.id}</span>` },
+          { key: 'title', label: 'НАЗВАНИЕ', render: r => `<span style="font-size:13px;font-weight:500;">${r.title}</span>` },
+          { key: 'platform', label: 'ПЛОЩАДКА', render: r => `<span style="font-size:13px;color:var(--text-secondary);">${r.platform}</span>` },
+          { key: 'customer', label: 'ЗАКАЗЧИК', render: r => `<span style="font-size:13px;">${r.customer}</span>` },
+          {
+            key: 'manager', label: 'МЕНЕДЖЕР',
+            render: r => {
+              const u = MOCK.users.find(u => u.id === r.manager);
+              if (!u) return '—';
+              return `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(u.name,'sm')}<span style="font-size:13px;">${u.name.split(' ')[0]}</span></span>`;
+            }
+          },
+          { key: 'nmcAmount', label: 'НМЦ', numeric: true, render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.nmcAmount)}</span>` },
+          { key: 'deadlineSubmit', label: 'ДЕДЛАЙН', render: r => `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.deadlineSubmit)}</span>` },
+          { key: 'status', label: 'СТАТУС', render: r => { const [v,l] = statusBadge[r.status]||['neutral',r.status]; return CRM.renderBadge(v,l); } },
+        ],
+        rows: MOCK.tenders,
+        empty: { title: 'Нет тендеров', body: '' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
