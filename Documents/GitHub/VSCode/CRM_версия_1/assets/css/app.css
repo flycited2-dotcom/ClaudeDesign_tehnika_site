@@ -79,8 +79,9 @@
 
 /* ---------- segmented control ---------- */
 .segmented { display: inline-flex; padding: 3px; background: var(--bg-sidebar); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); }
-.segmented button { border: 0; background: transparent; padding: 6px 14px; font-size: 13px; color: var(--text-secondary); border-radius: var(--radius-pill); transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring); }
-.segmented button.is-active { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-sm); font-weight: 500; }
+.segmented button, .segmented a { display: inline-flex; align-items: center; border: 0; background: transparent; padding: 6px 14px; font-size: 13px; color: var(--text-secondary); border-radius: var(--radius-pill); text-decoration: none; transition: background var(--dur-fast) var(--ease-spring), color var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring); cursor: pointer; }
+.segmented button:hover, .segmented a:hover { color: var(--text-primary); }
+.segmented button.is-active, .segmented a.is-active { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-sm); font-weight: 500; }
 
 /* ---------- popover ---------- */
 .popover { position: absolute; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); min-width: 240px; padding: 6px; z-index: 50; }
