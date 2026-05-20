@@ -1,0 +1,48 @@
+<div class="modal-shell modal-shell--wide">
+  <div class="modal-head">
+    <div class="modal-head-title">Новое КП</div>
+    <button class="modal-close" data-modal-close><i data-lucide="x"></i></button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">Клиент</label>
+        <div class="select-stub"><span>Выбрать клиента</span><i data-lucide="chevron-down"></i></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Сделка</label>
+        <div class="select-stub"><span>Привязать сделку</span><i data-lucide="chevron-down"></i></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Шаблон</label>
+        <div class="select-stub"><span>Стандартный (Опт)</span><i data-lucide="chevron-down"></i></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">НДС</label>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm btn-primary">Включён</button>
+          <button class="btn btn-sm btn-secondary">Без НДС</button>
+        </div>
+      </div>
+      <div class="form-row full">
+        <label class="form-label">Товары</label>
+        <div style="border: 1px dashed var(--border-strong); border-radius: var(--radius-md); padding: var(--space-4); text-align: center; color: var(--text-muted); font-size: 13px;">
+          Товары будут добавлены в редакторе КП
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Действует до</label>
+        <input class="input" type="date">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Менеджер-отправитель</label>
+        <div class="select-stub"><span>Текущий пользователь</span><i data-lucide="chevron-down"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" data-modal-close>Отмена</button>
+    <button class="btn btn-secondary" data-modal-close>Сохранить как черновик</button>
+    <button class="btn btn-primary" data-modal-close>Создать и открыть</button>
+  </div>
+</div>

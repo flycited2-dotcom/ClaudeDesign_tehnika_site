@@ -1,0 +1,42 @@
+<div class="modal-shell">
+  <div class="modal-head">
+    <div class="modal-head-title">Новая задача</div>
+    <button class="modal-close" data-modal-close><i data-lucide="x"></i></button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row full">
+        <label class="form-label">Что нужно сделать</label>
+        <input class="input" placeholder="Например: согласовать договор">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Исполнитель</label>
+        <div class="select-stub"><span>Назначить</span><i data-lucide="chevron-down"></i></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Дедлайн</label>
+        <input class="input" type="datetime-local">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Приоритет</label>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-sm" style="background: var(--status-info-bg); color: var(--status-info-fg);">Низкий</button>
+          <button class="btn btn-sm btn-secondary">Обычный</button>
+          <button class="btn btn-sm" style="background: var(--status-danger-bg); color: var(--status-danger-fg);">Высокий</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Связь</label>
+        <div class="select-stub"><span>Без связи</span><i data-lucide="chevron-down"></i></div>
+      </div>
+      <div class="form-row full">
+        <label class="form-label">Описание</label>
+        <input class="input" placeholder="Детали и контекст">
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" data-modal-close>Отмена</button>
+    <button class="btn btn-primary" data-modal-close>Создать задачу</button>
+  </div>
+</div>

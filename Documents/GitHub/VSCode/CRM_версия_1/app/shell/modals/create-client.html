@@ -1,0 +1,50 @@
+<div class="modal-shell">
+  <div class="modal-head">
+    <div class="modal-head-title">Новый клиент</div>
+    <button class="modal-close" data-modal-close><i data-lucide="x"></i></button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-row full">
+        <label class="form-label">Тип</label>
+        <div style="display:flex; gap: var(--space-2);">
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius: var(--radius-pill); background: var(--accent-soft); color: var(--accent-hover); font-size:13px; font-weight:500; cursor:pointer;"><input type="radio" name="type" checked style="accent-color: var(--accent);">Юр. лицо</label>
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius: var(--radius-pill); background: var(--bg-sidebar); font-size:13px; cursor:pointer;"><input type="radio" name="type">Физ. лицо</label>
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius: var(--radius-pill); background: var(--bg-sidebar); font-size:13px; cursor:pointer;"><input type="radio" name="type">Гос.</label>
+        </div>
+      </div>
+      <div class="form-row full">
+        <label class="form-label">Название организации</label>
+        <input class="input" placeholder="ООО «...»">
+      </div>
+      <div class="form-row">
+        <label class="form-label">ИНН</label>
+        <input class="input" placeholder="10 или 12 цифр">
+      </div>
+      <div class="form-row">
+        <label class="form-label">КПП</label>
+        <input class="input" placeholder="9 цифр">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Телефон</label>
+        <input class="input" placeholder="+7 ...">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Email</label>
+        <input class="input" type="email" placeholder="orders@...">
+      </div>
+      <div class="form-row full">
+        <label class="form-label">Источник</label>
+        <div class="select-stub"><span>Выберите источник</span><i data-lucide="chevron-down"></i></div>
+      </div>
+      <div class="form-row full">
+        <label class="form-label">Ответственный</label>
+        <div class="select-stub"><span>Назначить менеджера</span><i data-lucide="chevron-down"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-ghost" data-modal-close>Отмена</button>
+    <button class="btn btn-primary" data-modal-close>Создать</button>
+  </div>
+</div>
