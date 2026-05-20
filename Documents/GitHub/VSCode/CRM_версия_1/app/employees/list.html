@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сотрудники · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="employees" data-title="Сотрудники">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Сотрудники</h1>
+            <p class="text-secondary" id="employees-subtitle">8 сотрудников</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <div class="segmented">
+              <button class="is-active">Все</button>
+              <button>Менеджеры</button>
+              <button>Руководители</button>
+              <button>Тендеры</button>
+            </div>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="filter"></i>Роль<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm">
+              <i data-lucide="filter"></i>Статус<i data-lucide="chevron-down"></i>
+            </button>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="user-plus"></i>Сотрудник
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── Helpers ──────────────────────────────────────────────────────────────
+      function timeHHMM(iso) {
+        if (!iso) return null;
+        const d = new Date(iso);
+        return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      }
+
+      function roleLabel(role) {
+        const map = {
+          owner:             'Собственник',
+          head_of_sales:     'РОП',
+          manager:           'Менеджер',
+          tender_specialist: 'Тендерный спец.',
+          purchaser:         'Закупщик',
+        };
+        return map[role] || role;
+      }
+
+      // ─── Reference date (today or most recent session date) ───────────────────
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const allSessionDates = [...new Set(MOCK.workSessions.map(s => s.date))].sort();
+      const refDate = allSessionDates.includes(todayStr)
+        ? todayStr
+        : allSessionDates[allSessionDates.length - 1];
+
+      // ─── Build rows ───────────────────────────────────────────────────────────
+      const rows = MOCK.users.map(user => {
+        const session = MOCK.workSessions.find(s => s.userId === user.id && s.date === refDate);
+        return {
+          id:           user.id,
+          name:         user.name,
+          email:        user.email,
+          role:         user.role,
+          loginAt:      session ? session.loginAt : null,
+          logoutAt:     session ? session.logoutAt : null,
+          hoursWorked:  session ? session.hoursWorked : 0,
+          tasksDone:    session ? session.tasksDone : 0,
+          tasksOverdue: session ? session.tasksOverdue : 0,
+          offersSent:   session ? session.offersSent : 0,
+          activeDeals:  session ? session.activeDeals : 0,
+        };
+      }).sort((a, b) => {
+        const order = { owner: 0, head_of_sales: 1 };
+        return (order[a.role] ?? 99) - (order[b.role] ?? 99);
+      });
+
+      document.getElementById('employees-subtitle').textContent = rows.length + ' сотрудников';
+
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'name', label: 'СОТРУДНИК',
+            render: r => `<a href="/app/employees/card.html?id=${r.id}" style="display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:inherit;">
+              ${CRM.renderAvatar(r.name, 'sm')}
+              <span>
+                <strong style="font-size:13px;">${r.name}</strong>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">${r.email}</div>
+              </span>
+            </a>`
+          },
+          {
+            key: 'role', label: 'РОЛЬ',
+            render: r => `<span style="font-size:13px;color:var(--text-secondary);">${roleLabel(r.role)}</span>`
+          },
+          {
+            key: 'loginAt', label: 'СЕГОДНЯ ВХОД',
+            render: r => r.loginAt
+              ? `<span class="num" style="font-size:13px;">${timeHHMM(r.loginAt)}</span>`
+              : '<span class="text-muted">—</span>'
+          },
+          {
+            key: 'logoutAt', label: 'СЕГОДНЯ ВЫХОД',
+            render: r => r.logoutAt
+              ? `<span class="num" style="font-size:13px;">${timeHHMM(r.logoutAt)}</span>`
+              : (r.loginAt ? '<span style="font-style:italic;font-size:13px;color:var(--status-success-fg);">на смене</span>' : '<span class="text-muted">—</span>')
+          },
+          {
+            key: 'hoursWorked', label: 'ЧАСОВ', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.hoursWorked}</span>`
+          },
+          {
+            key: 'tasksDone', label: 'ВЫПОЛНЕНО', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.tasksDone}</span>`
+          },
+          {
+            key: 'tasksOverdue', label: 'ПРОСРОЧЕНО', numeric: true,
+            render: r => r.tasksOverdue > 0
+              ? `<span class="badge badge--danger badge--flat">${r.tasksOverdue}</span>`
+              : `<span class="num" style="font-size:13px;color:var(--text-muted);">0</span>`
+          },
+          {
+            key: 'offersSent', label: 'КП', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.offersSent}</span>`
+          },
+          {
+            key: 'activeDeals', label: 'СДЕЛКИ', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.activeDeals}</span>`
+          },
+          {
+            key: '_actions', label: '',
+            render: r => `<span class="row-actions">
+              <a href="/app/employees/card.html?id=${r.id}" class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></a>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="pencil"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Ещё"><i data-lucide="more-vertical"></i></button>
+            </span>`
+          },
+        ],
+        rows,
+        empty: { title: 'Нет данных', body: 'Сотрудники не найдены.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

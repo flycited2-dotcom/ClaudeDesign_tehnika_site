@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Интеграции · Настройки · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .segmented a { display:inline-flex; align-items:center; border:0; background:transparent; padding:6px 14px; font-size:13px; color:var(--text-secondary); border-radius:var(--radius-pill); text-decoration:none; font-family:var(--font-sans,inherit); }
+    .segmented a.is-active { background:var(--bg-surface); color:var(--text-primary); box-shadow:var(--shadow-sm); font-weight:500; }
+    .segmented a:hover:not(.is-active) { color:var(--text-primary); background:var(--bg-hover); }
+  </style>
+</head>
+<body data-route="settings" data-title="Настройки">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Интеграции</h1>
+            <p class="text-secondary">Внешние сервисы и каналы</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/settings/funnels.html">Воронки</a>
+              <a href="/app/settings/offer-templates.html">Шаблоны КП</a>
+              <a href="/app/settings/lead-sources.html">Источники лидов</a>
+              <a href="/app/settings/site-tokens.html">Сайты и токены</a>
+              <a href="/app/settings/integrations.html" class="is-active">Интеграции</a>
+            </div>
+          </div>
+        </header>
+
+        <div id="integrations-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      const _now = Date.now();
+      function hr(h) { return new Date(_now + h * 3600000).toISOString(); }
+
+      const integrations = [
+        {
+          name:         'Telegram',
+          icon:         'send',
+          iconColor:    '#3A5C8C',
+          subtitle:     'Бот для уведомлений',
+          connected:    true,
+          account:      '@nordlight_crm_bot',
+          lastActivity: hr(-1),
+          description:  'Уведомления о новых лидах, задачах и просрочках. Сотрудники подписываются через QR-код.',
+        },
+        {
+          name:         'Email (SMTP)',
+          icon:         'mail',
+          iconColor:    '#1F4A3A',
+          subtitle:     'Отправка КП и уведомлений',
+          connected:    true,
+          account:      'noreply@nordlight.ru',
+          lastActivity: hr(-4),
+          description:  'Транзакционные письма: КП, напоминания клиентам, восстановление пароля.',
+        },
+        {
+          name:         '1С: Управление торговлей',
+          icon:         'database',
+          iconColor:    '#B5841E',
+          subtitle:     'Учётная система',
+          connected:    false,
+          description:  'Синхронизация клиентов, заказов, резервов, счетов и оплат. Подключение запланировано на Этап 2.',
+        },
+        {
+          name:         'MAX Мессенджер',
+          icon:         'message-circle',
+          iconColor:    '#7A4B8A',
+          subtitle:     'Альтернативный канал',
+          connected:    false,
+          description:  'Российский мессенджер. Бот для уведомлений, аналогично Telegram. Подключение в Этап 2.',
+        },
+        {
+          name:         'Webhook (входящий)',
+          icon:         'webhook',
+          iconColor:    '#345E5A',
+          subtitle:     'Приём заявок с сайтов',
+          connected:    true,
+          account:      '4 активных сайта',
+          lastActivity: hr(-1),
+          description:  'Принимает POST-запросы с подключённых сайтов и автоматически создаёт лиды.',
+        },
+      ];
+
+      const grid = document.getElementById('integrations-grid');
+
+      integrations.forEach(intg => {
+        const card = document.createElement('article');
+        card.className = 'card';
+
+        const kvHtml = intg.connected
+          ? `<dl class="kv-list" style="grid-template-columns:130px 1fr;margin-bottom:var(--space-3);">` +
+              `<dt>Аккаунт</dt><dd>${intg.account}</dd>` +
+              `<dt>Последняя активность</dt><dd>${CRM.formatRelative(intg.lastActivity)}</dd>` +
+            `</dl>`
+          : '';
+
+        const actionsHtml = intg.connected
+          ? `<button class="btn btn-secondary btn-sm">Настроить</button>` +
+            `<button class="btn btn-ghost btn-sm" style="margin-left:auto;color:var(--status-danger-fg);">Отключить</button>`
+          : `<button class="btn btn-primary btn-sm" style="width:100%;">Подключить</button>`;
+
+        card.innerHTML =
+          `<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--space-3);">` +
+            `<div style="display:flex;align-items:center;gap:var(--space-3);">` +
+              `<div style="width:48px;height:48px;border-radius:var(--radius-md);background:var(--bg-sidebar);display:flex;align-items:center;justify-content:center;flex-shrink:0;">` +
+                `<i data-lucide="${intg.icon}" style="width:22px;height:22px;color:${intg.iconColor};"></i>` +
+              `</div>` +
+              `<div>` +
+                `<div style="font-family:var(--font-serif);font-size:18px;font-weight:500;">${intg.name}</div>` +
+                `<div class="text-muted" style="font-size:12px;">${intg.subtitle}</div>` +
+              `</div>` +
+            `</div>` +
+            CRM.renderBadge(intg.connected ? 'success' : 'neutral', intg.connected ? 'Подключено' : 'Не подключено') +
+          `</div>` +
+          `<p style="font-size:13px;color:var(--text-secondary);margin-bottom:var(--space-4);line-height:1.5;">${intg.description}</p>` +
+          kvHtml +
+          `<div style="display:flex;gap:8px;">${actionsHtml}</div>`;
+
+        grid.appendChild(card);
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

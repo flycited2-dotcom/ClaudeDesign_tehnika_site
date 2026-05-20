@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Шаблоны КП · Настройки · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .segmented a { display:inline-flex; align-items:center; border:0; background:transparent; padding:6px 14px; font-size:13px; color:var(--text-secondary); border-radius:var(--radius-pill); text-decoration:none; font-family:var(--font-sans,inherit); }
+    .segmented a.is-active { background:var(--bg-surface); color:var(--text-primary); box-shadow:var(--shadow-sm); font-weight:500; }
+    .segmented a:hover:not(.is-active) { color:var(--text-primary); background:var(--bg-hover); }
+  </style>
+</head>
+<body data-route="settings" data-title="Настройки">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Шаблоны КП</h1>
+            <p class="text-secondary">Стандартные шаблоны для генерации</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/settings/funnels.html">Воронки</a>
+              <a href="/app/settings/offer-templates.html" class="is-active">Шаблоны КП</a>
+              <a href="/app/settings/lead-sources.html">Источники лидов</a>
+              <a href="/app/settings/site-tokens.html">Сайты и токены</a>
+              <a href="/app/settings/integrations.html">Интеграции</a>
+            </div>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Шаблон
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      const _now = Date.now();
+      function day(d) { return new Date(_now + d * 86400000).toISOString(); }
+
+      const templates = [
+        { id: 'TPL-001', name: 'Стандартный (Опт)',     company: 'ТД Северное Сияние',    vatIncluded: true,  useCount: 42, updatedAt: day(-3)  },
+        { id: 'TPL-002', name: 'Стандартный (Розница)', company: 'ТД Северное Сияние',    vatIncluded: true,  useCount: 18, updatedAt: day(-10) },
+        { id: 'TPL-003', name: 'Тендер (без НДС)',      company: 'ООО Партнёр-Северное',   vatIncluded: false, useCount: 7,  updatedAt: day(-22) },
+        { id: 'TPL-004', name: 'Госконтракт',           company: 'ТД Северное Сияние',    vatIncluded: true,  useCount: 4,  updatedAt: day(-65) },
+        { id: 'TPL-005', name: 'Премиум (мебель)',      company: 'ТД Северное Сияние',    vatIncluded: true,  useCount: 11, updatedAt: day(-14) },
+      ];
+
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'name', label: 'НАЗВАНИЕ',
+            render: r => `<span style="font-size:13px;font-weight:500;">${r.name}</span>`
+          },
+          {
+            key: 'company', label: 'КОМПАНИЯ-ОТПРАВИТЕЛЬ',
+            render: r => `<span style="font-size:13px;color:var(--text-secondary);">${r.company}</span>`
+          },
+          {
+            key: 'vatIncluded', label: 'НДС',
+            render: r => r.vatIncluded
+              ? CRM.renderBadge('info', 'Включён НДС')
+              : CRM.renderBadge('neutral', 'Без НДС')
+          },
+          {
+            key: 'useCount', label: 'ИСПОЛЬЗОВАНО', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.useCount}</span>`
+          },
+          {
+            key: 'updatedAt', label: 'ОБНОВЛЁН',
+            render: r => `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.updatedAt)}</span>`
+          },
+          {
+            key: '_actions', label: '',
+            render: r => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="edit-2"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Копировать"><i data-lucide="copy"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Удалить"><i data-lucide="trash-2"></i></button>
+            </span>`
+          },
+        ],
+        rows: templates,
+        empty: { title: 'Нет шаблонов', body: 'Создайте первый шаблон КП.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

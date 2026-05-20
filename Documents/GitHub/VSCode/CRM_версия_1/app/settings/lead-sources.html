@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Источники лидов · Настройки · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .segmented a { display:inline-flex; align-items:center; border:0; background:transparent; padding:6px 14px; font-size:13px; color:var(--text-secondary); border-radius:var(--radius-pill); text-decoration:none; font-family:var(--font-sans,inherit); }
+    .segmented a.is-active { background:var(--bg-surface); color:var(--text-primary); box-shadow:var(--shadow-sm); font-weight:500; }
+    .segmented a:hover:not(.is-active) { color:var(--text-primary); background:var(--bg-hover); }
+  </style>
+</head>
+<body data-route="settings" data-title="Настройки">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Источники лидов</h1>
+            <p class="text-secondary">Каналы поступления заявок</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/settings/funnels.html">Воронки</a>
+              <a href="/app/settings/offer-templates.html">Шаблоны КП</a>
+              <a href="/app/settings/lead-sources.html" class="is-active">Источники лидов</a>
+              <a href="/app/settings/site-tokens.html">Сайты и токены</a>
+              <a href="/app/settings/integrations.html">Интеграции</a>
+            </div>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Источник
+            </button>
+          </div>
+        </header>
+
+        <div class="card-flush">
+          <div id="table-root"></div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // Source icon map
+      const iconMap = {
+        'Сайт основной':              'globe',
+        'Сайт opt':                   'globe',
+        'Тендерная площадка ZakupKi': 'gavel',
+        'Telegram-бот':               'send',
+        'Звонок входящий':            'phone',
+        'Email-форма':                'mail',
+        'Реферал':                    'share-2',
+      };
+      const typeMap = {
+        'Сайт основной':              'Сайт',
+        'Сайт opt':                   'Сайт',
+        'Тендерная площадка ZakupKi': 'Площадка',
+        'Telegram-бот':               'Мессенджер',
+        'Звонок входящий':            'Звонок',
+        'Email-форма':                'Email',
+        'Реферал':                    'Партнёр',
+      };
+
+      // Compute lead counts from mock
+      const sourceNames = [
+        'Сайт основной',
+        'Тендерная площадка ZakupKi',
+        'Telegram-бот',
+        'Звонок входящий',
+        'Сайт opt',
+        'Email-форма',
+        'Реферал',
+      ];
+
+      const sources = sourceNames.map((name, i) => {
+        const leadsCount = MOCK.leads.filter(l => l.source === name).length;
+        // Synthetic extras or zeroes for fabricated ones
+        const synthCount = { 'Email-форма': 5, 'Реферал': 3 }[name] ?? leadsCount;
+        const conversion = [18, 24, 31, 14, 22, 12, 40][i] || 15;
+        const isActive = name !== 'Реферал';
+        return {
+          id: 'SRC-' + String(i + 1).padStart(3, '0'),
+          name,
+          icon: iconMap[name] || 'globe',
+          type: typeMap[name] || 'Сайт',
+          leadsCount: synthCount,
+          conversion,
+          isActive,
+        };
+      });
+
+      CRM.renderTable('#table-root', {
+        columns: [
+          {
+            key: 'name', label: 'НАЗВАНИЕ',
+            render: r => `<span style="display:inline-flex;align-items:center;gap:8px;">
+              <i data-lucide="${r.icon}" style="width:16px;height:16px;color:var(--accent);flex-shrink:0;"></i>
+              <span style="font-size:13px;font-weight:500;">${r.name}</span>
+            </span>`
+          },
+          {
+            key: 'type', label: 'ТИП',
+            render: r => `<span style="font-size:13px;color:var(--text-secondary);">${r.type}</span>`
+          },
+          {
+            key: 'leadsCount', label: 'ЛИДОВ ЗА 30 ДН', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.leadsCount}</span>`
+          },
+          {
+            key: 'conversion', label: 'КОНВЕРСИЯ', numeric: true,
+            render: r => `<span class="num" style="font-size:13px;">${r.conversion}%</span>`
+          },
+          {
+            key: 'isActive', label: 'СТАТУС',
+            render: r => r.isActive
+              ? CRM.renderBadge('success', 'Активен')
+              : CRM.renderBadge('neutral', 'Отключён')
+          },
+          {
+            key: '_actions', label: '',
+            render: r => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="edit-2"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Удалить"><i data-lucide="trash-2"></i></button>
+            </span>`
+          },
+        ],
+        rows: sources,
+        empty: { title: 'Нет источников', body: 'Добавьте первый источник лидов.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

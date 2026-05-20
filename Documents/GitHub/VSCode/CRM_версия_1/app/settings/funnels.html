@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Воронки · Настройки · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .segmented a { display:inline-flex; align-items:center; border:0; background:transparent; padding:6px 14px; font-size:13px; color:var(--text-secondary); border-radius:var(--radius-pill); text-decoration:none; font-family:var(--font-sans,inherit); }
+    .segmented a.is-active { background:var(--bg-surface); color:var(--text-primary); box-shadow:var(--shadow-sm); font-weight:500; }
+    .segmented a:hover:not(.is-active) { color:var(--text-primary); background:var(--bg-hover); }
+  </style>
+</head>
+<body data-route="settings" data-title="Настройки">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Воронки</h1>
+            <p class="text-secondary">Этапы продажи и тендеров</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/settings/funnels.html"         class="is-active">Воронки</a>
+              <a href="/app/settings/offer-templates.html">Шаблоны КП</a>
+              <a href="/app/settings/lead-sources.html">Источники лидов</a>
+              <a href="/app/settings/site-tokens.html">Сайты и токены</a>
+              <a href="/app/settings/integrations.html">Интеграции</a>
+            </div>
+          </div>
+        </header>
+
+        <div style="display:flex;flex-direction:column;gap:24px;">
+
+          <!-- Основная воронка -->
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:20px 24px 0;">
+              <div class="card-head">
+                <div>
+                  <span class="card-head-title">Основная воронка</span>
+                  <span class="card-head-sub" id="main-funnel-sub"></span>
+                </div>
+                <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Этап</button>
+              </div>
+            </div>
+            <!-- Stage pills -->
+            <div style="padding:16px 24px;" id="main-stage-pills"></div>
+            <!-- Stage settings table -->
+            <div id="main-funnel-table"></div>
+          </div>
+
+          <!-- Тендерная воронка -->
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:20px 24px 0;">
+              <div class="card-head">
+                <div>
+                  <span class="card-head-title">Тендерная воронка</span>
+                  <span class="card-head-sub" id="tender-funnel-sub"></span>
+                </div>
+                <button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Этап</button>
+              </div>
+            </div>
+            <!-- Stage pills -->
+            <div style="padding:16px 24px;" id="tender-stage-pills"></div>
+            <!-- Stage settings table -->
+            <div id="tender-funnel-table"></div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── Main funnel stages ────────────────────────────────────────────────────
+      const MAIN_STAGES = [
+        { key: 'new',         label: 'Новая',           prob: 10,  autoTask: false, notifs: true  },
+        { key: 'qualified',   label: 'Квалифицирована', prob: 30,  autoTask: true,  notifs: true  },
+        { key: 'offer_sent',  label: 'КП отправлено',   prob: 50,  autoTask: true,  notifs: true  },
+        { key: 'negotiation', label: 'Переговоры',      prob: 70,  autoTask: false, notifs: true  },
+        { key: 'won',         label: 'Выиграна',        prob: 100, autoTask: false, notifs: true  },
+      ];
+
+      // Count deals by stage
+      const dealCounts = {};
+      MAIN_STAGES.forEach(s => {
+        dealCounts[s.key] = MOCK.deals.filter(d => d.stage === s.key).length;
+      });
+
+      const totalMainDeals = Object.values(dealCounts).reduce((a, b) => a + b, 0);
+      document.getElementById('main-funnel-sub').textContent = MAIN_STAGES.length + ' этапов, ' + totalMainDeals + ' сделки';
+
+      // Stage pills
+      document.getElementById('main-stage-pills').innerHTML =
+        `<div class="stage-indicator">` +
+        MAIN_STAGES.map((s, i) =>
+          `<span class="stage-pill is-active" style="cursor:default;">
+            ${s.label}
+            <span style="display:block;font-size:11px;opacity:0.75;font-weight:400;margin-top:2px;">${dealCounts[s.key]} сделок</span>
+          </span>` +
+          (i < MAIN_STAGES.length - 1 ? '<div class="stage-divider"></div>' : '')
+        ).join('') +
+        `</div>`;
+
+      // Stage table
+      CRM.renderTable('#main-funnel-table', {
+        columns: [
+          {
+            key: 'label', label: 'НАЗВАНИЕ',
+            render: r => `<span style="font-size:13px;font-weight:500;">${r.label}</span>`
+          },
+          {
+            key: 'prob', label: 'ВЕРОЯТНОСТЬ',
+            render: r => `<span class="num" style="font-size:13px;">${r.prob}%</span>`
+          },
+          {
+            key: 'autoTask', label: 'АВТО-ЗАДАЧА',
+            render: r => r.autoTask
+              ? CRM.renderBadge('success', 'Да')
+              : `<span class="text-muted" style="font-size:13px;">Нет</span>`
+          },
+          {
+            key: 'notifs', label: 'УВЕДОМЛЕНИЯ',
+            render: r => r.notifs
+              ? CRM.renderBadge('info', 'Да')
+              : `<span class="text-muted" style="font-size:13px;">Нет</span>`
+          },
+          {
+            key: '_actions', label: '',
+            render: r => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="edit-2"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Удалить"><i data-lucide="trash-2"></i></button>
+            </span>`
+          },
+        ],
+        rows: MAIN_STAGES,
+        empty: { title: 'Нет этапов', body: 'Добавьте этапы воронки.' }
+      });
+
+      // ─── Tender funnel stages ──────────────────────────────────────────────────
+      const TENDER_STAGES = [
+        { key: 'searching',  label: 'Поиск',        prob: 5,   autoTask: false, notifs: true  },
+        { key: 'preparing',  label: 'Подготовка',   prob: 30,  autoTask: true,  notifs: true  },
+        { key: 'submitted',  label: 'Подана заявка',prob: 50,  autoTask: false, notifs: true  },
+        { key: 'won',        label: 'Победа',       prob: 100, autoTask: true,  notifs: true  },
+        { key: 'lost',       label: 'Поражение',    prob: 0,   autoTask: false, notifs: false },
+      ];
+
+      const tenderCounts = {};
+      TENDER_STAGES.forEach(s => {
+        tenderCounts[s.key] = MOCK.tenders.filter(t => t.status === s.key).length;
+      });
+
+      const totalTenders = Object.values(tenderCounts).reduce((a, b) => a + b, 0);
+      document.getElementById('tender-funnel-sub').textContent = TENDER_STAGES.length + ' этапов, ' + totalTenders + ' тендеров';
+
+      document.getElementById('tender-stage-pills').innerHTML =
+        `<div class="stage-indicator">` +
+        TENDER_STAGES.map((s, i) =>
+          `<span class="stage-pill ${s.key === 'won' ? 'is-done' : s.key === 'lost' ? 'is-lost' : 'is-active'}" style="cursor:default;">
+            ${s.label}
+            <span style="display:block;font-size:11px;opacity:0.75;font-weight:400;margin-top:2px;">${tenderCounts[s.key] || 0} тендеров</span>
+          </span>` +
+          (i < TENDER_STAGES.length - 1 ? '<div class="stage-divider"></div>' : '')
+        ).join('') +
+        `</div>`;
+
+      CRM.renderTable('#tender-funnel-table', {
+        columns: [
+          {
+            key: 'label', label: 'НАЗВАНИЕ',
+            render: r => `<span style="font-size:13px;font-weight:500;">${r.label}</span>`
+          },
+          {
+            key: 'prob', label: 'ВЕРОЯТНОСТЬ',
+            render: r => `<span class="num" style="font-size:13px;">${r.prob}%</span>`
+          },
+          {
+            key: 'autoTask', label: 'АВТО-ЗАДАЧА',
+            render: r => r.autoTask
+              ? CRM.renderBadge('success', 'Да')
+              : `<span class="text-muted" style="font-size:13px;">Нет</span>`
+          },
+          {
+            key: 'notifs', label: 'УВЕДОМЛЕНИЯ',
+            render: r => r.notifs
+              ? CRM.renderBadge('info', 'Да')
+              : `<span class="text-muted" style="font-size:13px;">Нет</span>`
+          },
+          {
+            key: '_actions', label: '',
+            render: r => `<span class="row-actions">
+              <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="edit-2"></i></button>
+              <button class="btn btn-ghost btn-icon btn-sm" title="Удалить"><i data-lucide="trash-2"></i></button>
+            </span>`
+          },
+        ],
+        rows: TENDER_STAGES,
+        empty: { title: 'Нет этапов', body: 'Добавьте этапы тендерной воронки.' }
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

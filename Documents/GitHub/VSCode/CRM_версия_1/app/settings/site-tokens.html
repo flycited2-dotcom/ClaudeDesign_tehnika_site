@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сайты и токены · Настройки · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+  <style>
+    .segmented a { display:inline-flex; align-items:center; border:0; background:transparent; padding:6px 14px; font-size:13px; color:var(--text-secondary); border-radius:var(--radius-pill); text-decoration:none; font-family:var(--font-sans,inherit); }
+    .segmented a.is-active { background:var(--bg-surface); color:var(--text-primary); box-shadow:var(--shadow-sm); font-weight:500; }
+    .segmented a:hover:not(.is-active) { color:var(--text-primary); background:var(--bg-hover); }
+  </style>
+</head>
+<body data-route="settings" data-title="Настройки">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+        <header class="app-header">
+          <div>
+            <h1 class="h-display h1">Сайты и токены</h1>
+            <p class="text-secondary">Подключённые webhook-источники</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="segmented" style="flex-wrap:wrap;">
+              <a href="/app/settings/funnels.html">Воронки</a>
+              <a href="/app/settings/offer-templates.html">Шаблоны КП</a>
+              <a href="/app/settings/lead-sources.html">Источники лидов</a>
+              <a href="/app/settings/site-tokens.html" class="is-active">Сайты и токены</a>
+              <a href="/app/settings/integrations.html">Интеграции</a>
+            </div>
+            <button class="btn btn-primary btn-sm">
+              <i data-lucide="plus"></i>Сайт
+            </button>
+          </div>
+        </header>
+
+        <div id="sites-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;"></div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      const _now = Date.now();
+      function hr(h)  { return new Date(_now + h * 3600000).toISOString(); }
+      function day(d) { return hr(d * 24); }
+
+      const sites = [
+        {
+          name:        'nordlight.ru',
+          url:         'https://nordlight.ru',
+          active:      true,
+          endpoint:    '/api/webhooks/site-leads',
+          tokenMasked: 'nl_********a8f2',
+          leadsCount:  42,
+          lastLeadAt:  hr(-3),
+        },
+        {
+          name:        'nordlight-opt.ru',
+          url:         'https://nordlight-opt.ru',
+          active:      true,
+          endpoint:    '/api/webhooks/site-leads',
+          tokenMasked: 'op_********7c1e',
+          leadsCount:  31,
+          lastLeadAt:  hr(-1),
+        },
+        {
+          name:        'nordlight-tenders.ru',
+          url:         'https://nordlight-tenders.ru',
+          active:      true,
+          endpoint:    '/api/webhooks/site-leads',
+          tokenMasked: 'tn_********3d44',
+          leadsCount:  12,
+          lastLeadAt:  day(-2),
+        },
+        {
+          name:        'landing-promo.ru',
+          url:         'https://landing-promo.ru',
+          active:      false,
+          endpoint:    '/api/webhooks/site-leads',
+          tokenMasked: 'lp_********9e21',
+          leadsCount:  0,
+          lastLeadAt:  day(-45),
+        },
+      ];
+
+      const grid = document.getElementById('sites-grid');
+      sites.forEach(site => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML =
+          `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-3);">` +
+            `<div>` +
+              `<div style="display:flex;align-items:center;gap:8px;">` +
+                `<i data-lucide="globe" style="width:18px;height:18px;color:var(--accent);"></i>` +
+                `<span style="font-family:var(--font-serif);font-size:18px;font-weight:500;">${site.name}</span>` +
+              `</div>` +
+              `<div class="text-muted" style="font-size:12px;margin-top:2px;">${site.url}</div>` +
+            `</div>` +
+            CRM.renderBadge(site.active ? 'success' : 'neutral', site.active ? 'Активен' : 'Выключен') +
+          `</div>` +
+          `<dl class="kv-list" style="grid-template-columns:130px 1fr;">` +
+            `<dt>Endpoint</dt><dd style="font-family:var(--font-mono);font-size:12px;">${site.endpoint}</dd>` +
+            `<dt>Токен</dt><dd style="font-family:var(--font-mono);font-size:12px;">` +
+              `<span style="background:var(--bg-sidebar);padding:2px 8px;border-radius:var(--radius-sm);">${site.tokenMasked}</span> ` +
+              `<button class="btn btn-ghost btn-sm" style="padding:0 6px;" title="Копировать"><i data-lucide="copy" style="width:12px;height:12px;"></i></button>` +
+            `</dd>` +
+            `<dt>Заявок за 30 дн</dt><dd class="num">${site.leadsCount}</dd>` +
+            `<dt>Последняя</dt><dd>${CRM.formatRelative(site.lastLeadAt)}</dd>` +
+          `</dl>` +
+          `<div style="margin-top:var(--space-4);display:flex;gap:8px;">` +
+            `<button class="btn btn-secondary btn-sm">Тест-запрос</button>` +
+            `<button class="btn btn-ghost btn-sm">Перевыпустить токен</button>` +
+            `<button class="btn btn-ghost btn-sm" style="margin-left:auto;color:var(--status-danger-fg);">Удалить</button>` +
+          `</div>`;
+        grid.appendChild(card);
+      });
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

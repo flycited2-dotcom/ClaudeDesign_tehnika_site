@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сотрудник · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="employees" data-title="Сотрудник">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+
+        <!-- Entity header -->
+        <header class="entity-header" id="entity-header">
+          <div class="entity-header-main">
+            <div id="entity-avatar"></div>
+            <div class="entity-id-block">
+              <div class="entity-meta" id="entity-meta"></div>
+              <h1 class="h-display" id="entity-name" style="font-size:28px;margin-top:4px;"></h1>
+              <div class="entity-sub" id="entity-sub"></div>
+            </div>
+          </div>
+          <div class="entity-header-actions">
+            <button class="btn btn-ghost btn-icon"><i data-lucide="more-horizontal"></i></button>
+            <button class="btn btn-secondary"><i data-lucide="edit-3"></i>Редактировать</button>
+          </div>
+        </header>
+
+        <!-- Two-column body -->
+        <div class="entity-body">
+
+          <!-- LEFT: tabs + panels -->
+          <div>
+            <div id="tab-bar"></div>
+
+            <!-- TAB: Обзор -->
+            <section data-tab-panel="overview" style="margin-top:var(--space-6);">
+              <div id="panel-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:var(--space-4);"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);">
+                <div class="card" id="panel-activity"></div>
+                <div class="card" id="panel-recent-deals"></div>
+              </div>
+            </section>
+
+            <!-- TAB: Задачи -->
+            <section data-tab-panel="tasks" style="margin-top:var(--space-6);display:none;">
+              <div class="card-flush" id="panel-tasks"></div>
+            </section>
+
+            <!-- TAB: Сделки -->
+            <section data-tab-panel="deals" style="margin-top:var(--space-6);display:none;">
+              <div class="card-flush" id="panel-deals"></div>
+            </section>
+
+            <!-- TAB: КП -->
+            <section data-tab-panel="offers" style="margin-top:var(--space-6);display:none;">
+              <div class="card-flush" id="panel-offers"></div>
+            </section>
+
+            <!-- TAB: Время -->
+            <section data-tab-panel="time" style="margin-top:var(--space-6);display:none;">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:var(--space-4);align-items:start;">
+                <div class="card-flush" id="panel-time-table"></div>
+                <div class="card" id="panel-time-summary" style="min-width:260px;"></div>
+              </div>
+            </section>
+          </div>
+
+          <!-- RIGHT RAIL -->
+          <aside class="entity-rail">
+            <div class="card">
+              <div class="card-head" style="margin-bottom:var(--space-3);">
+                <span class="card-head-title">Действия</span>
+              </div>
+              <div class="rail-actions">
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="key"></i>Сбросить пароль</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="check-square"></i>Назначить задачу</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="message-square"></i>Отправить сообщение</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="clock"></i>Просмотреть журнал входов</button>
+              </div>
+            </div>
+            <div class="card" id="rail-meta"></div>
+          </aside>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── Time helpers ──────────────────────────────────────────────────────────
+      const _now = Date.now();
+      function hr(h)  { return new Date(_now + h * 3600000).toISOString(); }
+      function day(d) { return hr(d * 24); }
+
+      // ─── Parse user id from URL ────────────────────────────────────────────────
+      const params = new URLSearchParams(location.search);
+      const userId = params.get('id') || 'USR-003';
+      const user = MOCK.users.find(u => u.id === userId) || MOCK.users[2];
+
+      // ─── Helpers ───────────────────────────────────────────────────────────────
+      function getUser(id) {
+        return MOCK.users.find(u => u.id === id) || { name: id, id };
+      }
+      function getClient(id) {
+        return MOCK.clients.find(c => c.id === id) || { name: id, id };
+      }
+      function firstName(name) {
+        const parts = name.split(/\s+/);
+        return parts.length >= 2 ? parts[1] : parts[0];
+      }
+      function timeHHMM(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+      }
+      function formatDate(iso) {
+        if (!iso) return '—';
+        const d = new Date(iso);
+        return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+      }
+
+      function roleLabel(role) {
+        const map = {
+          owner:             'Собственник',
+          head_of_sales:     'РОП',
+          manager:           'Менеджер',
+          tender_specialist: 'Тендерный спец.',
+          purchaser:         'Закупщик',
+        };
+        return map[role] || role;
+      }
+
+      // ─── Online check (most recent session logoutAt === null) ─────────────────
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const allSessionDates = [...new Set(MOCK.workSessions.map(s => s.date))].sort();
+      const refDate = allSessionDates.includes(todayStr)
+        ? todayStr
+        : allSessionDates[allSessionDates.length - 1];
+      const todaySession = MOCK.workSessions.find(s => s.userId === user.id && s.date === refDate);
+      const isOnline = todaySession && todaySession.logoutAt === null;
+
+      // ─── Document title ────────────────────────────────────────────────────────
+      document.title = user.name + ' · CRM';
+      document.body.dataset.title = user.name;
+
+      // ─── Entity header ─────────────────────────────────────────────────────────
+      document.getElementById('entity-avatar').innerHTML =
+        `<span class="avatar avatar-lg" style="background:${CRM.avatarColor(user.name)};flex-shrink:0;">${CRM.initials(user.name)}</span>`;
+
+      document.getElementById('entity-meta').innerHTML =
+        `<span class="id-chip">${user.id}</span>` +
+        CRM.renderBadge('info', roleLabel(user.role)) +
+        (isOnline ? CRM.renderBadge('success', 'На смене') : CRM.renderBadge('neutral', 'Не на смене'));
+
+      document.getElementById('entity-name').textContent = user.name;
+
+      document.getElementById('entity-sub').innerHTML =
+        `<span><i data-lucide="mail"></i>${user.email}</span>` +
+        `<span><i data-lucide="phone"></i>${user.phone || '+7 …'}</span>` +
+        `<span><i data-lucide="calendar"></i>С ${formatDate(user.hireDate || day(-365))}</span>`;
+
+      // ─── Right rail metadata ───────────────────────────────────────────────────
+      const accessLevel = ['owner', 'head_of_sales'].includes(user.role) ? 'Полный' : 'Ограниченный';
+      document.getElementById('rail-meta').innerHTML =
+        `<div class="card-head" style="margin-bottom:var(--space-3);"><span class="card-head-title">Параметры</span></div>` +
+        `<dl class="kv-list">` +
+          `<dt>Роль</dt><dd>${roleLabel(user.role)}</dd>` +
+          `<dt>Email</dt><dd style="font-size:12px;word-break:break-all;">${user.email}</dd>` +
+          `<dt>Телефон</dt><dd>${user.phone || '—'}</dd>` +
+          `<dt>Дата приёма</dt><dd>${formatDate(user.hireDate)}</dd>` +
+          `<dt>ID</dt><dd><span class="id-chip">${user.id}</span></dd>` +
+          `<dt>Доступ</dt><dd>${accessLevel}</dd>` +
+        `</dl>`;
+
+      // ─── TAB SYSTEM ───────────────────────────────────────────────────────────
+      const TABS = [
+        { id: 'overview', label: 'Обзор' },
+        { id: 'tasks',    label: 'Задачи' },
+        { id: 'deals',    label: 'Сделки' },
+        { id: 'offers',   label: 'КП' },
+        { id: 'time',     label: 'Время' },
+      ];
+
+      const hashMatch = location.hash.match(/tab=(\w+)/);
+      let activeTab = (hashMatch && TABS.find(t => t.id === hashMatch[1])) ? hashMatch[1] : 'overview';
+
+      function showTab(id) {
+        activeTab = id;
+        history.replaceState(null, '', location.pathname + location.search + '#tab=' + id);
+        document.querySelectorAll('[data-tab-panel]').forEach(el => {
+          el.style.display = el.dataset.tabPanel === id ? 'block' : 'none';
+        });
+        document.querySelectorAll('#tab-bar .tab').forEach(el => {
+          el.classList.toggle('is-active', el.dataset.tab === id);
+        });
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      CRM.renderTabs('#tab-bar', { tabs: TABS, activeId: activeTab, onChange: showTab });
+
+      document.querySelectorAll('[data-tab-panel]').forEach(el => {
+        el.style.display = el.dataset.tabPanel === activeTab ? 'block' : 'none';
+      });
+
+      // ─── Maps ─────────────────────────────────────────────────────────────────
+      const stageMap = {
+        new:         { severity: 'info',    label: 'Новая' },
+        qualified:   { severity: 'warning', label: 'Квалифицирована' },
+        offer_sent:  { severity: 'warning', label: 'КП отправлено' },
+        negotiation: { severity: 'warning', label: 'Переговоры' },
+        won:         { severity: 'success', label: 'Выиграна' },
+        lost:        { severity: 'danger',  label: 'Проиграна' },
+      };
+      const offerStatusMap = {
+        draft:    { severity: 'neutral', label: 'Черновик' },
+        sent:     { severity: 'info',    label: 'Отправлено' },
+        viewed:   { severity: 'warning', label: 'Просмотрено' },
+        accepted: { severity: 'success', label: 'Принято' },
+        rejected: { severity: 'danger',  label: 'Отклонено' },
+      };
+      const priorityMap = {
+        high:   { severity: 'danger',  label: 'Высокий' },
+        normal: { severity: 'neutral', label: 'Обычный' },
+        low:    { severity: 'info',    label: 'Низкий' },
+      };
+      const taskStatusMap = {
+        new:     { severity: 'info',    label: 'Новая' },
+        in_work: { severity: 'warning', label: 'В работе' },
+        review:  { severity: 'neutral', label: 'На проверке' },
+        done:    { severity: 'success', label: 'Выполнена' },
+        overdue: { severity: 'danger',  label: 'Просрочена' },
+      };
+      function kindLabel(k) {
+        return { note: 'Заметка', status_change: 'Смена статуса', call: 'Звонок', email: 'Email', task_created: 'Создана задача', offer_sent: 'КП отправлено' }[k] || k;
+      }
+      function kindSeverity(k) {
+        return { note: 'neutral', status_change: 'info', call: 'warning', email: 'info', task_created: 'info', offer_sent: 'success' }[k] || 'neutral';
+      }
+
+      // ─── TAB: Обзор ───────────────────────────────────────────────────────────
+      (function renderOverview() {
+        const now30 = _now - 30 * 86400000;
+        const now7  = _now - 7  * 86400000;
+
+        const activeDealsCount = MOCK.deals.filter(d =>
+          d.responsible === user.id && !['won','lost'].includes(d.stage)
+        ).length;
+
+        const openTasksCount = MOCK.tasks.filter(t =>
+          t.assignee === user.id && t.status !== 'done'
+        ).length;
+
+        const offersMonthCount = MOCK.offers.filter(o =>
+          o.manager === user.id && new Date(o.createdAt).getTime() > now30
+        ).length;
+
+        const userSessions7 = MOCK.workSessions.filter(s =>
+          s.userId === user.id && new Date(s.date).getTime() > now7
+        );
+        const hours7 = userSessions7.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
+
+        const kpis = [
+          { value: activeDealsCount, label: 'Активных сделок',           delta: 'в работе',          trend: 'up' },
+          { value: openTasksCount,   label: 'Открытых задач',             delta: 'не завершены',       trend: openTasksCount > 0 ? 'down' : 'up' },
+          { value: offersMonthCount, label: 'КП за месяц',                delta: 'создано',            trend: 'up' },
+          { value: hours7 + ' ч',   label: 'Часов за 7 дней',            delta: 'отработано',         trend: 'up' },
+        ];
+
+        const kpiContainer = document.getElementById('panel-kpis');
+        kpis.forEach(k => kpiContainer.insertAdjacentHTML('beforeend', CRM.renderKpiCard(k)));
+
+        // ─── Activity timeline (left) ─────────────────────────────────────────
+        // Collect activity from all clients and deals where actor === user.id
+        const allActivity = [];
+        MOCK.clients.forEach(cl => {
+          const entries = MOCK.activity('client', cl.id);
+          entries.forEach(e => { if (e.actor === user.id) allActivity.push(e); });
+        });
+        MOCK.deals.forEach(dl => {
+          const entries = MOCK.activity('deal', dl.id);
+          entries.forEach(e => { if (e.actor === user.id) allActivity.push(e); });
+        });
+        allActivity.sort((a, b) => new Date(b.at) - new Date(a.at));
+        const recent6 = allActivity.slice(0, 6);
+
+        const activityEl = document.getElementById('panel-activity');
+        activityEl.innerHTML =
+          `<div class="card-head"><span class="card-head-title">Последние действия</span></div>` +
+          (recent6.length === 0
+            ? `<p class="text-muted" style="font-size:13px;">Нет действий.</p>`
+            : `<ol class="timeline">` +
+              recent6.map(e =>
+                `<li class="timeline-item">` +
+                  `<div class="timeline-dot timeline-dot--${kindSeverity(e.kind)}"></div>` +
+                  `<div class="timeline-body">` +
+                    `<div class="timeline-meta">` +
+                      `<span class="timeline-kind">${kindLabel(e.kind)}</span>` +
+                      `<span class="timeline-time">${CRM.formatRelative(e.at)}</span>` +
+                    `</div>` +
+                    `<div class="timeline-text">${e.text}</div>` +
+                  `</div>` +
+                `</li>`
+              ).join('') +
+              `</ol>`
+          );
+
+        // ─── Recent deals (right) ─────────────────────────────────────────────
+        const recentDeals = [...MOCK.deals]
+          .filter(d => d.responsible === user.id)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 4);
+
+        const recentDealsEl = document.getElementById('panel-recent-deals');
+        recentDealsEl.innerHTML =
+          `<div class="card-head"><span class="card-head-title">Последние сделки</span></div>` +
+          (recentDeals.length === 0
+            ? `<p class="text-muted" style="font-size:13px;">Нет сделок.</p>`
+            : `<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:var(--space-3);">` +
+              recentDeals.map(d => {
+                const cl = getClient(d.clientId);
+                const sm = stageMap[d.stage] || { severity: 'neutral', label: d.stage };
+                return `<li style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);padding-bottom:var(--space-3);border-bottom:1px solid var(--border-subtle);">
+                  <div>
+                    <div style="font-size:13px;font-weight:500;">${d.title}</div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${cl.name}</div>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0;">
+                    ${CRM.renderBadge(sm.severity, sm.label)}
+                    <div class="num" style="font-size:12px;margin-top:4px;">${CRM.formatMoney(d.amount)}</div>
+                  </div>
+                </li>`;
+              }).join('') +
+              `</ul>`
+          );
+      }());
+
+      // ─── TAB: Задачи ──────────────────────────────────────────────────────────
+      (function renderTasks() {
+        const tasks = MOCK.tasks.filter(t => t.assignee === user.id);
+        const root = document.getElementById('panel-tasks');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Задачи</span>` +
+              `<span class="card-head-sub">${tasks.length}</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="tasks-table-inner"></div>`;
+
+        CRM.renderTable('#tasks-table-inner', {
+          columns: [
+            {
+              key: 'priority', label: 'ПРИОРИТЕТ',
+              render: r => CRM.renderBadge((priorityMap[r.priority]||{severity:'neutral'}).severity, (priorityMap[r.priority]||{label:r.priority}).label)
+            },
+            {
+              key: 'title', label: 'ЗАДАЧА',
+              render: r => `<span style="font-size:13px;">${r.title}</span>`
+            },
+            {
+              key: 'relatedId', label: 'СВЯЗАН',
+              render: r => `<span class="id-chip" style="font-size:11px;">${r.relatedId || '—'}</span>`
+            },
+            {
+              key: 'deadline', label: 'ДЕДЛАЙН',
+              render: r => {
+                const isOverdue = r.status === 'overdue' || new Date(r.deadline) < new Date();
+                const lbl = CRM.formatRelative(r.deadline);
+                return isOverdue && r.status !== 'done'
+                  ? CRM.renderBadge('danger', lbl)
+                  : `<span style="font-size:13px;color:var(--text-secondary);">${lbl}</span>`;
+              }
+            },
+            {
+              key: 'status', label: 'СТАТУС',
+              render: r => CRM.renderBadge((taskStatusMap[r.status]||{severity:'neutral'}).severity, (taskStatusMap[r.status]||{label:r.status}).label)
+            },
+            {
+              key: '_actions', label: '',
+              render: r => `<span class="row-actions"><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="check"></i></button><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="edit-2"></i></button></span>`
+            },
+          ],
+          rows: tasks,
+          empty: { title: 'Задач нет', body: 'У этого сотрудника нет назначенных задач.' }
+        });
+      }());
+
+      // ─── TAB: Сделки ──────────────────────────────────────────────────────────
+      (function renderDeals() {
+        const userDeals = [...MOCK.deals]
+          .filter(d => d.responsible === user.id)
+          .sort((a, b) => new Date(b.lastActionAt) - new Date(a.lastActionAt));
+
+        const root = document.getElementById('panel-deals');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Сделки</span>` +
+              `<span class="card-head-sub">${userDeals.length}</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="deals-table-inner"></div>`;
+
+        CRM.renderTable('#deals-table-inner', {
+          columns: [
+            {
+              key: 'number', label: 'НОМЕР',
+              render: r => `<span class="id-chip">${r.number}</span>`
+            },
+            {
+              key: 'title', label: 'НАЗВАНИЕ',
+              render: r => `<span style="font-size:13px;">${r.title}</span>`
+            },
+            {
+              key: 'stage', label: 'ЭТАП',
+              render: r => CRM.renderBadge((stageMap[r.stage]||{severity:'neutral'}).severity, (stageMap[r.stage]||{label:r.stage}).label)
+            },
+            {
+              key: 'amount', label: 'СУММА', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.amount)}</span>`
+            },
+            {
+              key: 'lastActionAt', label: 'АКТИВНОСТЬ',
+              render: r => `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.lastActionAt)}</span>`
+            },
+            {
+              key: '_actions', label: '',
+              render: r => `<span class="row-actions"><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="eye"></i></button><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="edit-2"></i></button></span>`
+            },
+          ],
+          rows: userDeals,
+          empty: { title: 'Сделок нет', body: 'У этого сотрудника нет сделок.' }
+        });
+      }());
+
+      // ─── TAB: КП ──────────────────────────────────────────────────────────────
+      (function renderOffers() {
+        const userOffers = [...MOCK.offers]
+          .filter(o => o.manager === user.id)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const root = document.getElementById('panel-offers');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Коммерческие предложения</span>` +
+              `<span class="card-head-sub">${userOffers.length}</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="offers-table-inner"></div>`;
+
+        CRM.renderTable('#offers-table-inner', {
+          columns: [
+            {
+              key: 'number', label: 'НОМЕР',
+              render: r => `<span class="id-chip">${r.number}</span>`
+            },
+            {
+              key: 'clientId', label: 'КЛИЕНТ',
+              render: r => {
+                const cl = getClient(r.clientId);
+                return `<span style="font-size:13px;">${cl.name}</span>`;
+              }
+            },
+            {
+              key: 'amount', label: 'СУММА', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.amount)}</span>`
+            },
+            {
+              key: 'status', label: 'СТАТУС',
+              render: r => CRM.renderBadge((offerStatusMap[r.status]||{severity:'neutral'}).severity, (offerStatusMap[r.status]||{label:r.status}).label)
+            },
+            {
+              key: 'sentAt', label: 'ОТПРАВЛЕНО',
+              render: r => `<span style="font-size:13px;color:var(--text-secondary);">${r.sentAt ? CRM.formatRelative(r.sentAt) : '—'}</span>`
+            },
+            {
+              key: '_actions', label: '',
+              render: r => `<span class="row-actions"><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="eye"></i></button><button class="btn btn-ghost btn-icon btn-sm"><i data-lucide="send"></i></button></span>`
+            },
+          ],
+          rows: userOffers,
+          empty: { title: 'КП нет', body: 'У этого сотрудника нет созданных КП.' }
+        });
+      }());
+
+      // ─── TAB: Время ───────────────────────────────────────────────────────────
+      (function renderTime() {
+        const userSessions = [...MOCK.workSessions]
+          .filter(s => s.userId === user.id)
+          .sort((a, b) => b.date.localeCompare(a.date));
+
+        const root = document.getElementById('panel-time-table');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Журнал смен</span>` +
+              `<span class="card-head-sub">${userSessions.length} записей</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="time-table-inner"></div>`;
+
+        CRM.renderTable('#time-table-inner', {
+          columns: [
+            {
+              key: 'date', label: 'ДАТА',
+              render: r => `<span style="font-size:13px;">${new Date(r.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}</span>`
+            },
+            {
+              key: 'loginAt', label: 'ВХОД',
+              render: r => `<span class="num" style="font-size:13px;">${timeHHMM(r.loginAt)}</span>`
+            },
+            {
+              key: 'logoutAt', label: 'ВЫХОД',
+              render: r => r.logoutAt
+                ? `<span class="num" style="font-size:13px;">${timeHHMM(r.logoutAt)}</span>`
+                : `<span style="font-style:italic;font-size:13px;color:var(--status-success-fg);">на смене</span>`
+            },
+            {
+              key: 'hoursWorked', label: 'ЧАСОВ', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;">${r.hoursWorked}</span>`
+            },
+            {
+              key: 'tasksDone', label: 'ЗАДАЧ ВЫПОЛНЕНО', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;">${r.tasksDone}</span>`
+            },
+            {
+              key: 'tasksOverdue', label: 'ЗАДАЧ ПРОСРОЧЕНО', numeric: true,
+              render: r => r.tasksOverdue > 0
+                ? `<span class="badge badge--danger badge--flat">${r.tasksOverdue}</span>`
+                : `<span class="num" style="font-size:13px;color:var(--text-muted);">0</span>`
+            },
+          ],
+          rows: userSessions,
+          empty: { title: 'Нет записей', body: 'Данных о сменах нет.' }
+        });
+
+        // Summary card
+        const now7 = _now - 7 * 86400000;
+        const sessions7 = userSessions.filter(s => new Date(s.date).getTime() > now7);
+        const totalHours7 = sessions7.reduce((sum, s) => sum + (s.hoursWorked || 0), 0);
+        const avgHours7 = sessions7.length > 0 ? (totalHours7 / sessions7.length).toFixed(1) : '—';
+        const bestDay = sessions7.length > 0
+          ? sessions7.reduce((best, s) => s.hoursWorked > (best.hoursWorked || 0) ? s : best, sessions7[0])
+          : null;
+
+        document.getElementById('panel-time-summary').innerHTML =
+          `<div class="card-head" style="margin-bottom:var(--space-3);"><span class="card-head-title">Итого за 7 дней</span></div>` +
+          `<dl class="kv-list">` +
+            `<dt>Всего часов</dt><dd class="num">${totalHours7}</dd>` +
+            `<dt>Среднее в день</dt><dd class="num">${avgHours7} ч</dd>` +
+            `<dt>Самый продуктивный</dt><dd>${bestDay ? new Date(bestDay.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) + ' (' + bestDay.hoursWorked + ' ч)' : '—'}</dd>` +
+            `<dt>Смен за 7 дней</dt><dd class="num">${sessions7.length}</dd>` +
+          `</dl>`;
+      }());
+
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
