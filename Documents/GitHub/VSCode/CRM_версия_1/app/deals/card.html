@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Сделка · CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/css/tokens.css">
+  <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body data-route="deals" data-title="Сделка">
+  <div class="app-shell">
+    <div data-shell="sidebar"></div>
+    <main class="app-main">
+      <div data-shell="topbar"></div>
+      <div class="app-content">
+
+        <!-- Entity header -->
+        <header class="entity-header" id="entity-header">
+          <!-- Left: id + title + meta -->
+          <div class="entity-header-main" style="flex:1; min-width:0;">
+            <div class="entity-id-block" style="flex:1;">
+              <div class="entity-meta" id="entity-meta"></div>
+              <h1 class="h-display" id="entity-name" style="font-size:28px;margin-top:4px;line-height:1.25;"></h1>
+              <div class="entity-sub" id="entity-sub"></div>
+            </div>
+          </div>
+          <!-- Right: amount + actions -->
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-3);flex-shrink:0;">
+            <div class="deal-amount num" id="entity-amount"></div>
+            <div class="entity-header-actions">
+              <button class="btn btn-ghost" style="color:var(--status-danger-fg);"><i data-lucide="x"></i>Закрыть</button>
+              <button class="btn btn-secondary"><i data-lucide="edit-3"></i>Редактировать</button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Stage indicator row -->
+        <div id="stage-indicator-row" style="display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3) 0 var(--space-5);margin-bottom:var(--space-6);border-bottom:1px solid var(--border-subtle);">
+          <span class="text-caps">Этап:</span>
+          <div id="stage-indicator" class="stage-indicator"></div>
+        </div>
+
+        <!-- Two-column body -->
+        <div class="entity-body">
+
+          <!-- LEFT: tabs + panels -->
+          <div>
+            <div id="tab-bar"></div>
+
+            <!-- TAB: Обзор -->
+            <section data-tab-panel="overview" style="margin-top:var(--space-6);">
+              <div class="card kv-grid" id="panel-overview-summary"></div>
+              <div class="card" id="panel-overview-events" style="margin-top:var(--space-4);"></div>
+            </section>
+
+            <!-- TAB: Товары -->
+            <section data-tab-panel="products" style="margin-top:var(--space-6);display:none;">
+              <div class="card-flush" id="panel-products"></div>
+              <div class="card" id="panel-products-totals" style="margin-top:var(--space-4);display:none;"></div>
+            </section>
+
+            <!-- TAB: КП -->
+            <section data-tab-panel="offers" style="margin-top:var(--space-6);display:none;">
+              <div class="card-flush" id="panel-offers"></div>
+            </section>
+
+            <!-- TAB: Задачи -->
+            <section data-tab-panel="tasks" style="margin-top:var(--space-6);display:none;">
+              <div class="card-flush" id="panel-tasks"></div>
+            </section>
+
+            <!-- TAB: Коммуникации -->
+            <section data-tab-panel="messages" style="margin-top:var(--space-6);display:none;">
+              <div class="card" id="panel-messages"></div>
+            </section>
+
+            <!-- TAB: Файлы -->
+            <section data-tab-panel="files" style="margin-top:var(--space-6);display:none;">
+              <div class="card" id="panel-files"></div>
+            </section>
+
+            <!-- TAB: История -->
+            <section data-tab-panel="history" style="margin-top:var(--space-6);display:none;">
+              <div class="card" id="panel-history"></div>
+            </section>
+          </div>
+
+          <!-- RIGHT RAIL -->
+          <aside class="entity-rail">
+            <!-- Deal actions -->
+            <div class="card">
+              <div class="card-head" style="margin-bottom:var(--space-3);">
+                <span class="card-head-title">Действия по сделке</span>
+              </div>
+              <div class="rail-actions">
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="file-text"></i>+ КП</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="check-square"></i>+ Задача</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="package-plus"></i>+ Товар</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="message-square"></i>+ Комментарий</button>
+                <button class="btn btn-secondary" style="width:100%;"><i data-lucide="send"></i>Отправить сообщение</button>
+                <hr style="border:none;border-top:1px solid var(--border-subtle);margin:var(--space-2) 0;">
+                <button class="btn btn-future" style="width:100%;"><span>Запросить резерв в 1С</span><span class="stage-tag">Этап 2</span></button>
+                <button class="btn btn-future" style="width:100%;"><span>Выставить счёт</span><span class="stage-tag">Этап 2</span></button>
+              </div>
+            </div>
+            <!-- Metadata -->
+            <div class="card" id="rail-meta"></div>
+          </aside>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/assets/js/relative-date.js"></script>
+  <script src="/assets/js/mock-data.js"></script>
+  <script src="/assets/js/widgets.js"></script>
+  <script src="/assets/js/shell.js"></script>
+
+  <script>
+    window.addEventListener('load', function () {
+      const MOCK = window.MOCK;
+      const CRM  = window.CRM;
+
+      // ─── Time helpers ──────────────────────────────────────────────────────
+      const _now = Date.now();
+      function hr(h)  { return new Date(_now + h * 3600000).toISOString(); }
+      function day(d) { return hr(d * 24); }
+
+      // ─── Parse deal id from URL ────────────────────────────────────────────
+      const params = new URLSearchParams(location.search);
+      const dealId = params.get('id') || MOCK.deals[0].id;
+      const deal = MOCK.deals.find(d => d.id === dealId) || MOCK.deals[0];
+
+      // ─── Helper lookups ────────────────────────────────────────────────────
+      function getUser(id) {
+        return MOCK.users.find(u => u.id === id) || { name: id, id };
+      }
+      function getClient(id) {
+        return MOCK.clients.find(c => c.id === id) || { name: id, id };
+      }
+      function firstName(name) {
+        const parts = name.split(/\s+/);
+        return parts.length >= 2 ? parts[1] : parts[0];
+      }
+
+      const client = getClient(deal.clientId);
+      const responsible = getUser(deal.responsible);
+
+      // ─── Stage data ────────────────────────────────────────────────────────
+      const STAGE_ORDER = ['new', 'qualified', 'offer_sent', 'negotiation', 'won'];
+      const STAGE_LABELS = {
+        new:         'Новая',
+        qualified:   'Квалифицирована',
+        offer_sent:  'КП отправлено',
+        negotiation: 'Переговоры',
+        won:         'Выиграна',
+        lost:        'Проиграна',
+      };
+      const STAGE_SEVERITY = {
+        new:         'info',
+        qualified:   'warning',
+        offer_sent:  'warning',
+        negotiation: 'warning',
+        won:         'success',
+        lost:        'danger',
+      };
+      const STAGE_PROBABILITY = {
+        new: 10, qualified: 30, offer_sent: 50, negotiation: 70, won: 100, lost: 0,
+      };
+
+      function stageSeverity(s) { return STAGE_SEVERITY[s] || 'neutral'; }
+      function stageLabel(s)    { return STAGE_LABELS[s] || s; }
+
+      function stageIndicator(stage) {
+        if (stage === 'lost') {
+          return '<span class="stage-pill is-lost">Сделка проиграна</span>';
+        }
+        const activeIdx = STAGE_ORDER.indexOf(stage);
+        const pills = STAGE_ORDER.map((s, i) => {
+          let cls = 'stage-pill';
+          if (i < activeIdx)  cls += ' is-done';
+          else if (i === activeIdx) cls += ' is-active';
+          return `<span class="${cls}">${STAGE_LABELS[s]}</span>`;
+        });
+        return pills.join('<div class="stage-divider"></div>');
+      }
+
+      // ─── Offer / task / channel helpers ───────────────────────────────────
+      const offerStatusMap = {
+        draft:    { severity: 'neutral', label: 'Черновик' },
+        sent:     { severity: 'info',    label: 'Отправлено' },
+        viewed:   { severity: 'warning', label: 'Просмотрено' },
+        accepted: { severity: 'success', label: 'Принято' },
+        rejected: { severity: 'danger',  label: 'Отклонено' },
+      };
+      const priorityMap = {
+        high:   { severity: 'danger',  label: 'Высокий' },
+        normal: { severity: 'neutral', label: 'Обычный' },
+        low:    { severity: 'info',    label: 'Низкий' },
+      };
+      const taskStatusMap = {
+        new:     { severity: 'info',    label: 'Новая' },
+        in_work: { severity: 'warning', label: 'В работе' },
+        review:  { severity: 'neutral', label: 'На проверке' },
+        done:    { severity: 'success', label: 'Выполнена' },
+        overdue: { severity: 'danger',  label: 'Просрочена' },
+      };
+      function channelIcon(ch) {
+        return { telegram: 'send', email: 'mail', whatsapp: 'message-circle', internal: 'message-square' }[ch] || 'message-square';
+      }
+      function channelLabel(ch) {
+        return { telegram: 'Telegram', email: 'Email', whatsapp: 'WhatsApp', internal: 'Внутр.' }[ch] || ch;
+      }
+      function fileIcon(name) {
+        if (name.endsWith('.pdf'))                             return 'file-text';
+        if (name.endsWith('.docx') || name.endsWith('.doc'))  return 'file-text';
+        if (name.endsWith('.xlsx') || name.endsWith('.xls'))  return 'file-spreadsheet';
+        if (/\.(jpg|jpeg|png|gif|webp)$/i.test(name))         return 'file-image';
+        return 'file';
+      }
+      function kindLabel(k) {
+        return { note: 'Заметка', status_change: 'Смена статуса', call: 'Звонок', email: 'Email', task_created: 'Создана задача', offer_sent: 'КП отправлено' }[k] || k;
+      }
+      function kindSeverity(k) {
+        return { note: 'neutral', status_change: 'info', call: 'warning', email: 'info', task_created: 'info', offer_sent: 'success' }[k] || 'neutral';
+      }
+
+      // ─── Document title ────────────────────────────────────────────────────
+      document.title = deal.title + ' · CRM';
+      document.body.dataset.title = deal.title;
+
+      // ─── Entity header ─────────────────────────────────────────────────────
+      document.getElementById('entity-meta').innerHTML =
+        `<span class="id-chip">${deal.number}</span>` +
+        CRM.renderBadge(stageSeverity(deal.stage), stageLabel(deal.stage)) +
+        (deal.hasOverdueTasks ? CRM.renderBadge('danger', 'Задача просрочена') : '');
+
+      document.getElementById('entity-name').textContent = deal.title;
+
+      document.getElementById('entity-sub').innerHTML =
+        `<a href="/app/clients/card.html?id=${deal.clientId}" style="display:inline-flex;align-items:center;gap:6px;color:var(--text-primary);text-decoration:none;">` +
+          `<i data-lucide="users"></i>${client.name}` +
+        `</a>` +
+        `<span><i data-lucide="layers"></i>${deal.funnel} · ${deal.direction}</span>` +
+        `<span><i data-lucide="user"></i>${responsible.name}</span>`;
+
+      document.getElementById('entity-amount').textContent = CRM.formatMoney(deal.amount);
+
+      // ─── Stage indicator row ───────────────────────────────────────────────
+      document.getElementById('stage-indicator').innerHTML = stageIndicator(deal.stage);
+
+      // ─── Right rail: metadata ──────────────────────────────────────────────
+      // Add 30 days to createdAt for deadline placeholder
+      const deadlinePlaceholder = new Date(new Date(deal.createdAt).getTime() + 30 * 86400000).toISOString();
+      document.getElementById('rail-meta').innerHTML =
+        `<div class="card-head" style="margin-bottom:var(--space-3);"><span class="card-head-title">Метаданные</span></div>` +
+        `<dl class="kv-list">` +
+          `<dt>Создана</dt><dd>${CRM.formatRelative(deal.createdAt)}</dd>` +
+          `<dt>Последнее действие</dt><dd>${CRM.formatRelative(deal.lastActionAt)}</dd>` +
+          `<dt>Воронка</dt><dd>${deal.funnel}</dd>` +
+          `<dt>Направление</dt><dd>${deal.direction}</dd>` +
+          `<dt>Ответственный</dt><dd style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(responsible.name,'sm')}<span>${responsible.name.split(' ')[0]}</span></dd>` +
+          `<dt>ID сделки</dt><dd><span class="id-chip">${deal.id}</span></dd>` +
+        `</dl>`;
+
+      // ─── TAB SYSTEM ───────────────────────────────────────────────────────
+      const TABS = [
+        { id: 'overview',  label: 'Обзор' },
+        { id: 'products',  label: 'Товары' },
+        { id: 'offers',    label: 'КП' },
+        { id: 'tasks',     label: 'Задачи' },
+        { id: 'messages',  label: 'Коммуникации' },
+        { id: 'files',     label: 'Файлы' },
+        { id: 'history',   label: 'История' },
+      ];
+
+      const hashMatch = location.hash.match(/tab=(\w+)/);
+      let activeTab = (hashMatch && TABS.find(t => t.id === hashMatch[1])) ? hashMatch[1] : 'overview';
+
+      function showTab(id) {
+        activeTab = id;
+        history.replaceState(null, '', location.pathname + location.search + '#tab=' + id);
+        document.querySelectorAll('[data-tab-panel]').forEach(el => {
+          el.style.display = el.dataset.tabPanel === id ? 'block' : 'none';
+        });
+        document.querySelectorAll('#tab-bar .tab').forEach(el => {
+          el.classList.toggle('is-active', el.dataset.tab === id);
+        });
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      CRM.renderTabs('#tab-bar', { tabs: TABS, activeId: activeTab, onChange: showTab });
+
+      document.querySelectorAll('[data-tab-panel]').forEach(el => {
+        el.style.display = el.dataset.tabPanel === activeTab ? 'block' : 'none';
+      });
+
+      // ─── TAB: Обзор ──────────────────────────────────────────────────────
+      (function renderOverview() {
+        const prob = STAGE_PROBABILITY[deal.stage] || 0;
+        const nds  = Math.round(deal.amount * 0.20);
+
+        const leftKv =
+          `<dt>Этап</dt><dd>${CRM.renderBadge(stageSeverity(deal.stage), stageLabel(deal.stage))}</dd>` +
+          `<dt>Сумма</dt><dd class="num" style="font-size:15px;font-weight:600;">${CRM.formatMoney(deal.amount)}</dd>` +
+          `<dt>НДС 20%</dt><dd class="num">${CRM.formatMoney(nds)} <span class="text-muted" style="font-size:12px;">Включён</span></dd>` +
+          `<dt>Маржа</dt><dd>15% <span class="text-muted" style="font-size:12px;">(плановая)</span></dd>` +
+          `<dt>Вероятность</dt><dd>${prob}%</dd>`;
+
+        const deadlineStr = new Date(new Date(deal.createdAt).getTime() + 30 * 86400000).toISOString();
+        const rightKv =
+          `<dt>Клиент</dt><dd><a href="/app/clients/card.html?id=${deal.clientId}" style="color:var(--accent);text-decoration:none;">${client.name}</a></dd>` +
+          `<dt>Источник</dt><dd>${client.source || '—'}</dd>` +
+          `<dt>Создана</dt><dd>${CRM.formatRelative(deal.createdAt)}</dd>` +
+          `<dt>Дедлайн закрытия</dt><dd>${CRM.formatRelative(deadlineStr)}</dd>`;
+
+        document.getElementById('panel-overview-summary').innerHTML =
+          `<dl class="kv-list">${leftKv}</dl>` +
+          `<dl class="kv-list">${rightKv}</dl>`;
+
+        // Recent events (timeline, limit 5)
+        const entries = MOCK.activity('deal', deal.id).slice(0, 5);
+        const root = document.getElementById('panel-overview-events');
+        root.innerHTML =
+          `<div class="card-head">` +
+            `<span class="card-head-title">Последние события</span>` +
+            `<a href="#" onclick="event.preventDefault();showTab('history');" style="font-size:13px;color:var(--accent);">Показать все</a>` +
+          `</div>` +
+          `<ol class="timeline">` +
+          entries.map(e =>
+            `<li class="timeline-item">` +
+              `<div class="timeline-dot timeline-dot--${kindSeverity(e.kind)}"></div>` +
+              `<div class="timeline-body">` +
+                `<div class="timeline-meta">` +
+                  `<span class="timeline-kind">${kindLabel(e.kind)}</span>` +
+                  `<span class="timeline-actor">${getUser(e.actor).name}</span>` +
+                  `<span class="timeline-time">${CRM.formatRelative(e.at)}</span>` +
+                `</div>` +
+                `<div class="timeline-text">${e.text}</div>` +
+              `</div>` +
+            `</li>`
+          ).join('') +
+          `</ol>`;
+      }());
+
+      // ─── TAB: Товары ─────────────────────────────────────────────────────
+      (function renderProducts() {
+        const products = MOCK.dealProducts.filter(p => p.dealId === deal.id);
+        const root = document.getElementById('panel-products');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Товары</span>` +
+              `<span style="display:flex;align-items:center;gap:var(--space-3);">` +
+                `<span class="card-head-sub">${products.length} позиций</span>` +
+                `<button class="btn btn-secondary btn-sm"><i data-lucide="plus"></i>Добавить товар</button>` +
+              `</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="products-table-inner"></div>`;
+
+        CRM.renderTable('#products-table-inner', {
+          columns: [
+            {
+              key: 'sku', label: 'АРТИКУЛ',
+              render: r => `<span class="num text-muted" style="font-size:12px;">${r.sku}</span>`
+            },
+            {
+              key: 'name', label: 'НАИМЕНОВАНИЕ',
+              render: r => `<span style="font-size:13px;">${r.name}</span>`
+            },
+            {
+              key: 'qty', label: 'КОЛ-ВО',
+              render: r => `<input class="input num" style="width:80px;text-align:right;height:28px;padding:0 8px;font-size:13px;" value="${r.qty}" disabled>`
+            },
+            {
+              key: 'unit', label: 'ЕД.',
+              render: r => `<span class="text-secondary" style="font-size:13px;">${r.unit}</span>`
+            },
+            {
+              key: 'price', label: 'ЦЕНА', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.price)}</span>`
+            },
+            {
+              key: 'sum', label: 'СУММА', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;font-weight:500;">${CRM.formatMoney(r.sum)}</span>`
+            },
+            {
+              key: '_actions', label: '',
+              render: r => `<span class="row-actions"><button class="btn btn-ghost btn-icon btn-sm" aria-label="Удалить"><i data-lucide="trash-2"></i></button></span>`
+            },
+          ],
+          rows: products,
+          empty: {
+            title: 'Товары не добавлены',
+            body: '<button class="btn btn-primary btn-sm" style="margin-top:12px;"><i data-lucide="plus"></i>Добавить товар</button>',
+          },
+        });
+
+        // Totals
+        if (products.length > 0) {
+          const subtotal = products.reduce((acc, p) => acc + p.sum, 0);
+          const nds = Math.round(subtotal * 0.20);
+          const total = subtotal + nds;
+          const totalsEl = document.getElementById('panel-products-totals');
+          totalsEl.style.display = 'block';
+          totalsEl.innerHTML =
+            `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:var(--space-2);">` +
+              `<div style="font-size:13px;color:var(--text-secondary);">Подытог: <span class="num" style="color:var(--text-primary);">${CRM.formatMoney(subtotal)}</span></div>` +
+              `<div style="font-size:13px;color:var(--text-secondary);">НДС 20%: <span class="num" style="color:var(--text-primary);">${CRM.formatMoney(nds)}</span></div>` +
+              `<div style="margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--border-subtle);font-size:13px;color:var(--text-secondary);">` +
+                `Итого: <span class="deal-amount num" style="font-size:22px;">${CRM.formatMoney(total)}</span>` +
+              `</div>` +
+            `</div>`;
+        }
+      }());
+
+      // ─── TAB: КП ─────────────────────────────────────────────────────────
+      (function renderOffers() {
+        const offersList = MOCK.offers
+          .filter(o => o.dealId === deal.id)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const root = document.getElementById('panel-offers');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Коммерческие предложения</span>` +
+              `<span style="display:flex;align-items:center;gap:var(--space-3);">` +
+                `<span class="card-head-sub">${offersList.length}</span>` +
+                `<button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>КП</button>` +
+              `</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="offers-table-inner"></div>`;
+
+        CRM.renderTable('#offers-table-inner', {
+          columns: [
+            {
+              key: 'number', label: 'НОМЕР',
+              render: r => `<span class="id-chip">${r.number}</span>`
+            },
+            {
+              key: 'amount', label: 'СУММА', numeric: true,
+              render: r => `<span class="num" style="font-size:13px;">${CRM.formatMoney(r.amount)}</span>`
+            },
+            {
+              key: 'status', label: 'СТАТУС',
+              render: r => CRM.renderBadge((offerStatusMap[r.status]||{severity:'neutral'}).severity, (offerStatusMap[r.status]||{label:r.status}).label)
+            },
+            {
+              key: 'createdAt', label: 'СОЗДАНО',
+              render: r => `<span style="font-size:13px;color:var(--text-secondary);">${CRM.formatRelative(r.createdAt)}</span>`
+            },
+            {
+              key: 'sentAt', label: 'ОТПРАВЛЕНО',
+              render: r => `<span style="font-size:13px;color:var(--text-secondary);">${r.sentAt ? CRM.formatRelative(r.sentAt) : '—'}</span>`
+            },
+            {
+              key: 'version', label: 'ВЕР.',
+              render: r => `<span class="text-muted" style="font-size:13px;">v${r.version}</span>`
+            },
+            {
+              key: '_actions', label: '',
+              render: r => `<span class="row-actions">` +
+                `<a href="/app/offers/view.html?id=${r.id}" class="btn btn-ghost btn-icon btn-sm" aria-label="Просмотр"><i data-lucide="eye"></i></a>` +
+                `<button class="btn btn-ghost btn-icon btn-sm" aria-label="Отправить"><i data-lucide="send"></i></button>` +
+                `<button class="btn btn-ghost btn-icon btn-sm" aria-label="Скачать"><i data-lucide="download"></i></button>` +
+              `</span>`
+            },
+          ],
+          rows: offersList,
+          empty: { title: 'КП пока нет', body: 'Создайте первое коммерческое предложение для этой сделки.' },
+        });
+      }());
+
+      // ─── TAB: Задачи ─────────────────────────────────────────────────────
+      (function renderTasks() {
+        const tasksList = MOCK.tasks.filter(t => t.relatedType === 'deal' && t.relatedId === deal.id);
+
+        const root = document.getElementById('panel-tasks');
+        root.innerHTML =
+          `<div style="padding:20px 24px 12px;">` +
+            `<div class="card-head" style="margin-bottom:0;">` +
+              `<span class="card-head-title">Задачи</span>` +
+              `<span style="display:flex;align-items:center;gap:var(--space-3);">` +
+                `<span class="card-head-sub">${tasksList.length}</span>` +
+                `<button class="btn btn-primary btn-sm"><i data-lucide="plus"></i>Задача</button>` +
+              `</span>` +
+            `</div>` +
+          `</div>` +
+          `<div id="tasks-table-inner"></div>`;
+
+        CRM.renderTable('#tasks-table-inner', {
+          columns: [
+            {
+              key: 'priority', label: 'ПРИОРИТЕТ',
+              render: r => CRM.renderBadge((priorityMap[r.priority]||{severity:'neutral'}).severity, (priorityMap[r.priority]||{label:r.priority}).label)
+            },
+            {
+              key: 'title', label: 'ЗАДАЧА',
+              render: r => `<span style="font-size:13px;">${r.title}</span>`
+            },
+            {
+              key: 'assignee', label: 'ИСПОЛНИТЕЛЬ',
+              render: r => `<span style="display:inline-flex;align-items:center;gap:6px;">${CRM.renderAvatar(getUser(r.assignee).name,'sm')}<span style="font-size:13px;">${firstName(getUser(r.assignee).name)}</span></span>`
+            },
+            {
+              key: 'deadline', label: 'ДЕДЛАЙН',
+              render: r => {
+                const isOverdue = r.status === 'overdue' || new Date(r.deadline) < new Date();
+                const label = CRM.formatRelative(r.deadline);
+                return isOverdue && r.status !== 'done'
+                  ? CRM.renderBadge('danger', label)
+                  : `<span style="font-size:13px;color:var(--text-secondary);">${label}</span>`;
+              }
+            },
+            {
+              key: 'status', label: 'СТАТУС',
+              render: r => CRM.renderBadge((taskStatusMap[r.status]||{severity:'neutral'}).severity, (taskStatusMap[r.status]||{label:r.status}).label)
+            },
+            {
+              key: '_actions', label: '',
+              render: r => `<span class="row-actions"><button class="btn btn-ghost btn-icon btn-sm" aria-label="Выполнить"><i data-lucide="check"></i></button><button class="btn btn-ghost btn-icon btn-sm" aria-label="Редактировать"><i data-lucide="edit-2"></i></button></span>`
+            },
+          ],
+          rows: tasksList,
+          empty: { title: 'Задач пока нет', body: 'Создайте первую задачу для этой сделки.' },
+        });
+      }());
+
+      // ─── TAB: Коммуникации ────────────────────────────────────────────────
+      (function renderMessages() {
+        const msgs = MOCK.messages
+          .filter(m => m.dealId === deal.id)
+          .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+
+        const root = document.getElementById('panel-messages');
+        let feedHtml = '';
+        if (msgs.length === 0) {
+          feedHtml = `<div class="empty"><h3>Сообщений пока нет</h3></div>`;
+        } else {
+          feedHtml = `<div class="chat-feed">` + msgs.map(m => {
+            const authorName = m.direction === 'out' ? getUser(m.author).name : m.author;
+            return `<div class="chat-bubble chat-bubble--${m.direction}">` +
+              `<div class="chat-meta">` +
+                `<span class="chat-channel chat-channel--${m.channel}"><i data-lucide="${channelIcon(m.channel)}"></i>${channelLabel(m.channel)}</span>` +
+                `<span class="chat-author">${authorName}</span>` +
+                `<span class="chat-time">${CRM.formatRelative(m.sentAt)}</span>` +
+              `</div>` +
+              `<div class="chat-text">${m.text}</div>` +
+            `</div>`;
+          }).join('') + `</div>`;
+        }
+
+        root.innerHTML =
+          `<div class="card-head"><span class="card-head-title">Коммуникации</span><span class="card-head-sub">${msgs.length} сообщений</span></div>` +
+          feedHtml +
+          `<div class="chat-composer">` +
+            `<input class="input" placeholder="Написать сообщение…">` +
+            `<button class="btn btn-ghost btn-icon" aria-label="Прикрепить файл"><i data-lucide="paperclip"></i></button>` +
+            `<button class="btn btn-primary btn-icon" aria-label="Отправить"><i data-lucide="send"></i></button>` +
+          `</div>`;
+      }());
+
+      // ─── TAB: Файлы ───────────────────────────────────────────────────────
+      (function renderFiles() {
+        const num = deal.number;
+        const files = [
+          { name: num + '_спецификация.xlsx',     sizeLabel: '180 КБ', uploadedAt: hr(-20),  uploadedBy: deal.responsible },
+          { name: 'Договор-черновик.docx',         sizeLabel: '92 КБ',  uploadedAt: day(-3),  uploadedBy: deal.responsible },
+          { name: 'КП-2026-' + num.slice(-4) + '.pdf', sizeLabel: '420 КБ', uploadedAt: day(-5), uploadedBy: deal.responsible },
+          { name: 'Переписка с клиентом.pdf',      sizeLabel: '1.1 МБ', uploadedAt: day(-7),  uploadedBy: deal.responsible },
+        ];
+
+        const root = document.getElementById('panel-files');
+        root.innerHTML =
+          `<div class="card-head">` +
+            `<span class="card-head-title">Файлы</span>` +
+            `<span style="display:flex;align-items:center;gap:var(--space-3);">` +
+              `<span class="card-head-sub">${files.length}</span>` +
+              `<button class="btn btn-secondary btn-sm"><i data-lucide="upload"></i>Загрузить файл</button>` +
+            `</span>` +
+          `</div>` +
+          `<div class="files-grid">` +
+            files.map(f =>
+              `<article class="file-card">` +
+                `<div class="file-icon"><i data-lucide="${fileIcon(f.name)}"></i></div>` +
+                `<div class="file-name">${f.name}</div>` +
+                `<div class="file-meta"><span>${f.sizeLabel}</span>·<span>${CRM.formatRelative(f.uploadedAt)}</span></div>` +
+                `<div class="file-by">${getUser(f.uploadedBy).name}</div>` +
+              `</article>`
+            ).join('') +
+          `</div>`;
+      }());
+
+      // ─── TAB: История ─────────────────────────────────────────────────────
+      (function renderHistory() {
+        const entries = MOCK.activity('deal', deal.id);
+        const root = document.getElementById('panel-history');
+        root.innerHTML =
+          `<div class="card-head"><span class="card-head-title">История действий</span><span class="card-head-sub">${entries.length} событий</span></div>` +
+          `<ol class="timeline">` +
+          entries.map(e =>
+            `<li class="timeline-item">` +
+              `<div class="timeline-dot timeline-dot--${kindSeverity(e.kind)}"></div>` +
+              `<div class="timeline-body">` +
+                `<div class="timeline-meta">` +
+                  `<span class="timeline-kind">${kindLabel(e.kind)}</span>` +
+                  `<span class="timeline-actor">${getUser(e.actor).name}</span>` +
+                  `<span class="timeline-time">${CRM.formatRelative(e.at)}</span>` +
+                `</div>` +
+                `<div class="timeline-text">${e.text}</div>` +
+              `</div>` +
+            `</li>`
+          ).join('') +
+          `</ol>`;
+      }());
+
+      // Expose showTab for inline onclick
+      window.showTab = showTab;
+
+      // ─── Final lucide pass ────────────────────────────────────────────────
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

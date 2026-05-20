@@ -228,3 +228,17 @@
 
 /* ---------- kv-tags ---------- */
 .kv-tags { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+/* ---------- stage indicator ---------- */
+.stage-indicator { display: flex; gap: 4px; align-items: center; }
+.stage-pill { font-size: 11px; padding: 5px 12px; border-radius: var(--radius-pill); background: var(--bg-sidebar); color: var(--text-muted); border: 1px solid var(--border-subtle); white-space: nowrap; position: relative; }
+.stage-pill.is-done { background: var(--accent-soft); color: var(--accent-hover); border-color: color-mix(in srgb, var(--accent) 25%, var(--border-subtle)); }
+.stage-pill.is-active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 500; }
+.stage-pill.is-lost { background: var(--status-danger-bg); color: var(--status-danger-fg); border-color: var(--status-danger-fg); }
+.stage-divider { width: 12px; height: 1px; background: var(--border-strong); flex-shrink: 0; }
+.deal-amount { font-family: var(--font-serif); font-size: 32px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+
+/* ---------- stage-2 future buttons ---------- */
+.btn-future { background: transparent; color: var(--text-muted); border: 1px dashed var(--border-strong); cursor: not-allowed; }
+.btn-future:hover { background: transparent; }
+.btn-future .stage-tag { font-size: 10px; padding: 1px 5px; background: var(--bg-sidebar); border-radius: var(--radius-pill); margin-left: auto; color: var(--text-muted); font-weight: 500; }
