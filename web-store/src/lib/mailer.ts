@@ -6,6 +6,7 @@ type SendArgs = {
   subject: string;
   text: string;
   html?: string;
+  from?: string;
 };
 
 export type MailSendResult =
@@ -27,21 +28,23 @@ function getSmtpTransport(): Transporter | null {
   const portStr = process.env.SMTP_PORT;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
-  if (!host || !portStr || !user || !pass) return null;
+  if (!host || !portStr) return null;
 
   const port = Number(portStr);
   if (!Number.isFinite(port) || port <= 0) return null;
 
-  const key = `${host}:${port}:${user}`;
+  const hasAuth = Boolean(user && pass);
+  const key = `${host}:${port}:${user ?? "noauth"}`;
   if (cachedSmtp && cachedSmtpKey === key) return cachedSmtp;
 
-  // 465 → implicit TLS, 587/25 → STARTTLS upgrade.
+  // 465 → implicit TLS, 587/25 → STARTTLS upgrade. Local relay (127.0.0.1:25)
+  // needs no auth — Postfix accepts from mynetworks.
   const secure = port === 465;
   cachedSmtp = nodemailer.createTransport({
     host,
     port,
     secure,
-    auth: { user, pass },
+    ...(hasAuth ? { auth: { user, pass } } : {}),
     connectionTimeout: 15_000,
     greetingTimeout: 10_000,
     socketTimeout: 20_000,
@@ -100,8 +103,22 @@ async function sendViaResend(args: SendArgs, apiKey: string, from: string): Prom
  *   2. Resend (RESEND_API_KEY) — legacy fallback if someone sets it later.
  *   3. Console — dev fallback, prints to pm2 logs. Use only locally.
  */
+const DEFAULT_NOREPLY_ADDRESS = "noreply@climat-simf.ru";
+
+export function mailFromNoreply(): string {
+  return (
+    process.env.MAIL_FROM_NOREPLY ||
+    process.env.MAIL_FROM ||
+    `${storefront.brand} <${DEFAULT_NOREPLY_ADDRESS}>`
+  );
+}
+
+export function mailFromInfo(): string {
+  return process.env.MAIL_FROM_INFO || mailFromNoreply();
+}
+
 export async function sendMail(args: SendArgs): Promise<MailSendResult> {
-  const from = process.env.MAIL_FROM || `${storefront.brand} <noreply@climat-simf.ru>`;
+  const from = args.from ?? mailFromNoreply();
 
   if (getSmtpTransport()) {
     const result = await sendViaSmtp(args, from);

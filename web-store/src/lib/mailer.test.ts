@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildMagicLinkEmail,
   buildRoleApprovedEmail,
   buildRoleRejectedEmail,
+  mailFromInfo,
+  mailFromNoreply,
 } from "@/lib/mailer";
 
 describe("buildMagicLinkEmail", () => {
@@ -49,5 +51,34 @@ describe("buildRoleRejectedEmail", () => {
   it("falls back to manager-contact line when no note", () => {
     const { text } = buildRoleRejectedEmail({ role: "gov", orgName: "ООО Тест" });
     expect(text).toMatch(/менеджер/i);
+  });
+});
+
+describe("mail from-address helpers", () => {
+  const saved = { ...process.env };
+  beforeEach(() => {
+    delete process.env.MAIL_FROM;
+    delete process.env.MAIL_FROM_NOREPLY;
+    delete process.env.MAIL_FROM_INFO;
+  });
+  afterEach(() => {
+    process.env = { ...saved };
+  });
+
+  it("mailFromNoreply falls back to default noreply when no env", () => {
+    expect(mailFromNoreply()).toContain("noreply@climat-simf.ru");
+  });
+
+  it("mailFromNoreply prefers MAIL_FROM_NOREPLY, then legacy MAIL_FROM", () => {
+    process.env.MAIL_FROM = "Legacy <legacy@climat-simf.ru>";
+    expect(mailFromNoreply()).toBe("Legacy <legacy@climat-simf.ru>");
+    process.env.MAIL_FROM_NOREPLY = "NR <noreply@climat-simf.ru>";
+    expect(mailFromNoreply()).toBe("NR <noreply@climat-simf.ru>");
+  });
+
+  it("mailFromInfo uses MAIL_FROM_INFO when set, else falls back to noreply", () => {
+    expect(mailFromInfo()).toContain("noreply@climat-simf.ru");
+    process.env.MAIL_FROM_INFO = "Info <info@climat-simf.ru>";
+    expect(mailFromInfo()).toBe("Info <info@climat-simf.ru>");
   });
 });

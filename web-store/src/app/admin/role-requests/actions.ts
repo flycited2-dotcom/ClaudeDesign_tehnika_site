@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
-import { buildRoleApprovedEmail, buildRoleRejectedEmail, sendMail } from "@/lib/mailer";
+import { buildRoleApprovedEmail, buildRoleRejectedEmail, mailFromInfo, sendMail } from "@/lib/mailer";
 
 const reviewSchema = z.object({
   requestId: z.string().min(5).max(80),
@@ -55,7 +55,7 @@ export async function approveRoleUpgradeAction(formData: FormData): Promise<void
         role: result.request.requestedRole === "B2B" ? "b2b" : "gov",
         orgName: result.request.orgName,
       });
-      await sendMail({ to: user.email, subject: mail.subject, text: mail.text, html: mail.html });
+      await sendMail({ from: mailFromInfo(), to: user.email, subject: mail.subject, text: mail.text, html: mail.html });
     }
   }
 
@@ -86,7 +86,7 @@ export async function rejectRoleUpgradeAction(formData: FormData): Promise<void>
       orgName: updated.orgName,
       note: updated.reviewNote,
     });
-    await sendMail({ to: updated.user.email, subject: mail.subject, text: mail.text, html: mail.html });
+    await sendMail({ from: mailFromInfo(), to: updated.user.email, subject: mail.subject, text: mail.text, html: mail.html });
   }
 
   revalidatePath("/admin/role-requests");
