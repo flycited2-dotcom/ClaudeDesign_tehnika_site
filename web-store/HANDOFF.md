@@ -24,6 +24,22 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-21 — Email Phase 1: Task 1 (код) готов, T2-T5 НЕ начаты ⏸️
+
+> **Работа в процессе — продолжать позже.** Полный статус: memory `email-setup-progress-2026-05-21.md`.
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Spec:** `web-store/docs/superpowers/specs/2026-05-21-email-setup-postfix-design.md`
+- **Plan (Фаза 1):** `web-store/docs/superpowers/plans/2026-05-21-email-phase1-outbound.md`
+- **Подход:** свой Postfix-стек на VPS (почты у домена не было; провайдер Sprintbox без mail-хостинга). RU-фокус.
+- **Сделано — Task 1 (commit `8f444a6`):** `mailer.ts` — параметр `from` + `mailFromNoreply()`/`mailFromInfo()`, no-auth localhost SMTP (для Postfix-релея через 127.0.0.1:25), письма о статусе роли через `info@`, `.env.example`. Тесты 161→164, lint/build OK. **Прод НЕ менялся** (только код в репо).
+- **НЕ сделано (T2-T5):**
+  - T2 🟦 VPS: `apt install postfix opendkim`, ген DKIM-ключа (селектор `mail`), конфиг milter, `mynetworks=127.0.0.0/8`. **Остановились перед `apt install` — ждём ОК владельца.**
+  - T3 🟨 владелец (Sprintbox): DNS (`A mail`, SPF, DKIM из T2, DMARC) + **сменить PTR** `212.116.115.150` → `mail.climat-simf.ru`.
+  - T4 🟦 VPS: `.env` → `SMTP_HOST=127.0.0.1`, `SMTP_PORT=25`, `MAIL_FROM_NOREPLY/INFO`, `pm2 restart`.
+  - T5 🟦 тест доставки (Mail.ru/Yandex, spf/dkim/dmarc=pass, mail-tester), вход по ссылке, проверка НЕ open-relay.
+- **Факты:** порт 25 с VPS — Mail.ru/Yandex OPEN, **Gmail BLOCKED** (доставка на @gmail ненадёжна). PTR сейчас `box-891610.local` (мусор). Приём info@ (Dovecot+Roundcube) — Фаза 2.
+
 ### 2026-05-21 — OPS: Nginx proxy_cache для фото товаров (НЕ в репо) ✅
 
 > **Это операционная правка на VPS — её НЕТ в git. При переезде на новый сервер повторить вручную.**
