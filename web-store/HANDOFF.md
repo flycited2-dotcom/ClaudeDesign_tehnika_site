@@ -24,6 +24,19 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-21 — OPS: Nginx proxy_cache для фото товаров (НЕ в репо) ✅
+
+> **Это операционная правка на VPS — её НЕТ в git. При переезде на новый сервер повторить вручную.**
+
+- **Где:** `/etc/nginx/conf.d/product-images-cache.conf` (новый) + `/etc/nginx/sites-available/climat-simf.ru` (добавлен `location /api/product-images/`).
+- **Backup конфига:** `/root/climat-simf.ru.nginx.bak-20260521104810`
+- **Что сделано:** disk-кэш Nginx для `/api/product-images/<id>`. Зона `product_images` (10m keys, max 2g, inactive 30d), `proxy_cache_key "$uri"`, `proxy_cache_valid 200 30d`, `proxy_ignore_headers Cache-Control Expires`, header `X-Cache-Status`.
+- **Зачем:** раньше каждое фото = Node-роут (`force-dynamic`) + Prisma `findFirst` + проксирование к `b2b.i-t-p.pro`. На странице каталога 24 фото = 24 DB-хита + стриминг через Node. Теперь повторные запросы отдаёт Nginx с диска, не трогая Node/Prisma.
+- **Замер:** TTFB MISS 0.52s → HIT 0.25s (×2), HIT не нагружает Node вообще.
+- **Известное ограничение:** если sync обновит фото в той же записи ProductImage (тот же `id`), кэш может отдавать старое до 30 дней. На практике id меняется вместе с картинкой — приемлемо. При необходимости сбросить: `rm -rf /var/cache/nginx/product_images/* && systemctl reload nginx`.
+- **Откат:** удалить `conf.d/product-images-cache.conf` + `location /api/product-images/` из site-конфига (или восстановить из backup), `nginx -t && systemctl reload nginx`.
+- **Следующий шаг (не сделан):** уменьшение веса картинок (800×800/162KB → resize ~400px WebP, ×5-6) через next/image или `?w=` в роуте — это ускорит уже визуальную загрузку, а не только серверный отклик.
+
 ### 2026-05-18 — Iter 21: реальная страница сравнения (CompareTable) ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
