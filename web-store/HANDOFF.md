@@ -30,14 +30,15 @@
 - **Spec:** `web-store/docs/superpowers/specs/2026-05-21-email-setup-postfix-design.md`
 - **Plan:** `web-store/docs/superpowers/plans/2026-05-21-email-phase1-outbound.md`
 - **Подход:** свой Postfix+OpenDKIM на VPS (Sprintbox без mail-хостинга). RU-фокус.
-- **Коммиты:** `8f444a6` (dual sender + no-auth SMTP), `f655695` (ignoreTLS для loopback), `ad7916b` (verify redirect из public Host), `eda3193` (logout redirect + общий `publicBaseUrl`).
+- **Коммиты:** `8f444a6` (dual sender + no-auth SMTP), `f655695` (ignoreTLS для loopback), `ad7916b` (verify redirect из public Host), `eda3193` (logout redirect + общий `publicBaseUrl`), `b7e8313` (middleware `/account`-гард + product-image redirect из public origin).
+- **Все 3 роли проверены сквозняком (через публичный домен):** b2c→/account, b2b→/b2b, gov→/gov; вход создаёт сессию, кабинет 200, роль-роутинг (b2b/gov на /account → 307 в свой кабинет), logout→/. Все редиректы на climat-simf.ru, ни одного на localhost.
 - **VPS-инфра (НЕ в репо, повторить при миграции):** Postfix 3.8.6 + OpenDKIM 2.11.0. DKIM селектор `mail`, ключ `/etc/opendkim/keys/climat-simf.ru/`. `mynetworks=127.0.0.0/8` (не open-relay). `smtp_address_preference=ipv4` (у `mail.` нет AAAA → IPv6 слать нельзя). `.env`: `SMTP_HOST=127.0.0.1 SMTP_PORT=25 MAIL_FROM_NOREPLY/INFO`.
 - **DNS (владелец, Sprintbox):** `A mail`→212.116.115.150, SPF `v=spf1 a mx ip4:212.116.115.150 -all`, DKIM `mail._domainkey`, DMARC `_dmarc p=none`. **PTR** 212.116.115.150 → `mail.climat-simf.ru` (раздел «Боксы»→rDNS).
 - **Проверено на проде:** письмо доставлено на Yandex (инбокс) и Gmail; в заголовках Gmail **spf=pass, dkim=pass, dmarc=pass**. Вход по ссылке создаёт сессию и редиректит на `/account`. Logout → `https://climat-simf.ru/`.
 - **Найденные и исправленные баги по ходу:**
   1. nodemailer падал на STARTTLS с self-signed сертификатом Postfix на loopback → `ignoreTLS` для 127.0.0.1.
   2. Postfix слал по IPv6 (у `mail.` нет AAAA, PTR не подтверждался) → `smtp_address_preference=ipv4`.
-  3. `/login/verify` и `/logout` строили редирект из `request.url` = `localhost:3001` (за nginx) → браузер уходил на localhost. Фикс: `publicBaseUrl(headers)` из `Host`+`X-Forwarded-Proto`.
+  3. `/login/verify`, `/logout`, **`middleware.ts` (гард /account)** и `api/product-images` строили редирект из `request.url` = `localhost:3001` (за nginx) → браузер уходил на localhost. Фикс: `publicBaseUrl(headers)` из `Host`+`X-Forwarded-Proto` (в middleware — инлайн, т.к. Edge-runtime не тянет Prisma). Проверено на всех 3 ролях.
 - **Известные ограничения:**
   - **Gmail-спам:** письма на @gmail могут попадать в спам — репутация нового IP/домена (аутентификация вся pass, это вопрос прогрева, не конфига). Целевая RU-почта (Yandex) — в инбоксе.
   - **P2024 (пул Prisma):** при cold-start каталога пул (`connection_limit=20`) иногда исчерпывается → запись сессии в verify может таймаутиться (вход интермиттентно падал во время деплоев). Postgres `max_connections=100`, активно ~11 → есть запас, можно поднять `connection_limit`. Пре-существующая проблема каталога, не email.
