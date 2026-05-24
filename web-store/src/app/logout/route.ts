@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import { USER_SESSION_COOKIE, clearSessionCookie, destroySessionByToken } from "@/lib/auth";
+import { USER_SESSION_COOKIE, clearSessionCookie, destroySessionByToken, publicBaseUrl } from "@/lib/auth";
 
 async function handle(request: NextRequest) {
   const store = await cookies();
@@ -9,7 +9,7 @@ async function handle(request: NextRequest) {
     await destroySessionByToken(token);
   }
   await clearSessionCookie();
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.redirect(new URL("/", publicBaseUrl(request.headers)));
 }
 
 export async function GET(request: NextRequest) {

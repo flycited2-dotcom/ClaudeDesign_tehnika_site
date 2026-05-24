@@ -3,8 +3,22 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import type { StorefrontRole as PrismaStorefrontRole, User } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { storefront } from "@/lib/storefront";
 
 export const USER_SESSION_COOKIE = "techno_market_session";
+
+/**
+ * Build the public-facing origin for server-side redirects. Behind nginx the
+ * app sees request.url as http://localhost:3001/... (the internal proxy
+ * target), so redirects built from it send the browser to localhost. Use the
+ * forwarded Host + X-Forwarded-Proto (nginx sets both) instead, falling back
+ * to the configured site URL.
+ */
+export function publicBaseUrl(headers: Headers): string {
+  const host = headers.get("host");
+  const proto = headers.get("x-forwarded-proto") ?? "https";
+  return host ? `${proto}://${host}` : storefront.siteUrl;
+}
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 

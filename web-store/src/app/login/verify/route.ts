@@ -3,10 +3,10 @@ import {
   consumeMagicLinkToken,
   createSession,
   findOrCreateUser,
+  publicBaseUrl,
   roleToStorefront,
   setSessionCookie,
 } from "@/lib/auth";
-import { storefront } from "@/lib/storefront";
 
 const ROLE_HOME: Record<"b2c" | "b2b" | "gov", string> = {
   b2c: "/account",
@@ -14,18 +14,8 @@ const ROLE_HOME: Record<"b2c" | "b2b" | "gov", string> = {
   gov: "/gov",
 };
 
-// Behind nginx the app sees request.url as http://localhost:3001/... (the
-// internal proxy target), so redirects built from it send the browser to
-// localhost. Build from the forwarded Host + proto (nginx sets both) so the
-// redirect targets the public origin instead.
-function publicBaseUrl(request: NextRequest): string {
-  const host = request.headers.get("host");
-  const proto = request.headers.get("x-forwarded-proto") ?? "https";
-  return host ? `${proto}://${host}` : storefront.siteUrl;
-}
-
 function failureRedirect(request: NextRequest, reason: string) {
-  const url = new URL("/login", publicBaseUrl(request));
+  const url = new URL("/login", publicBaseUrl(request.headers));
   url.searchParams.set("error", reason);
   return NextResponse.redirect(url);
 }
@@ -51,5 +41,5 @@ export async function GET(request: NextRequest) {
       ? next
       : ROLE_HOME[roleToStorefront(user.role)];
 
-  return NextResponse.redirect(new URL(target, publicBaseUrl(request)));
+  return NextResponse.redirect(new URL(target, publicBaseUrl(request.headers)));
 }
