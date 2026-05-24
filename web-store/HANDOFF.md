@@ -24,21 +24,24 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
-### 2026-05-21 — Email Phase 1: Task 1 (код) готов, T2-T5 НЕ начаты ⏸️
-
-> **Работа в процессе — продолжать позже.** Полный статус: memory `email-setup-progress-2026-05-21.md`.
+### 2026-05-24 — Email Phase 1 ЗАВЕРШЕНА: вход/регистрация по email работают ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
 - **Spec:** `web-store/docs/superpowers/specs/2026-05-21-email-setup-postfix-design.md`
-- **Plan (Фаза 1):** `web-store/docs/superpowers/plans/2026-05-21-email-phase1-outbound.md`
-- **Подход:** свой Postfix-стек на VPS (почты у домена не было; провайдер Sprintbox без mail-хостинга). RU-фокус.
-- **Сделано — Task 1 (commit `8f444a6`):** `mailer.ts` — параметр `from` + `mailFromNoreply()`/`mailFromInfo()`, no-auth localhost SMTP (для Postfix-релея через 127.0.0.1:25), письма о статусе роли через `info@`, `.env.example`. Тесты 161→164, lint/build OK. **Прод НЕ менялся** (только код в репо).
-- **НЕ сделано (T2-T5):**
-  - T2 🟦 VPS: `apt install postfix opendkim`, ген DKIM-ключа (селектор `mail`), конфиг milter, `mynetworks=127.0.0.0/8`. **Остановились перед `apt install` — ждём ОК владельца.**
-  - T3 🟨 владелец (Sprintbox): DNS (`A mail`, SPF, DKIM из T2, DMARC) + **сменить PTR** `212.116.115.150` → `mail.climat-simf.ru`.
-  - T4 🟦 VPS: `.env` → `SMTP_HOST=127.0.0.1`, `SMTP_PORT=25`, `MAIL_FROM_NOREPLY/INFO`, `pm2 restart`.
-  - T5 🟦 тест доставки (Mail.ru/Yandex, spf/dkim/dmarc=pass, mail-tester), вход по ссылке, проверка НЕ open-relay.
-- **Факты:** порт 25 с VPS — Mail.ru/Yandex OPEN, **Gmail BLOCKED** (доставка на @gmail ненадёжна). PTR сейчас `box-891610.local` (мусор). Приём info@ (Dovecot+Roundcube) — Фаза 2.
+- **Plan:** `web-store/docs/superpowers/plans/2026-05-21-email-phase1-outbound.md`
+- **Подход:** свой Postfix+OpenDKIM на VPS (Sprintbox без mail-хостинга). RU-фокус.
+- **Коммиты:** `8f444a6` (dual sender + no-auth SMTP), `f655695` (ignoreTLS для loopback), `ad7916b` (verify redirect из public Host), `eda3193` (logout redirect + общий `publicBaseUrl`).
+- **VPS-инфра (НЕ в репо, повторить при миграции):** Postfix 3.8.6 + OpenDKIM 2.11.0. DKIM селектор `mail`, ключ `/etc/opendkim/keys/climat-simf.ru/`. `mynetworks=127.0.0.0/8` (не open-relay). `smtp_address_preference=ipv4` (у `mail.` нет AAAA → IPv6 слать нельзя). `.env`: `SMTP_HOST=127.0.0.1 SMTP_PORT=25 MAIL_FROM_NOREPLY/INFO`.
+- **DNS (владелец, Sprintbox):** `A mail`→212.116.115.150, SPF `v=spf1 a mx ip4:212.116.115.150 -all`, DKIM `mail._domainkey`, DMARC `_dmarc p=none`. **PTR** 212.116.115.150 → `mail.climat-simf.ru` (раздел «Боксы»→rDNS).
+- **Проверено на проде:** письмо доставлено на Yandex (инбокс) и Gmail; в заголовках Gmail **spf=pass, dkim=pass, dmarc=pass**. Вход по ссылке создаёт сессию и редиректит на `/account`. Logout → `https://climat-simf.ru/`.
+- **Найденные и исправленные баги по ходу:**
+  1. nodemailer падал на STARTTLS с self-signed сертификатом Postfix на loopback → `ignoreTLS` для 127.0.0.1.
+  2. Postfix слал по IPv6 (у `mail.` нет AAAA, PTR не подтверждался) → `smtp_address_preference=ipv4`.
+  3. `/login/verify` и `/logout` строили редирект из `request.url` = `localhost:3001` (за nginx) → браузер уходил на localhost. Фикс: `publicBaseUrl(headers)` из `Host`+`X-Forwarded-Proto`.
+- **Известные ограничения:**
+  - **Gmail-спам:** письма на @gmail могут попадать в спам — репутация нового IP/домена (аутентификация вся pass, это вопрос прогрева, не конфига). Целевая RU-почта (Yandex) — в инбоксе.
+  - **P2024 (пул Prisma):** при cold-start каталога пул (`connection_limit=20`) иногда исчерпывается → запись сессии в verify может таймаутиться (вход интермиттентно падал во время деплоев). Postgres `max_connections=100`, активно ~11 → есть запас, можно поднять `connection_limit`. Пре-существующая проблема каталога, не email.
+- **Фаза 2 (не сделана):** приём почты на `info@` (MX + Dovecot + Roundcube вебмейл). MX ещё не ставили.
 
 ### 2026-05-21 — OPS: Nginx proxy_cache для фото товаров (НЕ в репо) ✅
 
