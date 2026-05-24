@@ -1,3 +1,4 @@
+import { publicBaseUrl } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isAllowedSupplierImageUrl } from "@/lib/product-images";
 
@@ -49,7 +50,7 @@ export async function GET(request: Request, { params }: RouteContext) {
   }
 
   if (image.localImageUrl?.startsWith("/")) {
-    return Response.redirect(new URL(image.localImageUrl, request.url));
+    return Response.redirect(new URL(image.localImageUrl, publicBaseUrl(request.headers)));
   }
 
   const sourceUrl = image.localImageUrl ?? image.supplierImageUrl;
