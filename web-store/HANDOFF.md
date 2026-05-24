@@ -24,6 +24,21 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-24 — Email Phase 2 ЗАВЕРШЕНА: приём на info@ + вебмейл ✅
+
+- **Plan:** `web-store/docs/superpowers/plans/2026-05-24-email-phase2-inbound.md`
+- **Подход:** Postfix (virtual domain `climat-simf.ru`) → LMTP → Dovecot (Maildir info@); Roundcube вебмейл.
+- **VPS-инфра (НЕ в репо, повторить при миграции):**
+  - **Dovecot 2.3.21** (imapd+lmtpd): `/etc/dovecot/conf.d/99-climat.conf`. Maildir `/var/vmail/%d/%n`, юзер `vmail` (uid/gid 5000). passwd-file `/etc/dovecot/users` (info@, SHA512-CRYPT). IMAP только `127.0.0.1:143` (для Roundcube), IMAPS отключён. `ssl=yes`, `disable_plaintext_auth=no` (loopback). LMTP-сокет в `/var/spool/postfix/private/dovecot-lmtp`.
+  - **Postfix приём:** `virtual_mailbox_domains=climat-simf.ru`, `virtual_transport=lmtp:unix:private/dovecot-lmtp`, `virtual_mailbox_maps=hash:/etc/postfix/vmailbox` (info@), `virtual_alias_maps=hash:/etc/postfix/valias` (postmaster/abuse/noreply → info@).
+  - **Roundcube** (apt, SQLite): web root `/var/lib/roundcube`, конфиг `/etc/roundcube/config.inc.php` (imap=localhost:143, smtp=localhost:25 без auth). php8.3-fpm.
+  - **nginx vhost** `webmail.climat-simf.ru` (`/etc/nginx/sites-available/webmail.climat-simf.ru`), TLS из cert `mail.climat-simf.ru`.
+  - **TLS:** certbot cert `mail.climat-simf.ru` (+SAN `webmail.climat-simf.ru`), автопродление.
+- **DNS (владелец, Sprintbox):** `MX @ → 10 mail.climat-simf.ru.`, `A webmail → 212.116.115.150`.
+- **Вебмейл:** https://webmail.climat-simf.ru, логин `info@climat-simf.ru`. Пароль — только хэш в `/etc/dovecot/users` + у владельца (НЕ в репо/гите).
+- **Проверено:** входящее на info@ доставляется в maildir (LMTP 250 Saved), читается в Roundcube, ответ из вебмейла уходит (DKIM-подпись домена). Подтверждено владельцем.
+- **Известные ограничения:** нет антиспама входящих (rspamd — вне scope); нет fail2ban для dovecot/postfix (рекомендуется позже); IMAP только локально (мобильный клиент потребует открыть 993).
+
 ### 2026-05-24 — Email Phase 1 ЗАВЕРШЕНА: вход/регистрация по email работают ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
