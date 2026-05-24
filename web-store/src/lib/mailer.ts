@@ -34,17 +34,21 @@ function getSmtpTransport(): Transporter | null {
   if (!Number.isFinite(port) || port <= 0) return null;
 
   const hasAuth = Boolean(user && pass);
+  const isLoopback = host === "127.0.0.1" || host === "localhost" || host === "::1";
   const key = `${host}:${port}:${user ?? "noauth"}`;
   if (cachedSmtp && cachedSmtpKey === key) return cachedSmtp;
 
-  // 465 → implicit TLS, 587/25 → STARTTLS upgrade. Local relay (127.0.0.1:25)
-  // needs no auth — Postfix accepts from mynetworks.
+  // 465 → implicit TLS, 587/25 → STARTTLS upgrade. A loopback relay (local
+  // Postfix) advertises STARTTLS with a self-signed cert that nodemailer would
+  // reject ("self-signed certificate"). Skip STARTTLS for loopback — the hop
+  // never leaves the host, so plaintext is fine.
   const secure = port === 465;
   cachedSmtp = nodemailer.createTransport({
     host,
     port,
     secure,
     ...(hasAuth ? { auth: { user, pass } } : {}),
+    ...(isLoopback ? { ignoreTLS: true } : {}),
     connectionTimeout: 15_000,
     greetingTimeout: 10_000,
     socketTimeout: 20_000,
