@@ -24,6 +24,37 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-05-31 — Iter 22: мобильная адаптация витрины (узкие телефоны) ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `b554580` — "Iter 22: mobile adaptive fixes (bottom-nav, contacts/trust 1-col, header opacity)"
+- **Backup VPS (src):** `/var/www/climat-simf.ru/src.bak-20260531231454`
+- **Контекст:** владелец прислал 7 скринов с телефона (Samsung, ~360–412px) — горизонтальный
+  скролл, перекрытия, наезды. Каркас адаптива был (viewport ok, бургер+drawer ≤900px,
+  buy-bar на товаре), но **ниже 760px не было breakpoint**, а наш `SiteScreenBar` (нижняя
+  навигация) — 9 текстовых пунктов в один `fixed`-ряд без mobile-media → распирал страницу
+  вбок и перекрывал контент.
+- **Что изменено (3 файла, additive override, `glass-template.css` НЕ тронут):**
+  - `components/site-screen-bar.tsx` — у 5 ключевых пунктов (Главная/Каталог/Сравнение/
+    Корзина/Кабинет) добавлены иконки lucide + флаг `primary`. На десктопе вид прежний
+    (иконки скрыты), на мобиле — полноширинная иконочная bottom-nav; остальные пункты
+    (Оформление/B2B/Госзакупки/Сервис/Telegram) скрыты, доступны через бургер-drawer.
+  - `app/page.tsx` — секция `#contacts`: inline-grid вынесен в класс `.home-contacts`
+    (inline-стиль media-query не перебивает).
+  - `app/globals.css` — новый мобильный блок: `.screen-bar` → bottom-nav на всю ширину
+    (`left/right:8px; transform:none`) ≤760px; `.home-contacts` 1 колонка ≤900px; `.trust`
+    1 колонка ≤560px; непрозрачный фон `.header.glass` ≤760px (контент не просвечивает при
+    скролле); `.cat-toolbar` wrap (сортировка не вылезает). `body.app` padding-bottom 78px
+    на мобиле под новую панель.
+- **Проверки:** lint ✓, tests 164/164 ✓, build ✓ (локально и на VPS).
+- **Smoke prod (localhost:3001):** `/`=200/0.08s, `/catalog`=200/2.5s, `/cart`/`/favorites`/
+  `/compare`/`/b2b`/`/gov`/`/service`/`/bot`/`/checkout`=200, `/account`=307 (гард гостя — ок).
+- **Известные ограничения / не входило:** таблица `/compare` на узких всё ещё горизонтально
+  скроллится (min-width 600px — отдельная задача); вес/ресайз фото каталога (долг по скорости).
+- **Визуальная приёмка:** на телефоне владельца (в сессии нет браузер-инструмента для
+  эмуляции). Откат: `cp -r src.bak-20260531231454/* src/` → `rm -rf .next && npm run build` →
+  `pm2 restart climat-simf-store`.
+
 ### 2026-05-24 — Email Phase 2 ЗАВЕРШЕНА: приём на info@ + вебмейл ✅
 
 - **Plan:** `web-store/docs/superpowers/plans/2026-05-24-email-phase2-inbound.md`
