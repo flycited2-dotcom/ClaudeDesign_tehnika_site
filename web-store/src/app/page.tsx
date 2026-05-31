@@ -314,15 +314,11 @@ export default async function Home() {
 
       <section
         id="contacts"
-        className="glass-strong"
+        className="glass-strong home-contacts"
         style={{
           padding: 32,
           borderRadius: 28,
           marginTop: 18,
-          display: "grid",
-          gap: 24,
-          gridTemplateColumns: "minmax(0, 1.1fr) minmax(260px, 0.9fr)",
-          alignItems: "center",
         }}
       >
         <div>

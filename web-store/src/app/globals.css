@@ -543,3 +543,88 @@ body.app {
     display: none;
   }
 }
+
+/* ============================================================
+   MOBILE — adaptive fixes for narrow phones.
+   Overrides only; glass-template.css stays untouched.
+   ============================================================ */
+
+/* Home "Contacts" section: grid lives here (was inline-grid in page.tsx, which
+   media-queries can't override). 2 columns on desktop, 1 column on mobile. */
+.home-contacts {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .home-contacts {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Screen-bar item icons are mobile-only; hidden in the desktop text pill. */
+.screen-bar .sb-ic {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  /* Turn the centered pill into a full-width bottom-nav of 5 primary icon items.
+     Non-primary items + separators are hidden (reachable via header burger-drawer). */
+  .screen-bar {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    transform: none;
+    gap: 2px;
+    justify-content: space-around;
+    padding: 6px 4px;
+    border-radius: 18px;
+  }
+  .screen-bar .sep,
+  .screen-bar a:not(.sb-primary) {
+    display: none;
+  }
+  .screen-bar a.sb-primary {
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 2px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+  }
+  .screen-bar .sb-ic {
+    display: grid;
+    place-items: center;
+  }
+  /* Bottom-nav is shorter than the desktop pill — reserve a bit less space. */
+  body.app {
+    padding-bottom: 78px;
+  }
+
+  /* Sticky header: make the glass opaque enough that scrolled content
+     doesn't bleed through it (and the pager doesn't show under it). */
+  .header.glass {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  /* Catalog toolbar: let the sort control wrap to its own full-width row
+     instead of overflowing past the screen edge. */
+  .cat-toolbar {
+    flex-wrap: wrap;
+  }
+  .cat-toolbar .left,
+  .cat-toolbar .sort {
+    width: 100%;
+  }
+}
+
+/* Trust badges: single column on very narrow phones (2 columns clip otherwise). */
+@media (max-width: 560px) {
+  .trust {
+    grid-template-columns: 1fr;
+  }
+}
