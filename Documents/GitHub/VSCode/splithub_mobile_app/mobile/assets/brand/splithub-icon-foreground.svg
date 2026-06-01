@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140">
+  <mask id="center-cut">
+    <rect width="140" height="140" fill="#FFFFFF"/>
+    <circle cx="70" cy="70" r="10" fill="#000000"/>
+  </mask>
+  <g fill="#FFFFFF" mask="url(#center-cut)" transform="translate(70 70)">
+    <ellipse rx="12" ry="24" transform="rotate(0) translate(0 -18)"/>
+    <ellipse rx="12" ry="24" transform="rotate(60) translate(0 -18)"/>
+    <ellipse rx="12" ry="24" transform="rotate(120) translate(0 -18)"/>
+    <ellipse rx="12" ry="24" transform="rotate(180) translate(0 -18)"/>
+    <ellipse rx="12" ry="24" transform="rotate(240) translate(0 -18)"/>
+    <ellipse rx="12" ry="24" transform="rotate(300) translate(0 -18)"/>
+  </g>
+</svg>

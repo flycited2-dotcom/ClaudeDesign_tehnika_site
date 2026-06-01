@@ -4,6 +4,7 @@
 
 - [ ] Rotate the Telegram bot token before backend deployment.
 - [ ] Deploy the backend branch to a staging HTTPS host.
+- [ ] Create an uncommitted `.env.local` from `.env.example` for the staging API.
 - [ ] Configure Expo account and EAS project ID.
 - [ ] Configure Android FCM V1 credentials.
 - [ ] Configure Apple Developer account and APNs key.
@@ -11,7 +12,7 @@
 
 ## Store Assets
 
-- [ ] Replace Expo placeholder icon and splash assets with approved SplitHub branding.
+- [x] Replace Expo placeholder icon and splash assets with SplitHub branding.
 - [ ] Capture Android and iPhone screenshots.
 - [ ] Publish the reviewed privacy policy under splithub.ru.
 - [ ] Confirm the support URL and support email.
