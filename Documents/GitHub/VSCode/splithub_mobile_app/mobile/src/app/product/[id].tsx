@@ -1,7 +1,8 @@
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 
 import { useCatalog } from '../../features/catalog/catalog-context';
+import { useCart } from '../../features/cart/cart-context';
 import { colors, formatPrice, spacing } from '../../lib/theme';
 
 const imageBaseUrl = 'https://splithub.ru/assets/img/products/';
@@ -9,6 +10,7 @@ const imageBaseUrl = 'https://splithub.ru/assets/img/products/';
 export default function ProductDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { snapshot } = useCatalog();
+  const { addProduct } = useCart();
   const product = snapshot?.products.find((item) => item.id === id);
 
   if (!product) {
@@ -39,7 +41,7 @@ export default function ProductDetailsScreen() {
           </View>
         ) : null}
         <Pressable
-          onPress={() => Alert.alert('Корзина', 'Добавление в корзину будет доступно на следующем шаге.')}
+          onPress={() => addProduct(product)}
           style={styles.button}>
           <Text style={styles.buttonText}>Добавить в корзину</Text>
         </Pressable>
