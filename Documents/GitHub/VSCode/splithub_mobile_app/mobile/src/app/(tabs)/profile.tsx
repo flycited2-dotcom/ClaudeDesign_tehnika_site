@@ -1,11 +1,55 @@
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Link } from 'expo-router';
 
 import { useSession } from '../../features/session/session-context';
+import {
+  type NotificationPreferences,
+  registerDevice,
+  removeDevice,
+  updateNotificationPreferences,
+} from '../../features/notifications/register-device';
 import { colors, spacing } from '../../lib/theme';
+
+const defaultPreferences: NotificationPreferences = {
+  order_status_enabled: true,
+  promotions_enabled: true,
+  manager_messages_enabled: true,
+};
 
 export default function ProfileScreen() {
   const { user, loading, logout } = useSession();
+  const [expoToken, setExpoToken] = useState<string | null>(null);
+  const [notificationStatus, setNotificationStatus] = useState('');
+  const [preferences, setPreferences] = useState<NotificationPreferences>(defaultPreferences);
+
+  useEffect(() => {
+    if (!user) return;
+    void registerDevice(defaultPreferences)
+      .then((token) => {
+        setExpoToken(token);
+        if (token) setNotificationStatus('Устройство зарегистрировано для push-уведомлений');
+      })
+      .catch(() => setNotificationStatus('Push-уведомления станут доступны после настройки EAS project ID'));
+  }, [user]);
+
+  function setPreference(key: keyof NotificationPreferences, enabled: boolean) {
+    const next = { ...preferences, [key]: enabled };
+    setPreferences(next);
+    if (expoToken) {
+      void updateNotificationPreferences(expoToken, next).catch(() =>
+        setNotificationStatus('Не удалось сохранить настройки уведомлений'),
+      );
+    }
+  }
+
+  async function logoutAndRemoveDevice() {
+    try {
+      if (expoToken) await removeDevice(expoToken);
+    } finally {
+      await logout();
+    }
+  }
 
   if (loading) {
     return <View style={styles.screen}><Text>Загрузка профиля...</Text></View>;
@@ -29,7 +73,28 @@ export default function ProfileScreen() {
       {user.telegram ? <Text style={styles.muted}>Telegram: {user.telegram}</Text> : null}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Уведомления</Text>
-        <Text style={styles.muted}>Настройки push-уведомлений будут доступны после регистрации устройства.</Text>
+        <View style={styles.preference}>
+          <Text style={styles.preferenceLabel}>Статусы заказов</Text>
+          <Switch
+            onValueChange={(enabled) => setPreference('order_status_enabled', enabled)}
+            value={preferences.order_status_enabled}
+          />
+        </View>
+        <View style={styles.preference}>
+          <Text style={styles.preferenceLabel}>Промо и акции</Text>
+          <Switch
+            onValueChange={(enabled) => setPreference('promotions_enabled', enabled)}
+            value={preferences.promotions_enabled}
+          />
+        </View>
+        <View style={styles.preference}>
+          <Text style={styles.preferenceLabel}>Сообщения менеджера</Text>
+          <Switch
+            onValueChange={(enabled) => setPreference('manager_messages_enabled', enabled)}
+            value={preferences.manager_messages_enabled}
+          />
+        </View>
+        {notificationStatus ? <Text style={styles.muted}>{notificationStatus}</Text> : null}
       </View>
       <Pressable onPress={() => void Linking.openURL('https://t.me/Byttehnikaopt')} style={styles.outline}>
         <Text style={styles.outlineText}>Написать менеджеру в Telegram</Text>
@@ -40,7 +105,7 @@ export default function ProfileScreen() {
       <Pressable onPress={() => void Linking.openURL('https://splithub.ru/')} style={styles.outline}>
         <Text style={styles.outlineText}>Открыть прайс-лист</Text>
       </Pressable>
-      <Pressable onPress={() => void logout()} style={styles.logout}>
+      <Pressable onPress={() => void logoutAndRemoveDevice()} style={styles.logout}>
         <Text style={styles.logoutText}>Выйти</Text>
       </Pressable>
     </View>
@@ -80,6 +145,15 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: colors.text,
     fontWeight: '800',
+  },
+  preference: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  preferenceLabel: {
+    color: colors.text,
+    flex: 1,
   },
   outline: {
     borderColor: colors.accent,
