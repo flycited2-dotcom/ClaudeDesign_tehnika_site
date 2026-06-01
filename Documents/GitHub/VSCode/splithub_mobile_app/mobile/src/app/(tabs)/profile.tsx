@@ -34,6 +34,12 @@ export default function ProfileScreen() {
       <Pressable onPress={() => void Linking.openURL('https://t.me/Byttehnikaopt')} style={styles.outline}>
         <Text style={styles.outlineText}>Написать менеджеру в Telegram</Text>
       </Pressable>
+      <Pressable onPress={() => void Linking.openURL('tel:+79785991369')} style={styles.outline}>
+        <Text style={styles.outlineText}>Позвонить менеджеру</Text>
+      </Pressable>
+      <Pressable onPress={() => void Linking.openURL('https://splithub.ru/')} style={styles.outline}>
+        <Text style={styles.outlineText}>Открыть прайс-лист</Text>
+      </Pressable>
       <Pressable onPress={() => void logout()} style={styles.logout}>
         <Text style={styles.logoutText}>Выйти</Text>
       </Pressable>
