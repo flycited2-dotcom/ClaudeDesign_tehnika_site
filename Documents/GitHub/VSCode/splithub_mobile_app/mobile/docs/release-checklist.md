@@ -20,9 +20,18 @@
 
 ## Artifacts
 
+- [x] Verify Android native prebuild locally.
+- [ ] Verify iOS native generation through EAS or on macOS.
 - [ ] Build and record the Google Play AAB.
 - [ ] Build and record the signed RuStore APK.
 - [ ] Build and record the iOS archive.
+
+## Dependency Audit
+
+- [ ] Re-check the upstream Expo build-tooling audit before store submission.
+  Expo SDK 56 currently resolves `@expo/config-plugins@56.0.8 -> xcode@3.0.1
+  -> uuid@7.0.3`; `npm audit --omit=dev` reports a moderate advisory. Do not
+  apply the suggested forced SDK 55 downgrade.
 
 ## Physical Device Matrix
 
