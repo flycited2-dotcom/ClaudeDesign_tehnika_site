@@ -49,3 +49,11 @@ powershell -ExecutionPolicy Bypass -File tests/php/admin_push_smoke.ps1
 
 After deployment, repeat the mobile flow on physical Android and iPhone
 devices using the staging API.
+
+Run the read-only remote readiness check before installing a development
+client:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tests/php/staging_readiness_smoke.ps1 `
+  -BaseUrl https://staging.splithub.ru
+```
