@@ -674,6 +674,22 @@ body.app {
   .header .head-actions {
     gap: 6px;
   }
+  /* Template hides [title="Кабинет"] (authenticated user) but for guests
+     the same slot renders with title="Войти" — also redundant on mobile
+     (bottom-nav has Кабинет). Hide it too. */
+  .head-actions .icon-btn[title="Войти"] {
+    display: none;
+  }
+
+  /* Breadcrumbs (.bread): on narrow screens, the multi-level chain
+     collapses to single chars (flex-shrink). Show only the back-button
+     (the first non-span child) and the LAST item (the current page). */
+  .bread > span:not(:last-child) {
+    display: none;
+  }
+  .bread {
+    flex-wrap: wrap;
+  }
 
   /* Catalog toolbar: let the sort control wrap to its own full-width row
      instead of overflowing past the screen edge. */
@@ -686,6 +702,20 @@ body.app {
   }
 }
 
+/* mob-buy-bar lives at the bottom of /product/[slug] on mobile. Bump it
+   above the bottom-nav so the two fixed bars don't visually merge into
+   a confusing single row. (Bottom-nav sits at bottom:8 ~74px tall;
+   buy-bar at bottom:92 has enough clearance.) Also extend main padding
+   so content can scroll past both. */
+@media (max-width: 900px) {
+  .mob-buy-bar {
+    bottom: 92px !important;
+  }
+  main {
+    padding-bottom: 170px !important;
+  }
+}
+
 /* Trust badges: single column on very narrow phones (2 columns clip otherwise). */
 @media (max-width: 560px) {
   .trust {
@@ -694,10 +724,14 @@ body.app {
 }
 
 /* ============================================================
-   Mobile sticky search row (Iter 23)
-   Renders below the .header.glass on viewports where the embedded
-   desktop search (.hdr-search-wrap) is hidden. Sticky-positioned
-   so it stays visible at the top while scrolling product lists.
+   Mobile search row (Iter 23 → 23.2: removed sticky)
+   Renders below .header.glass on viewports where the embedded
+   desktop search (.hdr-search-wrap) is hidden by template CSS.
+   Iter 23.2: removed `position: sticky` — it caused glassy
+   search to overlay the breadcrumbs as the user scrolled even
+   slightly. Search now sits in normal flow; scrolling pushes
+   it away with content (acceptable since the header itself is
+   sticky and provides constant brand+burger access).
    ============================================================ */
 .hdr-mobile-search {
   display: none;
@@ -706,16 +740,7 @@ body.app {
 @media (max-width: 1100px) {
   .hdr-mobile-search {
     display: block;
-    position: sticky;
-    top: 110px; /* below .header (sticky top:18px + min-height:88px + small gap) */
-    z-index: 40;
     margin: 8px 12px 0;
-  }
-}
-@media (max-width: 760px) {
-  /* Header is more compact at this breakpoint — pull sticky offset up. */
-  .hdr-mobile-search {
-    top: 90px;
   }
 }
 
