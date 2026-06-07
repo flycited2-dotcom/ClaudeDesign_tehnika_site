@@ -24,6 +24,22 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-08 — Iter 23.3 hotfix: product page horizontal overflow («холодильник торчит за экран») ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `0417bbd` — "Iter 23.3 hotfix: product page horizontal overflow on mobile (img pushes layout)"
+- **Backup VPS (src):** `/var/www/climat-simf.ru/src.bak-20260608021903`
+- **Deploy:** 2026-06-08 02:19 UTC, pm2 online pid 238305.
+- **Контекст:** владелец прислал stitched screenshot, я полез проверять реально через Chrome MCP + iframe 384px. Метрика: `body.scrollWidth = 866px` при viewport 384 → страница в 2.25 раза шире экрана, фото холодильника (830px) вылазит за правый край.
+- **Root cause:** `ProductGallery` оборачивает `<img>` в `<div style={display:flex}>` без `min-width: 0`. Flex-контейнеры по умолчанию имеют `min-width: auto`, что = размер intrinsic content. Фото холодильника natural 800×533 → flex настаивает на ≥800px ширине, распирает grid-cell → `.glass` → `.p-product-layout` → весь main растягивается до 866px.
+- **Fix (2 файла):**
+  1. **`globals.css` ≤900px:** `.p-product-layout, .p-product-bottom { min-width: 0; overflow: hidden }`; их children `min-width: 0; max-width: 100%; box-sizing: border-box`; их `img { max-width: 100%; height: auto }`; safety-net `main { overflow-x: hidden }`.
+  2. **`product-gallery.tsx`:** inline styles перебивали CSS-классы. Добавил `minWidth: 0` к region wrapper и `width: 100%; minWidth: 0; maxWidth: 100%` к photo-контейнеру. Заменил inline `<img style="width: 100%; height: 100%">` на `maxWidth/maxHeight: 100%; width/height: auto` — фото теперь scale-down с контейнером не распирая родителя.
+- **Verification (Chrome MCP, iframe 384px viewport):**
+  - До: `body.scrollWidth=866`, gallery img width 830, 25+ overflowing elements
+  - После: `body.scrollWidth=345`, gallery img width 309 (помещается в 384), всего 3 minor overflow (тумбнейлы галереи — legitimate horizontal scroll list, ожидаемо)
+- **Smoke prod:** /product/<wine-fridge>=200 повторно проверен.
+
 ### 2026-06-08 — Iter 23.2 hotfix: sticky search overlap, mob-buy-bar conflict, broken bread, header guest icon ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
