@@ -24,11 +24,13 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
-### 2026-06-08 — Iter 23: мобильный редизайн — drill-down каталог + bottom-sheet фильтры + sticky-поиск + новый bottom-nav 🟡 not yet deployed
+### 2026-06-08 — Iter 23: мобильный редизайн — drill-down каталог + bottom-sheet фильтры + sticky-поиск + новый bottom-nav ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
 - **Commit:** `e93076e` — "Iter 23: mobile redesign — drill-down catalog + filter sheet + sticky search + bottom-nav"
-- **Backup VPS (src):** TBD при деплое
+- **Backup VPS (src):** `/var/www/climat-simf.ru/src.bak-20260608010608`
+- **Deploy:** 2026-06-08 01:06 UTC — tar src/ → scp → ssh: cp -a src "src.bak-…" → tar -xzf → rm -rf .next → `npx --yes next build` → `pm2 restart climat-simf-store` (online, pid 234903). Backup сделан перед извлечением (additive, без `rm -rf src`).
+- **Smoke prod (https://climat-simf.ru, post-deploy):** `/`=200/4.27s, `/catalog`=200/14.1s (cold — норма), `/favorites`=200/0.67s, `/compare`=200/0.62s, `/cart`=200/0.92s, `/account`=307/0.69s (guest guard — ок), `/b2b`=200/0.66s, `/gov`=200/0.64s, `/service`=200/0.70s, `/catalog/holodilniki`=200/23.6s (cold). Все новые мобильные классы в HTML: `cat-hub`, `cat-hub-skel`, `hdr-mobile-search`, `mob-filter-trigger`, `sb-primary` (+ `active sb-primary` — pathname-matching работает). Drill-down API на проде: 16 топ-категорий, все `hasChildren=true` (Бытовая техника, Дача, Детские, Досуг, Запчасти, Компьютерная техника, …).
 - **Контекст:** владелец проверил мобильную версию после Iter 22 и обнаружил, что
   основной flow (каталог) на мобиле всё ещё непригоден: ~54k товаров без drill-down,
   фильтры стоят **внизу страницы** под всей сеткой товаров (`globals.css:540`
