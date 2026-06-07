@@ -24,6 +24,24 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-08 — Iter 23.1 hotfix: bottom-nav rework, mobile header, search Enter, product card name ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `ddb419e` — "Iter 23.1 hotfix: mobile bottom-nav rework + header layout + search Enter + product card name"
+- **Backup VPS (src):** `/var/www/climat-simf.ru/src.bak-20260608013518`
+- **Deploy:** 2026-06-08 01:35 UTC — tar→scp→ssh: cp -a src "src.bak-…" → tar -xzf → rm -rf .next → next build → pm2 restart (online, pid 236198).
+- **Контекст:** владелец визуально проверил Iter 23 на телефоне — несколько проблем: bottom-nav иконки невнятные (Heart "сердечко" — не нужно вообще; LayoutGrid воспринимался как "три палочки" а не каталог); логотип в шапке "висит слева" с пустотой; Enter на поиске не срабатывал (только клик по лупе); карточки товара показывают только бренд + категорию без модели.
+- **Что починено (5 файлов, +53/-26):**
+  1. **Bottom-nav (`site-screen-bar.tsx`):** Heart/Favorites убран из primary (доступен из header burger drawer'а и desktop pill). LayoutGrid → **Store** (магазин — однозначный визуальный код для каталога). 4 primary: Главная · Каталог · Корзина · Кабинет.
+  2. **Bottom-nav CSS (`globals.css`):** лейбл 13px/700-weight, min-height 60px — реально читаемо на 360px.
+  3. **Mobile header (`site-header.tsx` + CSS):** template'овый `grid-template-columns: 1fr auto` оставлял логотип в широкой 1fr-ячейке с пустотой справа от него. Override на ≤760px → `display: flex; justify-content: space-between` (логотип слева, экшены справа, без awkward пустоты). Empty mega-menu wrapper получил класс `.hdr-mega-trigger` и `display: none` на мобиле. Brand-mark 46→40px на мобиле для компактности.
+  4. **Search Enter (`header-search-control.tsx`):** `preventDefault()` + `router.push()` в `onSubmit` мог глотаться некоторыми Android-IME при нажатии Enter на виртуальной клавиатуре. Перешли на **native form GET submission** к `/search?q=<value>` (`<form action="/search" method="get">` без preventDefault). Это работает на всех клавиатурах. `onKeyDown` для Enter тоже убран (form submission покрывает).
+  5. **Product card name (`glass-product-card.tsx`):** в БД у многих товаров `product.name` — короткий generic ("Морозилка встраиваемая") а модель сидит в `product.part`. Карточка показывала "Bosch / Морозилка встраиваемая" без модели. Теперь сшиваем `name + part` в displayName когда part не упоминается в name. Cap short-title 100→120 символов.
+- **Smoke prod (post-deploy):** `/` `/catalog` `/favorites` `/compare` `/cart` = 200, `/search?q=холодильник` (URL-encoded) = 200/275KB. HTML на проде подтверждает: bottom-nav теперь 4 primary (`Главная active sb-primary`, `Каталог sb-primary` со `lucide-store`, `Корзина sb-primary`, `Кабинет sb-primary`), `Избранное` и `Сравнение` НЕ primary (просто `class=""`).
+- **НЕ исправлено в этой итерации (ждём конкретные URL/скрины):**
+  - **Product page mobile** — `.p-product-layout` уже схлопывается в 1 колонку на ≤900px по template-CSS (lines 62-70 globals.css). Владелец сообщил, что "для некоторых товаров (вин. шкафы, холодильники) показывается desktop-версия" — нужен конкретный URL чтобы воспроизвести и debug'нуть. Возможные причины: stale ISR cache (revalidate=300s), товар с длинным content который пушит overflow, hydration mismatch на конкретных категориях.
+  - **Lightbox tiny image** — `<img>` в галерее использует `objectFit: contain` без `width: 100%`, поэтому если source 300×300px, lightbox показывает его в естественном размере (не stretching). Чтобы починить нужно понять — это про lightbox (full-screen) или про main-image-view (small preview). Нужен скрин.
+
 ### 2026-06-08 — Iter 23: мобильный редизайн — drill-down каталог + bottom-sheet фильтры + sticky-поиск + новый bottom-nav ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
