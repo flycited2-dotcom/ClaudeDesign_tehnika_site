@@ -24,6 +24,95 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-08 — Iter 23: мобильный редизайн — drill-down каталог + bottom-sheet фильтры + sticky-поиск + новый bottom-nav 🟡 not yet deployed
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `e93076e` — "Iter 23: mobile redesign — drill-down catalog + filter sheet + sticky search + bottom-nav"
+- **Backup VPS (src):** TBD при деплое
+- **Контекст:** владелец проверил мобильную версию после Iter 22 и обнаружил, что
+  основной flow (каталог) на мобиле всё ещё непригоден: ~54k товаров без drill-down,
+  фильтры стоят **внизу страницы** под всей сеткой товаров (`globals.css:540`
+  `aside { order: 2 }`), поиск спрятан, bottom-nav иконки cryptic (Compare выглядит
+  как «сердечко», нет Избранного). Iter 22 закрыл базовую адаптацию, Iter 23 закрывает
+  основной UX-блокер.
+- **5 модулей (additive, `glass-template.css` НЕ тронут):**
+  1. **Bottom-nav:** `site-screen-bar.tsx` — 5 primary-слотов: Главная · Каталог ·
+     **Избранное** (Heart, `/favorites`) · Корзина · Кабинет. Сравнение убрано в
+     overflow (drawer + desktop pill). Badge-счётчики на cart/favorites/compare через
+     `useCart()` / `useFavorites()` / `useCompare()`. Стили на ≤760px: иконка 22px
+     `stroke-width:1.75`, лейбл 12px (с 10px), `min-height:56px`, активный пункт =
+     `var(--accent)` без gradient pill. `body.app` padding-bottom 86px (с 78px).
+  2. **Sticky search в шапке:** вынес поиск в новый
+     `components/header-search-control.tsx` (логика debounced suggest +
+     outside-click), внутри `site-header.tsx` рендерится два инстанса:
+     `variant="embedded"` в десктоп-шапке и `variant="mobile-sticky"` —
+     отдельный `.hdr-mobile-search` блок ниже шапки, sticky `top:90px` (60px
+     ниже мобильной шапки). Виден на всех страницах при ≤1100px. CSS-правила
+     в `globals.css`.
+     Бургер-drawer расширен: B2B/Госзакупки/Сервис/Telegram-агент/Сравнение,
+     mob-role-switch (3 кнопки b2c/b2b/gov когда гость), контакты/помощь/privacy.
+  3. **Drill-down хаб `mobile-catalog-hub.tsx`** (новый, client) —
+     подгружает уровень через `/api/catalog/categories?parent=<id>` (cache 1ч уже
+     был), кеш в module-level `Map` (drill-down в пределах сессии — мгновенный),
+     рендерит крупные плитки 64px+ с иконкой Folder, productCount и chevron. Тап =
+     `router.push('/catalog/<slug>')` (каждый уровень = отдельный роут, корректный
+     back-кнопка браузера). Если у узла нет детей — `null`, фолбэк на товары.
+  4. **Bottom-sheet фильтры `mobile-filter-sheet.tsx`** (новый, client) —
+     рендерит триггер-кнопку «Фильтры (N)» (счётчик активных), по тапу — backdrop +
+     sheet ≤85vh с slide-up анимацией. ESC + клик по backdrop + крест закрывают.
+     Тело шита = `<FiltersPanelFields>` (см. ниже), низ sticky-footer с «Сбросить» +
+     «Применить» (submit формы → GET-параметры → URL обновляется, шит закрывается).
+     Скролл body заблокирован пока шит открыт.
+  5. **Извлечение `FiltersPanel`:** новый `components/catalog-filters-panel.tsx`
+     с двумя экспортами — `FiltersPanelFields` (только инпуты, без `<form>` и
+     Apply-кнопки, для мобильного шита) и `FiltersPanel` (старая обёртка с формой
+     + Apply, для десктоп-сайдбара). `catalog-view.tsx` уменьшен с 699→481 строк
+     (импорт вместо инлайна).
+  6. **Pure helper + тесты:** `lib/catalog-filters.ts::countActiveFilters(URLSearchParams)`
+     — pure, считает по q/brand[]/minPrice/maxPrice/available/photo/spec[]/attr[]/
+     attrMin[]/attrMax[]. Sort НЕ считаем. `lib/catalog-filters.test.ts` — 7 кейсов
+     (164 → 171 теста).
+- **Подключение `catalog-view.tsx`:** в правой колонке перед `CatalogSortBar` —
+  `<MobileCatalogHub parentId={...}>` + `<MobileFilterSheet ... activeCount={N}>`.
+  Хаб + триггер — `display:none` на десктопе, `display:flex/grid` на ≤760px.
+- **CSS (`globals.css` ≤760px):** новый блок — `.cat-layout` → `display:block`,
+  `.cat-layout > aside { display:none }` (десктоп-сайдбар скрыт), `.cat-hub`/
+  `.cat-hub-tile`/`.cat-hub-skel` (плитки + skeleton-loading), `.mob-filter-trigger`
+  + `.mob-filter-trigger-badge`. Filter-sheet стили глобально (фиксированный диалог):
+  `.filter-sheet-backdrop` (z:300 + blur), `.filter-sheet` (slide-up),
+  `.filter-sheet-handle`/`-bar`/`-close`, `.filter-sheet-form`/`-body`/`-footer`.
+  `.hdr-mobile-search` (sticky `top:90px ≤760px / top:110px ≤1100px`),
+  `.sb-badge` (для bottom-nav). `.mob-section-h` + `.mob-role-switch` для drawer.
+- **RSC-ловушка Iter 22:** в `mobile-catalog-hub.tsx` сначала был sync
+  `setState` в useEffect — заменил на `setTimeout(..., 0)` per Next 16
+  `react-hooks/set-state-in-effect`. Состояние при cache-hit инициализируется в
+  `useState(initializer)` чтобы избежать flash skeleton.
+- **Проверки локально:** lint ✓ (0 warnings), tests **171/171** ✓ (164 baseline + 7 новых),
+  build ✓ 5.3s + TypeScript 7.0s + 16/16 страниц. Pre-existing warning про
+  `crypto` import в auth.ts + Edge middleware — НЕ от Iter 23, не блокирует.
+- **Файлы изменены/новые:**
+  - Modified: `web-store/src/app/catalog/catalog-view.tsx`,
+    `web-store/src/app/globals.css`, `web-store/src/components/site-header.tsx`,
+    `web-store/src/components/site-screen-bar.tsx`.
+  - New: `web-store/src/components/{catalog-filters-panel,header-search-control,
+    mobile-catalog-hub,mobile-filter-sheet}.tsx`,
+    `web-store/src/lib/catalog-filters.ts` + `.test.ts`.
+  - Diff stat: 4 modified + 6 new, +435 / -422.
+- **НЕ задеплоено** — ждём владельца (его правило: `rm -rf`/build/deploy на VPS
+  только с подтверждением). Деплой будет по процедуре handoff'а 2026-05-24
+  (tar→scp→tar -xzf→rm -rf .next→`npx --yes next build`→`pm2 restart`), затем
+  smoke-curl `/`, `/catalog`, `/catalog/<top>`, `/favorites`, `/compare`, `/cart`,
+  `/account`. Backup `/var/www/climat-simf.ru/src.bak-<timestamp>` перед replace.
+- **Визуальная приёмка:** на телефоне владельца — после деплоя
+  (в этой сессии нет браузер-инструмента для эмуляции). Точки приёмки:
+  bottom-nav читаема (Избранное на месте, лейблы видны, иконки с контуром),
+  поиск виден всегда в шапке, `/catalog` показывает плитки топ-категорий,
+  тап → подкатегории → товары, кнопка «Фильтры (N)» открывает sheet, в шите
+  все фильтры работают, «Применить» обновляет товары и закрывает шит.
+- **Out of scope (специально):** real wholesale prices в b2b, антиспам/fail2ban/IMAP 993
+  для почты, HTTP/2 + WebP для фото каталога, footer-социалки `href="#"`, auth для
+  кабинетов. Документировано в плане (`~/.claude/plans/cd-c-users-user-documents-github-claude-crystalline-popcorn.md`).
+
 ### 2026-05-31 — Iter 22: мобильная адаптация витрины (узкие телефоны) ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
