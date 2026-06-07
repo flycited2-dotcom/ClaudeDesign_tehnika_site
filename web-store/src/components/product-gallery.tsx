@@ -42,10 +42,13 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
   }, [lightbox, images.length]);
 
   return (
-    <div role="region" aria-label={`Галерея товара ${name}`}>
+    <div role="region" aria-label={`Галерея товара ${name}`} style={{ minWidth: 0 }}>
       <div
         style={{
           position: "relative",
+          width: "100%",
+          minWidth: 0,
+          maxWidth: "100%",
           aspectRatio: "4 / 3",
           display: "flex",
           alignItems: "center",
@@ -63,7 +66,7 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
           <img
             src={activeImage.src}
             alt={activeImage.alt}
-            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            style={{ maxWidth: "100%", maxHeight: "100%", width: "auto", height: "auto", objectFit: "contain" }}
           />
         ) : (
           <ProductImageFallback />

@@ -714,6 +714,33 @@ body.app {
   main {
     padding-bottom: 170px !important;
   }
+  /* Iter 23.3: prevent product page from overflowing horizontally.
+     Root cause: ProductGallery renders <img> inside an inline-styled
+     flex container that defaults to `min-width: auto` (= intrinsic
+     content size = image natural width, e.g. 800px). That blows the
+     grid cell + .glass wrapper to 866px on a 384px viewport,
+     pushing half the photo off-screen.
+     Force grid items to allow shrinking + clamp media widths. */
+  .p-product-layout,
+  .p-product-bottom {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .p-product-layout > *,
+  .p-product-bottom > * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .p-product-layout img,
+  .p-product-bottom img {
+    max-width: 100%;
+    height: auto;
+  }
+  /* Same overflow-guard for any catalog/category content using .glass cards. */
+  main {
+    overflow-x: hidden;
+  }
 }
 
 /* Trust badges: single column on very narrow phones (2 columns clip otherwise). */
