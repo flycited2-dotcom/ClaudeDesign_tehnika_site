@@ -24,6 +24,26 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-08 — Iter 23.2 hotfix: sticky search overlap, mob-buy-bar conflict, broken bread, header guest icon ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `09153a1` — "Iter 23.2 hotfix: sticky search overlap, header guest icon, mob-buy-bar conflict, broken bread"
+- **Backup VPS (src):** `/var/www/climat-simf.ru/src.bak-20260608020254`
+- **Deploy:** 2026-06-08 02:02 UTC, pm2 online pid 237408.
+- **Контекст:** владелец скрин с реальной страницы товара (винный шкаф ZÜGEL ZCWI460DB) при scroll=0. Видны 4 баги наслоения.
+- **4 фикса (CSS-only):**
+  1. **Sticky-поиск перекрывал хлебные крошки.** `.hdr-mobile-search` имел `position: sticky; top: 90px; z-index: 40` с полупрозрачным glass-фоном. При любом скролле он надвигался на `.bread` ниже — текст «Г > Б > В... > Винны...» просвечивал сквозь поиск. Убрал sticky — поиск теперь в normal flow, скроллится с контентом (header всё равно sticky и держит брендирование/бургер).
+  2. **Гость видел лишнюю «Войти» в шапке.** Template-CSS прятала `[title="Кабинет"]` (авторизованный), но для гостя слот рендерится с `title="Войти"`. Добавил `[title="Войти"]` в hide-rule на ≤760px. Шапка теперь = Heart + Cart + Burger.
+  3. **mob-buy-bar накладывался на bottom-nav.** Оба `position: fixed` снизу → пользователь видел 5-иконочную панель «Главная Каталог **Купить** Корзина Кабинет» вместо 4. Поднял `mob-buy-bar { bottom: 92px !important }` чтобы он стоял НАД bottom-nav. `main { padding-bottom: 170px !important }` чтобы контент уходил за оба бара.
+  4. **Хлебные крошки в кашу.** Каждый `.bread > span` с `flex-shrink` сжимался до 1 символа («Г», «Б», «В»). На ≤760px скрыл все промежуточные spans (`:not(:last-child)`), оставил только back-button + текущая страница. `.bread { flex-wrap: wrap }` чтобы back-button мог уйти на свою строку.
+- **Smoke prod:** `/`, `/product/vinnyy-shkaf-vstraivaemyy-zugel-zcwi460db-...`, `/product/noutbuk-asus-...`, `/product/...beko-bdis1sq021...` = все 200/<1s.
+- **Что осталось проверить на телефоне:**
+  - Поиск виден на всех страницах (внизу шапки, скроллится)
+  - Шапка: только Heart + Cart + Burger
+  - На странице товара: ровно ОДНА панель внизу (Купить выше, bottom-nav под ней)
+  - Хлебные крошки: «‹ Родитель» + текущая страница (без огрызков)
+  - Карточки в списке каталога: полное имя с моделью.
+
 ### 2026-06-08 — Iter 23.1 hotfix: bottom-nav rework, mobile header, search Enter, product card name ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
