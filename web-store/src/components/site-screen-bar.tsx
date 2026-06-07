@@ -5,13 +5,23 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   LayoutGrid,
+  Heart,
   GitCompare,
   ShoppingCart,
   User,
   type LucideIcon,
 } from "lucide-react";
+import { useCart } from "@/lib/use-cart";
+import { useFavorites, useCompare } from "@/lib/sku-list-storage";
 
-type Item = { id: string; label: string; href: string; icon?: LucideIcon; primary?: boolean };
+type Item = {
+  id: string;
+  label: string;
+  href: string;
+  icon?: LucideIcon;
+  primary?: boolean;
+  badge?: "cart" | "favorites" | "compare";
+};
 type Entry = Item | "sep";
 
 // `primary` items (with an icon) form the mobile bottom-nav (≤760px); the rest
@@ -19,8 +29,9 @@ type Entry = Item | "sep";
 const ITEMS: Entry[] = [
   { id: "home", label: "Главная", href: "/", icon: Home, primary: true },
   { id: "catalog", label: "Каталог", href: "/catalog", icon: LayoutGrid, primary: true },
-  { id: "compare", label: "Сравнение", href: "/compare", icon: GitCompare, primary: true },
-  { id: "cart", label: "Корзина", href: "/cart", icon: ShoppingCart, primary: true },
+  { id: "favorites", label: "Избранное", href: "/favorites", icon: Heart, primary: true, badge: "favorites" },
+  { id: "compare", label: "Сравнение", href: "/compare", icon: GitCompare, badge: "compare" },
+  { id: "cart", label: "Корзина", href: "/cart", icon: ShoppingCart, primary: true, badge: "cart" },
   { id: "checkout", label: "Оформление", href: "/checkout" },
   "sep",
   { id: "account", label: "Кабинет", href: "/account", icon: User, primary: true },
@@ -41,6 +52,8 @@ function isActive(id: string, pathname: string): boolean {
         pathname.startsWith("/catalog/") ||
         pathname.startsWith("/product/")
       );
+    case "favorites":
+      return pathname === "/favorites" || pathname.startsWith("/favorites/");
     case "account":
       return pathname === "/account" || pathname.startsWith("/account/");
     default: {
@@ -52,6 +65,11 @@ function isActive(id: string, pathname: string): boolean {
 
 export function SiteScreenBar() {
   const pathname = usePathname() ?? "/";
+  const cart = useCart();
+  const favorites = useFavorites();
+  const compare = useCompare();
+  const counts = { cart: cart.length, favorites: favorites.length, compare: compare.length };
+
   return (
     <nav className="screen-bar" aria-label="Быстрая навигация">
       {ITEMS.map((entry, i) => {
@@ -59,17 +77,29 @@ export function SiteScreenBar() {
           return <div key={`sep-${i}`} className="sep" aria-hidden />;
         }
         const Icon = entry.icon;
+        const active = isActive(entry.id, pathname);
         const className = [
-          isActive(entry.id, pathname) ? "active" : "",
+          active ? "active" : "",
           entry.primary ? "sb-primary" : "",
         ]
           .filter(Boolean)
           .join(" ");
+        const badgeCount = entry.badge ? counts[entry.badge] : 0;
         return (
-          <Link key={entry.id} href={entry.href} className={className}>
+          <Link
+            key={entry.id}
+            href={entry.href}
+            className={className}
+            aria-current={active ? "page" : undefined}
+          >
             {Icon ? (
               <span className="sb-ic" aria-hidden>
-                <Icon size={20} />
+                <Icon size={22} strokeWidth={1.75} />
+                {badgeCount > 0 ? (
+                  <span className="sb-badge" aria-hidden>
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                ) : null}
               </span>
             ) : null}
             {entry.label}

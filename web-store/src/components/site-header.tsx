@@ -3,22 +3,22 @@
 import {
   ArrowLeft,
   ArrowLeftRight,
-  ArrowRight,
+  Bot,
   ChevronDown,
   ChevronRight,
   Heart,
+  LayoutGrid,
   Menu,
   Package,
-  Search,
+  Phone,
   ShoppingCart,
   User,
-  X,
+  Wrench,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { CallbackButton } from "@/components/callback-button";
-import { formatRub } from "@/lib/format";
+import { HeaderSearchControl } from "@/components/header-search-control";
 import { useCompare, useFavorites } from "@/lib/sku-list-storage";
 import { storefront } from "@/lib/storefront";
 import { useCart } from "@/lib/use-cart";
@@ -28,15 +28,6 @@ import {
   useStorefrontRole,
   useStorefrontRoleSetter,
 } from "@/lib/use-role";
-
-type Suggestion = {
-  id: string;
-  slug: string;
-  name: string;
-  vendor: string | null;
-  price: number;
-  image: string | null;
-};
 
 type MenuCategory = {
   id: string;
@@ -48,23 +39,16 @@ type MenuCategory = {
 
 const ROOT_PARENT_KEY = "root";
 
-const POPULAR = ["холодильник", "стиральная машина", "Bosch", "до 50 000 ₽", "встраиваемая"];
-
 export function SiteHeader() {
-  const router = useRouter();
   const role = useStorefrontRole();
   const { setRole, isAuthenticated } = useStorefrontRoleSetter();
   const identity = useStorefrontIdentity();
   const favorites = useFavorites();
   const compare = useCompare();
   const [mobOpen, setMobOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPath, setMenuPath] = useState<MenuCategory[]>([]);
   const [menuCache, setMenuCache] = useState<Record<string, MenuCategory[] | "loading">>({});
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const searchRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const cartCount = useCart().reduce((sum, item) => sum + item.quantity, 0);
 
@@ -119,65 +103,6 @@ export function SiteHeader() {
       document.removeEventListener("keydown", onKey);
     };
   }, [menuOpen]);
-
-  useEffect(() => {
-    if (!searchOpen) return;
-    const onClick = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setSearchOpen(false);
-      }
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSearchOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [searchOpen]);
-
-  useEffect(() => {
-    const trimmed = query.trim();
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      if (trimmed.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-      fetch(`/api/search/suggest?q=${encodeURIComponent(trimmed)}`, { signal: controller.signal })
-        .then((response) => (response.ok ? response.json() : { products: [] }))
-        .then((data: { products?: Suggestion[] }) => {
-          setSuggestions(data.products ?? []);
-        })
-        .catch(() => {
-          /* aborted or network */
-        });
-    }, 220);
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [query]);
-
-  function submitSearch() {
-    const trimmed = query.trim();
-    if (!trimmed) return;
-    setSearchOpen(false);
-    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    submitSearch();
-  }
-
-  function pickSuggestion(suggestion: Suggestion) {
-    setSearchOpen(false);
-    setQuery("");
-    router.push(`/product/${suggestion.slug}`);
-  }
 
   return (
     <>
@@ -452,111 +377,7 @@ export function SiteHeader() {
           })()}
         </div>
 
-        <div className="hdr-search-wrap" ref={searchRef}>
-          <form action="/search" method="get" onSubmit={handleSubmit} role="search">
-            <div className={"hdr-search " + (searchOpen ? "open" : "")}>
-              <button
-                type="submit"
-                aria-label="Найти"
-                style={{ background: 0, border: 0, padding: 0, color: "inherit", cursor: "pointer", display: "inline-flex" }}
-              >
-                <Search size={18} aria-hidden />
-              </button>
-              <input
-                name="q"
-                type="text"
-                autoComplete="off"
-                placeholder="Холодильник, Bosch, до 50 000 ₽…"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onFocus={() => setSearchOpen(true)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    submitSearch();
-                  }
-                }}
-              />
-              {query && (
-                <button
-                  type="button"
-                  className="hdr-search-clear"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setQuery("");
-                  }}
-                  aria-label="Очистить"
-                >
-                  <X size={14} aria-hidden />
-                </button>
-              )}
-            </div>
-          </form>
-          {searchOpen && (
-            <div className="hdr-suggest">
-              {!query.trim() ? (
-                <>
-                  <div className="sg-h">Популярные запросы</div>
-                  <div className="sg-tags">
-                    {POPULAR.map((popular) => (
-                      <button
-                        key={popular}
-                        type="button"
-                        className="sg-tag"
-                        onClick={() => setQuery(popular)}
-                      >
-                        {popular}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : suggestions.length > 0 ? (
-                <>
-                  <div className="sg-h">Найдено {suggestions.length}</div>
-                  {suggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.id}
-                      type="button"
-                      className="sg-item"
-                      onClick={() => pickSuggestion(suggestion)}
-                    >
-                      <span className="sg-item-art">
-                        {suggestion.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={suggestion.image} alt="" />
-                        ) : (
-                          <Search size={18} aria-hidden style={{ opacity: 0.4 }} />
-                        )}
-                      </span>
-                      <span className="sg-item-body">
-                        <span className="sg-item-brand">{suggestion.vendor ?? ""}</span>
-                        <span className="sg-item-name">{suggestion.name}</span>
-                      </span>
-                      <span className="sg-item-price">
-                        {suggestion.price ? formatRub(suggestion.price) : ""}
-                      </span>
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="sg-all"
-                    onClick={() => {
-                      setSearchOpen(false);
-                      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-                    }}
-                  >
-                    Показать все результаты <ArrowRight size={14} aria-hidden />
-                  </button>
-                </>
-              ) : (
-                <div className="sg-empty">
-                  Ничего не нашли по «{query}»<br />
-                  <small>Попробуйте короче — например, «Bosch» или «холодильник»</small>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <HeaderSearchControl />
 
         <div className="head-actions">
           <Link href="/favorites" className="icon-btn" title="Избранное" aria-label="Избранное">
@@ -609,6 +430,11 @@ export function SiteHeader() {
         </div>
       </div>
 
+      {/* Mobile-only sticky search row: rendered below the header, hidden on
+          desktop via CSS. Separate instance from the embedded one — only one
+          is visible per viewport, so independent state is fine. */}
+      <HeaderSearchControl variant="mobile-sticky" />
+
       {mobOpen && (
         <div className="mob-drawer" onClick={() => setMobOpen(false)} role="dialog">
           <div className="mob-panel" onClick={(e) => e.stopPropagation()}>
@@ -624,19 +450,54 @@ export function SiteHeader() {
               </button>
             </div>
             <Link href="/catalog" className="mob-item" onClick={() => setMobOpen(false)}>
-              <Package size={18} aria-hidden /> Каталог товаров
+              <LayoutGrid size={18} aria-hidden /> Каталог товаров
             </Link>
-            <Link href="/cart" className="mob-item" onClick={() => setMobOpen(false)}>
-              <ShoppingCart size={18} aria-hidden /> Корзина
-              {cartCount > 0 && <span className="mob-cnt">{cartCount}</span>}
+            <Link href="/b2b" className="mob-item" onClick={() => setMobOpen(false)}>
+              <Package size={18} aria-hidden /> B2B / Опт
+            </Link>
+            <Link href="/gov" className="mob-item" onClick={() => setMobOpen(false)}>
+              <Package size={18} aria-hidden /> Госзакупки
+            </Link>
+            <Link href="/service" className="mob-item" onClick={() => setMobOpen(false)}>
+              <Wrench size={18} aria-hidden /> Сервис
+            </Link>
+            <Link href="/bot" className="mob-item" onClick={() => setMobOpen(false)}>
+              <Bot size={18} aria-hidden /> Telegram-агент
+            </Link>
+            <Link href="/compare" className="mob-item" onClick={() => setMobOpen(false)}>
+              <ArrowLeftRight size={18} aria-hidden /> Сравнение
+              {compare.length > 0 && <span className="mob-cnt">{compare.length}</span>}
+            </Link>
+            <div className="mob-sep" />
+            {!isAuthenticated && (
+              <>
+                <div className="mob-section-h">Режим</div>
+                <div className="mob-role-switch">
+                  <button type="button" className={role === "b2c" ? "on" : ""} onClick={() => setRole("b2c")}>
+                    Розница
+                  </button>
+                  <button type="button" className={role === "b2b" ? "on" : ""} onClick={() => setRole("b2b")}>
+                    Опт
+                  </button>
+                  <button type="button" className={role === "gov" ? "on" : ""} onClick={() => setRole("gov")}>
+                    Госзакупки
+                  </button>
+                </div>
+                <div className="mob-sep" />
+              </>
+            )}
+            <a href={`tel:${storefront.phones[0].replace(/[^\d+]/g, "")}`} className="mob-phone">
+              <Phone size={18} aria-hidden /> {storefront.phones[0]}
+            </a>
+            <Link href="/#contacts" className="mob-item" onClick={() => setMobOpen(false)}>
+              Контакты и доставка
+            </Link>
+            <Link href="/#how-order" className="mob-item" onClick={() => setMobOpen(false)}>
+              Помощь
             </Link>
             <Link href="/privacy" className="mob-item" onClick={() => setMobOpen(false)}>
               Персональные данные
             </Link>
-            <div className="mob-sep" />
-            <a href={`tel:${storefront.phones[0].replace(/[^\d+]/g, "")}`} className="mob-phone">
-              {storefront.phones[0]}
-            </a>
           </div>
         </div>
       )}
