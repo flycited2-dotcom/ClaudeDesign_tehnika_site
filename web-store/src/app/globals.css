@@ -607,14 +607,14 @@ body.app {
   .screen-bar a.sb-primary {
     flex: 1;
     min-width: 0;
-    min-height: 56px;
+    min-height: 60px;
     flex-direction: column;
     gap: 4px;
     padding: 8px 4px;
     border-radius: 12px;
-    font-size: 12px;
-    line-height: 1.1;
-    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.15;
+    font-weight: 700;
     text-align: center;
     color: var(--text-2);
   }
@@ -645,6 +645,34 @@ body.app {
      doesn't bleed through it (and the pager doesn't show under it). */
   .header.glass {
     background: rgba(255, 255, 255, 0.92);
+  }
+
+  /* Mobile header layout (Iter 23.1):
+     Override template's `grid-template-columns: 1fr auto` which caused
+     brand to expand into a 1fr cell with awkward empty space inside.
+     Flex layout packs brand at left + action icons at right with natural
+     space-between gap. Mega-menu trigger wrapper (empty on mobile because
+     .cat-btn is display:none) is hidden so it doesn't consume a grid cell. */
+  .header.glass {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    min-height: 64px;
+  }
+  .hdr-mega-trigger {
+    display: none;
+  }
+  .header .brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+  .header .brand-name .nm {
+    font-size: 17px;
+  }
+  .header .head-actions {
+    gap: 6px;
   }
 
   /* Catalog toolbar: let the sort control wrap to its own full-width row

@@ -178,7 +178,7 @@ export function SiteHeader() {
           </div>
         </Link>
 
-        <div ref={menuRef} style={{ position: "relative" }}>
+        <div ref={menuRef} className="hdr-mega-trigger" style={{ position: "relative" }}>
           <button
             type="button"
             className="cat-btn"

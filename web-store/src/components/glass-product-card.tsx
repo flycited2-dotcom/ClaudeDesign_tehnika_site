@@ -27,7 +27,14 @@ type GlassProductCardProduct = Product & {
 export function GlassProductCard({ product }: { product: GlassProductCardProduct }) {
   const pricing = getRolePricingConfig();
   const fullName = product.name ?? product.supplierName;
-  const name = productShortTitle(fullName, product.vendor, product.part, 100);
+  // Iter 23.1: many products have a generic `name` ("Морозилка встраиваемая")
+  // with the model number sitting only in `product.part`. Stitch the model into
+  // the displayed title so users see what they're actually looking at.
+  const baseName = fullName?.trim() ?? "";
+  const partTrim = product.part?.trim() ?? "";
+  const partInName = partTrim.length > 0 && baseName.toLowerCase().includes(partTrim.toLowerCase());
+  const enrichedName = partTrim && !partInName ? `${baseName} ${partTrim}`.trim() : baseName;
+  const name = productShortTitle(enrichedName, product.vendor, product.part, 120);
   const image = productImageSrc(product.images?.[0]);
   const price = decimalToNumber(product.retailPrice);
   const fulfillment = publicFulfillmentText({

@@ -70,13 +70,6 @@ export function HeaderSearchControl({ variant = "embedded" }: Props) {
     };
   }, [query]);
 
-  function submitSearch() {
-    const trimmed = query.trim();
-    if (!trimmed) return;
-    setSearchOpen(false);
-    router.push(`/search?q=${encodeURIComponent(trimmed)}`);
-  }
-
   function pickSuggestion(suggestion: Suggestion) {
     setSearchOpen(false);
     setQuery("");
@@ -87,12 +80,15 @@ export function HeaderSearchControl({ variant = "embedded" }: Props) {
 
   return (
     <div className={wrapperClass} ref={searchRef}>
+      {/* Iter 23.1: rely on NATIVE form GET submission to /search?q=<value>.
+          Mobile virtual keyboards reliably fire form submission on Enter
+          (whereas onKeyDown can be missed on some Android IMEs).
+          We only handle the side-effect of closing the suggest dropdown. */}
       <form
         action="/search"
         method="get"
-        onSubmit={(event) => {
-          event.preventDefault();
-          submitSearch();
+        onSubmit={() => {
+          setSearchOpen(false);
         }}
         role="search"
       >
@@ -119,12 +115,6 @@ export function HeaderSearchControl({ variant = "embedded" }: Props) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onFocus={() => setSearchOpen(true)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                submitSearch();
-              }
-            }}
           />
           {query && (
             <button

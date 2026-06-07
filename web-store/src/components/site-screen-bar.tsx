@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
-  LayoutGrid,
   Heart,
+  Home,
   GitCompare,
   ShoppingCart,
+  Store,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -26,10 +26,12 @@ type Entry = Item | "sep";
 
 // `primary` items (with an icon) form the mobile bottom-nav (≤760px); the rest
 // stay in the desktop pill and are reachable on mobile via the header burger-drawer.
+// 4 primary slots (Iter 23.1): Home · Каталог · Корзина · Кабинет.
+// Favorites + Compare available from header burger on mobile, desktop pill desktop-side.
 const ITEMS: Entry[] = [
   { id: "home", label: "Главная", href: "/", icon: Home, primary: true },
-  { id: "catalog", label: "Каталог", href: "/catalog", icon: LayoutGrid, primary: true },
-  { id: "favorites", label: "Избранное", href: "/favorites", icon: Heart, primary: true, badge: "favorites" },
+  { id: "catalog", label: "Каталог", href: "/catalog", icon: Store, primary: true },
+  { id: "favorites", label: "Избранное", href: "/favorites", icon: Heart, badge: "favorites" },
   { id: "compare", label: "Сравнение", href: "/compare", icon: GitCompare, badge: "compare" },
   { id: "cart", label: "Корзина", href: "/cart", icon: ShoppingCart, primary: true, badge: "cart" },
   { id: "checkout", label: "Оформление", href: "/checkout" },
