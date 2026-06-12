@@ -34,7 +34,12 @@
     sidebarScrim = document.createElement('div');
     sidebarScrim.className = 'sidebar-scrim';
     sidebarScrim.addEventListener('click', closeSidebar);
-    document.body.appendChild(sidebarScrim);
+    // append inside .app-shell so the scrim shares the sidebar's stacking context:
+    // appended to <body> it would paint over the sidebar (app-shell has z-index:1)
+    // and swallow taps on the nav links.
+    (sb.parentElement || document.body).appendChild(sidebarScrim);
+    // close the drawer when a nav link is tapped (navigation also resets it)
+    sb.querySelectorAll('a[href]').forEach(a => a.addEventListener('click', closeSidebar, { once: true }));
     requestAnimationFrame(() => { if (sidebarScrim) sidebarScrim.classList.add('is-show'); });
   }
 

@@ -404,10 +404,32 @@ async function mobile() {
   const opened = await page.evaluate(() => document.getElementById('appSidebar')?.classList.contains('is-open') && !!document.querySelector('.sidebar-scrim'));
   rec('mobile', 'burger opens sidebar with scrim', !!opened);
   if (opened) {
-    await page.click('.sidebar-scrim');
+    // the scrim must NOT cover the sidebar nav — a nav link has to win the hit-test
+    const linkOnTop = await page.evaluate(() => {
+      const link = document.querySelector('#appSidebar a[data-nav="leads"]');
+      if (!link) return false;
+      const r = link.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!hit && (hit === link || link.contains(hit));
+    });
+    rec('mobile', 'open sidebar nav link is on top (not under scrim)', linkOnTop);
+
+    // tapping a nav link navigates to its page
+    await Promise.all([
+      page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }),
+      page.click('#appSidebar a[data-nav="leads"]'),
+    ]).catch(() => {});
+    rec('mobile', 'tap on sidebar nav link navigates', page.url().includes('/app/leads/'), page.url());
+
+    // reopen and check scrim still closes the drawer — tap the dimmed content
+    // area to the RIGHT of the 248px drawer (its center now sits under the sidebar)
+    await go(page, '/app/dashboard-owner.html');
+    await page.click('[data-action="toggle-sidebar"]');
+    await sleep(400);
+    await page.mouse.click(330, 420);
     await sleep(400);
     const closed = await page.evaluate(() => !document.getElementById('appSidebar')?.classList.contains('is-open'));
-    rec('mobile', 'tap on scrim closes sidebar', closed);
+    rec('mobile', 'tap on dimmed area closes sidebar', closed);
   }
   // tablet breakpoint 768: burger must still be visible (sidebar is hidden there)
   await page.setViewport({ width: 768, height: 1024 });
