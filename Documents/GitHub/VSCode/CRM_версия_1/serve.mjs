@@ -43,6 +43,7 @@ const server = http.createServer((req, res) => {
       '.gif': 'image/gif',
       '.svg': 'image/svg+xml',
       '.webp': 'image/webp',
+      '.ico': 'image/x-icon',
     };
     const contentType = contentTypeMap[ext] || 'application/octet-stream';
 

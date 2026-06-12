@@ -75,11 +75,11 @@
               <a href="/app/tenders/calendar.html" class="is-active" data-tab-key="calendar">Календарь</a>
             </div>
             <div class="month-nav">
-              <button class="month-nav-btn" aria-label="Предыдущий месяц">
+              <button class="month-nav-btn" data-cal-prev aria-label="Предыдущий месяц">
                 <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
               </button>
               <span id="month-nav-label">Май 2026</span>
-              <button class="month-nav-btn" aria-label="Следующий месяц">
+              <button class="month-nav-btn" data-cal-next aria-label="Следующий месяц">
                 <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
               </button>
             </div>
@@ -89,7 +89,7 @@
             <button class="btn btn-secondary btn-sm" data-filter="platform">
               <i data-lucide="globe"></i>Площадка<i data-lucide="chevron-down"></i>
             </button>
-            <button class="btn btn-primary btn-sm">
+            <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="create-tender">
               <i data-lucide="plus"></i>Тендер
             </button>
           </div>
@@ -113,9 +113,7 @@
       const CRM  = window.CRM;
 
       // ─── date setup ──────────────────────────────────────────────────────────
-      const now   = new Date();
-      const year  = now.getFullYear();
-      const month = now.getMonth(); // 0-indexed
+      const now = new Date();
       const URGENT_MS = 48 * 3_600_000;
 
       const todayStr = [
@@ -123,21 +121,6 @@
         String(now.getMonth() + 1).padStart(2,'0'),
         String(now.getDate()).padStart(2,'0')
       ].join('-');
-
-      // Find the Monday on or before the 1st of the month
-      const firstDay = new Date(year, month, 1);
-      const dow = firstDay.getDay();
-      const mondayOffset = dow === 0 ? -6 : 1 - dow;
-      const calStart = new Date(firstDay);
-      calStart.setDate(calStart.getDate() + mondayOffset);
-
-      // Build 42 cells
-      const cells = [];
-      for (let i = 0; i < 42; i++) {
-        const d = new Date(calStart);
-        d.setDate(calStart.getDate() + i);
-        cells.push(d);
-      }
 
       // ─── tender lookup by deadline date ──────────────────────────────────────
       function dateStr(d) {
@@ -170,50 +153,81 @@
         return 'cal-chip';
       }
 
-      // ─── render calendar ─────────────────────────────────────────────────────
+      // ─── render calendar (re-runs on month switch) ───────────────────────────
       const dow_labels = ['пн','вт','ср','чт','пт','сб','вс'];
+      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      let current = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      const weekHtml = dow_labels.map(d => `<div class="cal-dow">${d}</div>`).join('');
+      function renderCalendar() {
+        const year  = current.getFullYear();
+        const month = current.getMonth();
 
-      const cellsHtml = cells.map(d => {
-        const key  = dateStr(d);
-        const isOther = d.getMonth() !== month;
-        const isToday = key === todayStr;
-        const tenders = tendersByDate[key] || [];
-        const visible = tenders.slice(0, 3);
-        const overflow = tenders.length - 3;
+        // Find the Monday on or before the 1st of the month
+        const firstDay = new Date(year, month, 1);
+        const dow = firstDay.getDay();
+        const mondayOffset = dow === 0 ? -6 : 1 - dow;
+        const calStart = new Date(firstDay);
+        calStart.setDate(calStart.getDate() + mondayOffset);
 
-        const chipsHtml = visible.map(t =>
-          `<a href="/app/tenders/card.html?id=${t.id}" class="${chipClass(t)}" title="${t.title}">${t.title}</a>`
-        ).join('');
+        // Build 42 cells
+        const cells = [];
+        for (let i = 0; i < 42; i++) {
+          const d = new Date(calStart);
+          d.setDate(calStart.getDate() + i);
+          cells.push(d);
+        }
 
-        const moreLine = overflow > 0
-          ? `<div class="cal-more">+${overflow} ещё</div>`
-          : '';
+        const weekHtml = dow_labels.map(d => `<div class="cal-dow">${d}</div>`).join('');
 
-        const classes = ['cal-cell'];
-        if (isOther) classes.push('is-other');
-        if (isToday) classes.push('is-today');
+        const cellsHtml = cells.map(d => {
+          const key  = dateStr(d);
+          const isOther = d.getMonth() !== month;
+          const isToday = key === todayStr;
+          const tenders = tendersByDate[key] || [];
+          const visible = tenders.slice(0, 3);
+          const overflow = tenders.length - 3;
 
-        return `<div class="${classes.join(' ')}">
+          const chipsHtml = visible.map(t =>
+            `<a href="/app/tenders/card.html?id=${t.id}" class="${chipClass(t)}" title="${t.title}">${t.title}</a>`
+          ).join('');
+
+          const moreLine = overflow > 0
+            ? `<div class="cal-more">+${overflow} ещё</div>`
+            : '';
+
+          const classes = ['cal-cell'];
+          if (isOther) classes.push('is-other');
+          if (isToday) classes.push('is-today');
+
+          return `<div class="${classes.join(' ')}">
   <div class="cal-day-num">${d.getDate()}</div>
   ${chipsHtml}${moreLine}
 </div>`;
-      }).join('');
+        }).join('');
 
-      document.getElementById('calendar-root').innerHTML = `
+        document.getElementById('calendar-root').innerHTML = `
 <div class="cal">
   <div class="cal-week">${weekHtml}</div>
   <div class="cal-grid">${cellsHtml}</div>
 </div>`;
 
-      // Update month labels
-      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-      const label = monthNames[month] + ' ' + year;
-      const navLabel = document.getElementById('month-nav-label');
-      const subtitleLabel = document.getElementById('month-label');
-      if (navLabel) navLabel.textContent = label;
-      if (subtitleLabel) subtitleLabel.textContent = label;
+        const label = monthNames[month] + ' ' + year;
+        const navLabel = document.getElementById('month-nav-label');
+        const subtitleLabel = document.getElementById('month-label');
+        if (navLabel) navLabel.textContent = label;
+        if (subtitleLabel) subtitleLabel.textContent = label;
+      }
+
+      renderCalendar();
+
+      document.querySelector('[data-cal-prev]')?.addEventListener('click', () => {
+        current.setMonth(current.getMonth() - 1);
+        renderCalendar();
+      });
+      document.querySelector('[data-cal-next]')?.addEventListener('click', () => {
+        current.setMonth(current.getMonth() + 1);
+        renderCalendar();
+      });
 
       if (window.lucide) window.lucide.createIcons();
     });

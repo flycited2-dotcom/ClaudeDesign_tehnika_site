@@ -28,7 +28,7 @@
     return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value num">${value}</div>${deltaHtml}</div>`;
   }
 
-  function renderTable(selector, { columns, rows, empty }) {
+  function renderTable(selector, { columns, rows, empty, rowHref }) {
     const root = document.querySelector(selector);
     if (!root) return;
     if (!rows.length) {
@@ -41,9 +41,18 @@
         const v = typeof c.render === 'function' ? c.render(r) : r[c.key];
         return `<td class="${c.numeric ? 'num-col num' : ''}">${v == null ? '' : v}</td>`;
       }).join('');
-      return `<tr>${tds}</tr>`;
+      const href = typeof rowHref === 'function' ? rowHref(r) : null;
+      return `<tr${href ? ` class="row-link" data-href="${href}"` : ''}>${tds}</tr>`;
     }).join('');
     root.innerHTML = `<table class="table-app"><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table>`;
+    if (typeof rowHref === 'function') {
+      root.querySelectorAll('tr[data-href]').forEach(tr => {
+        tr.addEventListener('click', e => {
+          if (e.target.closest('button, a')) return; // row actions keep their own behavior
+          location.href = tr.dataset.href;
+        });
+      });
+    }
   }
 
   function renderKanban(selector, { columns, cardsByColumn, cardRenderer }) {

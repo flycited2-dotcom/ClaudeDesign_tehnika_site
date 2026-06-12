@@ -45,7 +45,7 @@
             <button class="btn btn-secondary btn-sm">
               <i data-lucide="download"></i>Импорт Excel
             </button>
-            <button class="btn btn-primary btn-sm">
+            <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="create-client">
               <i data-lucide="plus"></i>Клиент
             </button>
           </div>
@@ -143,14 +143,15 @@
           },
           {
             key: '_actions', label: '',
-            render: () => `<span class="row-actions">
-              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+            render: r => `<span class="row-actions">
+              <a class="btn btn-ghost btn-icon btn-sm" title="Просмотр" href="/app/clients/card.html?id=${r.id}"><i data-lucide="eye"></i></a>
               <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="pencil"></i></button>
               <button class="btn btn-ghost btn-icon btn-sm" title="Ещё"><i data-lucide="more-vertical"></i></button>
             </span>`
           },
         ],
         rows,
+        rowHref: r => `/app/clients/card.html?id=${r.id}`,
         empty: { title: 'Нет клиентов', body: 'Добавьте первого клиента или настройте фильтры.' }
       });
 

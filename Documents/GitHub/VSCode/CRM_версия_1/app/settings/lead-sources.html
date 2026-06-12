@@ -62,41 +62,40 @@
 
       // Source icon map
       const iconMap = {
-        'Сайт основной':              'globe',
-        'Сайт opt':                   'globe',
-        'Тендерная площадка ZakupKi': 'gavel',
-        'Telegram-бот':               'send',
-        'Звонок входящий':            'phone',
-        'Email-форма':                'mail',
-        'Реферал':                    'share-2',
+        'splihub.ru':          'globe',
+        'splihome.ru':         'globe',
+        'climat-simf.ru':      'globe',
+        'Приложение SplitHub': 'smartphone',
+        'Авито':               'store',
+        'Парсинг тендеров':    'file-input',
+        'Звонок входящий':     'phone',
       };
       const typeMap = {
-        'Сайт основной':              'Сайт',
-        'Сайт opt':                   'Сайт',
-        'Тендерная площадка ZakupKi': 'Площадка',
-        'Telegram-бот':               'Мессенджер',
-        'Звонок входящий':            'Звонок',
-        'Email-форма':                'Email',
-        'Реферал':                    'Партнёр',
+        'splihub.ru':          'Сайт',
+        'splihome.ru':         'Сайт',
+        'climat-simf.ru':      'Сайт',
+        'Приложение SplitHub': 'Приложение',
+        'Авито':               'Классифайд',
+        'Парсинг тендеров':    'Парсер',
+        'Звонок входящий':     'Звонок (ручной)',
       };
 
-      // Compute lead counts from mock
+      // Подключаемые точки входа лидов (список расширяется)
       const sourceNames = [
-        'Сайт основной',
-        'Тендерная площадка ZakupKi',
-        'Telegram-бот',
+        'splihub.ru',
+        'splihome.ru',
+        'climat-simf.ru',
+        'Приложение SplitHub',
+        'Авито',
+        'Парсинг тендеров',
         'Звонок входящий',
-        'Сайт opt',
-        'Email-форма',
-        'Реферал',
       ];
 
       const sources = sourceNames.map((name, i) => {
-        const leadsCount = MOCK.leads.filter(l => l.source === name).length;
-        // Synthetic extras or zeroes for fabricated ones
-        const synthCount = { 'Email-форма': 5, 'Реферал': 3 }[name] ?? leadsCount;
-        const conversion = [18, 24, 31, 14, 22, 12, 40][i] || 15;
-        const isActive = name !== 'Реферал';
+        // Demo counts «за 30 дней» поверх mock-лидов
+        const synthCount = { 'splihub.ru': 42, 'splihome.ru': 26, 'climat-simf.ru': 11, 'Приложение SplitHub': 17, 'Авито': 9, 'Парсинг тендеров': 14, 'Звонок входящий': 8 }[name]
+          ?? MOCK.leads.filter(l => l.source === name).length;
+        const conversion = [18, 22, 16, 21, 12, 31, 24][i] || 15;
         return {
           id: 'SRC-' + String(i + 1).padStart(3, '0'),
           name,
@@ -104,7 +103,7 @@
           type: typeMap[name] || 'Сайт',
           leadsCount: synthCount,
           conversion,
-          isActive,
+          isActive: true,
         };
       });
 

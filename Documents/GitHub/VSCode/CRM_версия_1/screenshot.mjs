@@ -21,10 +21,11 @@ const resolutions = {
   desktop: { width: 1920, height: 1080, fullPage: false },
   compact: { width: 1366, height: 768, fullPage: true },
   tablet: { width: 768, height: 1024, fullPage: true },
+  mobile: { width: 390, height: 844, fullPage: true },
 };
 
 if (!resolutions[resolution]) {
-  console.error(`Invalid resolution: ${resolution}. Must be one of: desktop, compact, tablet`);
+  console.error(`Invalid resolution: ${resolution}. Must be one of: desktop, compact, tablet, mobile`);
   process.exit(1);
 }
 

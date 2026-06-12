@@ -1,9 +1,9 @@
 <header class="app-topbar">
-  <button class="btn btn-ghost btn-icon md:hidden" data-action="toggle-sidebar"><i data-lucide="menu"></i></button>
+  <button class="btn btn-ghost btn-icon sidebar-toggle" data-action="toggle-sidebar" aria-label="Открыть меню"><i data-lucide="menu"></i></button>
 
   <div class="h-display h3" data-page-title>Рабочий стол</div>
 
-  <div class="flex-1 max-w-[480px] mx-6 relative">
+  <div class="flex-1 max-w-[480px] mx-6 relative topbar-search">
     <input class="input input-search" placeholder="Найти клиента, сделку, КП, задачу…" data-global-search>
     <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted border px-1.5 py-0.5 rounded" style="border-color: var(--border-subtle);">⌘K</kbd>
   </div>

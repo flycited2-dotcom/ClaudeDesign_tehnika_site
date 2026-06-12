@@ -62,7 +62,7 @@
             <button class="btn btn-secondary btn-sm" data-filter="responsible">
               <i data-lucide="user"></i>Ответственный<i data-lucide="chevron-down"></i>
             </button>
-            <button class="btn btn-primary btn-sm">
+            <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="create-deal">
               <i data-lucide="plus"></i>Сделка
             </button>
           </div>
@@ -180,14 +180,15 @@
           },
           {
             key: '_actions', label: '',
-            render: () => `<span class="row-actions">
-              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+            render: r => `<span class="row-actions">
+              <a class="btn btn-ghost btn-icon btn-sm" title="Просмотр" href="/app/deals/card.html?id=${r.id}"><i data-lucide="eye"></i></a>
               <button class="btn btn-ghost btn-icon btn-sm" title="Редактировать"><i data-lucide="pencil"></i></button>
               <button class="btn btn-ghost btn-icon btn-sm" title="Ещё"><i data-lucide="more-vertical"></i></button>
             </span>`
           },
         ],
         rows,
+        rowHref: r => `/app/deals/card.html?id=${r.id}`,
         empty: { title: 'Нет сделок', body: 'Добавьте первую сделку или настройте фильтры.' }
       });
 

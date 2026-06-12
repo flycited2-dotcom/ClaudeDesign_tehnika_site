@@ -64,40 +64,64 @@
 
       const sites = [
         {
-          name:        'nordlight.ru',
-          url:         'https://nordlight.ru',
+          name:        'splihub.ru',
+          url:         'https://splihub.ru',
+          icon:        'globe',
           active:      true,
           endpoint:    '/api/webhooks/site-leads',
-          tokenMasked: 'nl_********a8f2',
+          tokenMasked: 'sh_********a8f2',
           leadsCount:  42,
           lastLeadAt:  hr(-3),
         },
         {
-          name:        'nordlight-opt.ru',
-          url:         'https://nordlight-opt.ru',
+          name:        'splihome.ru',
+          url:         'https://splihome.ru',
+          icon:        'globe',
           active:      true,
           endpoint:    '/api/webhooks/site-leads',
-          tokenMasked: 'op_********7c1e',
-          leadsCount:  31,
+          tokenMasked: 'sm_********7c1e',
+          leadsCount:  26,
           lastLeadAt:  hr(-1),
         },
         {
-          name:        'nordlight-tenders.ru',
-          url:         'https://nordlight-tenders.ru',
+          name:        'climat-simf.ru',
+          url:         'https://climat-simf.ru',
+          icon:        'globe',
           active:      true,
           endpoint:    '/api/webhooks/site-leads',
-          tokenMasked: 'tn_********3d44',
-          leadsCount:  12,
+          tokenMasked: 'cs_********3d44',
+          leadsCount:  11,
           lastLeadAt:  day(-2),
         },
         {
-          name:        'landing-promo.ru',
-          url:         'https://landing-promo.ru',
-          active:      false,
-          endpoint:    '/api/webhooks/site-leads',
-          tokenMasked: 'lp_********9e21',
-          leadsCount:  0,
-          lastLeadAt:  day(-45),
+          name:        'Приложение SplitHub',
+          url:         'splithub.apk · Android',
+          icon:        'smartphone',
+          active:      true,
+          endpoint:    '/api/webhooks/app-leads',
+          tokenMasked: 'app********61c8',
+          leadsCount:  17,
+          lastLeadAt:  hr(-6),
+        },
+        {
+          name:        'Авито',
+          url:         'avito.ru — профиль компании',
+          icon:        'store',
+          active:      true,
+          endpoint:    '/api/webhooks/avito-leads',
+          tokenMasked: 'av_********9e21',
+          leadsCount:  9,
+          lastLeadAt:  hr(-12),
+        },
+        {
+          name:        'Парсинг тендеров',
+          url:         'входящий файл от парсера',
+          icon:        'file-input',
+          active:      true,
+          endpoint:    '/api/webhooks/tender-import',
+          tokenMasked: 'tp_********5b07',
+          leadsCount:  14,
+          lastLeadAt:  day(-1),
         },
       ];
 
@@ -109,7 +133,7 @@
           `<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-3);">` +
             `<div>` +
               `<div style="display:flex;align-items:center;gap:8px;">` +
-                `<i data-lucide="globe" style="width:18px;height:18px;color:var(--accent);"></i>` +
+                `<i data-lucide="${site.icon}" style="width:18px;height:18px;color:var(--accent);"></i>` +
                 `<span style="font-family:var(--font-serif);font-size:18px;font-weight:500;">${site.name}</span>` +
               `</div>` +
               `<div class="text-muted" style="font-size:12px;margin-top:2px;">${site.url}</div>` +

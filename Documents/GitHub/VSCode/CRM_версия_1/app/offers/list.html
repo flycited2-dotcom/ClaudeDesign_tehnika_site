@@ -36,7 +36,7 @@
             <button class="btn btn-secondary btn-sm" data-filter="manager">
               <i data-lucide="user"></i>Менеджер<i data-lucide="chevron-down"></i>
             </button>
-            <button class="btn btn-primary btn-sm">
+            <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="create-offer">
               <i data-lucide="plus"></i>КП
             </button>
           </div>
@@ -138,14 +138,15 @@
           },
           {
             key: '_actions', label: '',
-            render: () => `<span class="row-actions">
-              <button class="btn btn-ghost btn-icon btn-sm" title="Просмотр"><i data-lucide="eye"></i></button>
+            render: r => `<span class="row-actions">
+              <a class="btn btn-ghost btn-icon btn-sm" title="Просмотр" href="/app/offers/view.html?id=${r.id}"><i data-lucide="eye"></i></a>
               <button class="btn btn-ghost btn-icon btn-sm" title="Отправить"><i data-lucide="send"></i></button>
               <button class="btn btn-ghost btn-icon btn-sm" title="Скачать"><i data-lucide="download"></i></button>
             </span>`
           },
         ],
         rows,
+        rowHref: r => `/app/offers/view.html?id=${r.id}`,
         empty: { title: 'Нет КП', body: 'Создайте первое коммерческое предложение.' }
       });
 

@@ -70,7 +70,7 @@
             <button class="btn btn-secondary btn-sm" data-filter="date">
               <i data-lucide="calendar"></i>Дата<i data-lucide="chevron-down"></i>
             </button>
-            <button class="btn btn-primary btn-sm">
+            <button class="btn btn-primary btn-sm" data-action="open-modal" data-modal="create-lead">
               <i data-lucide="plus"></i>Лид
             </button>
           </div>
@@ -107,11 +107,13 @@
       };
 
       const sourceIconMap = {
-        'Сайт основной':               'globe',
-        'Сайт opt':                    'globe',
-        'Тендерная площадка ZakupKi':  'gavel',
-        'Telegram-бот':                'send',
-        'Звонок входящий':             'phone',
+        'splihub.ru':          'globe',
+        'splihome.ru':         'globe',
+        'climat-simf.ru':      'globe',
+        'Приложение SplitHub': 'smartphone',
+        'Авито':               'store',
+        'Парсинг тендеров':    'file-input',
+        'Звонок входящий':     'phone',
       };
 
       function isStale(lead) {

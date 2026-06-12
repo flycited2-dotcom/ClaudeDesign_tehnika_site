@@ -6,6 +6,38 @@
   function getRole() { return localStorage.getItem(ROLE_KEY) || 'owner'; }
   function setRole(r) { localStorage.setItem(ROLE_KEY, r); }
 
+  function logout() {
+    localStorage.removeItem(ROLE_KEY);
+    location.href = '/app/login.html';
+  }
+
+  // ─── MOBILE SIDEBAR ────────────────────────────────────────────────────────
+
+  let sidebarScrim = null;
+
+  function closeSidebar() {
+    const sb = document.getElementById('appSidebar');
+    if (sb) sb.classList.remove('is-open');
+    if (sidebarScrim) {
+      const sc = sidebarScrim;
+      sidebarScrim = null;
+      sc.classList.remove('is-show');
+      setTimeout(() => sc.remove(), 260);
+    }
+  }
+
+  function toggleSidebar() {
+    const sb = document.getElementById('appSidebar');
+    if (!sb) return;
+    if (sb.classList.contains('is-open')) { closeSidebar(); return; }
+    sb.classList.add('is-open');
+    sidebarScrim = document.createElement('div');
+    sidebarScrim.className = 'sidebar-scrim';
+    sidebarScrim.addEventListener('click', closeSidebar);
+    document.body.appendChild(sidebarScrim);
+    requestAnimationFrame(() => { if (sidebarScrim) sidebarScrim.classList.add('is-show'); });
+  }
+
   async function injectFragment(slot, url) {
     const html = await fetch(url).then(r => r.text());
     slot.outerHTML = html;
@@ -148,10 +180,11 @@
 
   const CREATE_ACTIONS = [
     { label: 'Новый клиент',  icon: 'users',        modal: 'create-client' },
-    { label: 'Новый лид',     icon: 'zap',          modal: null },
+    { label: 'Новый лид',     icon: 'zap',          modal: 'create-lead' },
     { label: 'Новая сделка',  icon: 'handshake',    modal: 'create-deal' },
     { label: 'Новая задача',  icon: 'check-square', modal: 'create-task' },
     { label: 'Новое КП',      icon: 'file-text',    modal: 'create-offer' },
+    { label: 'Новый тендер',  icon: 'gavel',        modal: 'create-tender' },
   ];
 
   function renderCmdkResults(container, query) {
@@ -318,11 +351,22 @@
 
   const CREATE_MENU = [
     { label: 'Клиент',  icon: 'users',        modal: 'create-client' },
-    { label: 'Лид',     icon: 'zap',          modal: null },
+    { label: 'Лид',     icon: 'zap',          modal: 'create-lead' },
     { label: 'Сделка',  icon: 'handshake',    modal: 'create-deal' },
     { label: 'Задача',  icon: 'check-square', modal: 'create-task' },
     { label: 'КП',      icon: 'file-text',    modal: 'create-offer' },
+    { label: 'Тендер',  icon: 'gavel',        modal: 'create-tender' },
   ];
+
+  // entity type → create modal (used by page-level buttons and empty-states)
+  const CREATE_TYPE_MODAL = {
+    client: 'create-client',
+    lead:   'create-lead',
+    deal:   'create-deal',
+    task:   'create-task',
+    offer:  'create-offer',
+    tender: 'create-tender',
+  };
 
   function openCreateMenu(anchor) {
     const html = CREATE_MENU.map(item => `
@@ -369,13 +413,14 @@
   // ─── PROFILE POPOVER ───────────────────────────────────────────────────────
 
   function openProfilePopover(anchor) {
+    const user = ROLES[getRole()];
     const items = [
-      { icon: 'user-circle', label: 'Профиль',   danger: false },
-      { icon: 'settings',    label: 'Настройки', danger: false },
-      { icon: 'log-out',     label: 'Выйти',     danger: true  },
+      { icon: 'user-circle', label: 'Профиль',   danger: false, action: 'profile'  },
+      { icon: 'settings',    label: 'Настройки', danger: false, action: 'settings' },
+      { icon: 'log-out',     label: 'Выйти',     danger: true,  action: 'logout'   },
     ];
     const html = items.map(it => `
-      <button class="popover-item" ${it.danger ? `style="color:var(--status-danger-fg);"` : ''}>
+      <button class="popover-item" data-profile-action="${it.action}" ${it.danger ? `style="color:var(--status-danger-fg);"` : ''}>
         <i data-lucide="${it.icon}" style="width:16px;height:16px;${it.danger ? 'color:var(--status-danger-fg);' : 'color:var(--text-muted);'}"></i>
         ${it.label}
       </button>
@@ -390,7 +435,17 @@
       return w;
     })();
 
-    openPopover(anchor, html, { alignRight: true });
+    const pop = openPopover(anchor, html, { alignRight: true });
+
+    pop.querySelectorAll('[data-profile-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.profileAction;
+        closePopover();
+        if (action === 'logout')   logout();
+        if (action === 'profile')  location.href = `/app/employees/card.html?id=${user.id}`;
+        if (action === 'settings') location.href = '/app/settings/funnels.html';
+      });
+    });
   }
 
   // ─── TOPBAR ACTION WIRING ─────────────────────────────────────────────────
@@ -401,8 +456,20 @@
       if (!btn) return;
       const action = btn.dataset.action;
 
+      if (action === 'toggle-sidebar') {
+        e.stopPropagation();
+        toggleSidebar();
+      }
+
+      if (action === 'open-modal' && btn.dataset.modal) {
+        openModal(btn.dataset.modal);
+      }
+
       if (action === 'open-create') {
         e.stopPropagation();
+        // empty-state buttons carry data-type → open the matching modal directly
+        const direct = CREATE_TYPE_MODAL[btn.dataset.type];
+        if (direct) { openModal(direct); return; }
         if (activePopover && btn.parentElement.contains(activePopover)) {
           closePopover();
         } else {
@@ -475,5 +542,5 @@
   }
 
   document.addEventListener('DOMContentLoaded', boot);
-  window.CRM = Object.assign(window.CRM || {}, { getRole, setRole, applyRoleVisibility, openModal, closeModal });
+  window.CRM = Object.assign(window.CRM || {}, { getRole, setRole, applyRoleVisibility, openModal, closeModal, logout });
 })();
