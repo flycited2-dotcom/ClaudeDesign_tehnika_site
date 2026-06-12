@@ -1,0 +1,757 @@
+{
+  "date": "2026-06-12T16:45:36.642Z",
+  "passed": 125,
+  "failed": 0,
+  "results": [
+    {
+      "area": "smoke",
+      "name": "load /app/dashboard-owner.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/dashboard-manager.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/leads/list.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/leads/kanban.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/clients/list.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/deals/kanban.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/deals/list.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/deals/by-client.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/tasks/my.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/tasks/dept.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/tasks/all.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/tasks/kanban.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/tasks/calendar.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/offers/list.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/tenders/list.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/tenders/calendar.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/employees/list.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/settings/funnels.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/settings/offer-templates.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/settings/lead-sources.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/settings/site-tokens.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/settings/integrations.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/overview.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/leads.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/deals.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/managers.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/offers.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/tasks.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/tenders.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/reports/time.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/login.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "smoke",
+      "name": "load /app/404.html",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "cards",
+      "name": "client card renders with tabs",
+      "pass": true,
+      "details": "tabs: 8"
+    },
+    {
+      "area": "cards",
+      "name": "client card tab switches",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "cards",
+      "name": "deal card: stage indicator + tabs",
+      "pass": true,
+      "details": "tabs: 7, errors: "
+    },
+    {
+      "area": "cards",
+      "name": "offer view: A4 preview renders",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "cards",
+      "name": "tender card renders",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "cards",
+      "name": "employee card renders",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "roles",
+      "name": "owner sees admin nav (Сотрудники/Настройки)",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "roles",
+      "name": "sidebar lead counter computed from mock",
+      "pass": true,
+      "details": "value: 9"
+    },
+    {
+      "area": "roles",
+      "name": "manager does not see admin nav",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "roles",
+      "name": "manager avatar = МЕ (Морозова)",
+      "pass": true,
+      "details": "avatar: МЕ"
+    },
+    {
+      "area": "roles",
+      "name": "role switch navigates to owner dashboard",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "create menu opens with 6 entities",
+      "pass": true,
+      "details": "Клиент, Лид, Сделка, Задача, КП, Тендер"
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-client opens",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-client closes by Esc",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-lead opens",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-lead closes by Esc",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-deal opens",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-deal closes by Esc",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-task opens",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-task closes by Esc",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-offer opens",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-offer closes by Esc",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-tender opens",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "modal create-tender closes by Esc",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "topbar",
+      "name": "notifications popover shows items",
+      "pass": true,
+      "details": "items: 6"
+    },
+    {
+      "area": "topbar",
+      "name": "profile popover has Профиль/Настройки/Выйти",
+      "pass": true,
+      "details": "profile,settings,logout"
+    },
+    {
+      "area": "topbar",
+      "name": "logout → login page",
+      "pass": true,
+      "details": "http://localhost:3000/app/login.html"
+    },
+    {
+      "area": "cmdk",
+      "name": "Ctrl+K opens command palette",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "cmdk",
+      "name": "quick create actions listed",
+      "pass": true,
+      "details": "actions: 6"
+    },
+    {
+      "area": "cmdk",
+      "name": "search finds client by name",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "cmdk",
+      "name": "search result links to client card",
+      "pass": true,
+      "details": "/app/clients/card.html?id=CL-0015"
+    },
+    {
+      "area": "lists",
+      "name": "/app/leads/list.html renders rows",
+      "pass": true,
+      "details": "rows: 18"
+    },
+    {
+      "area": "lists",
+      "name": "/app/leads/list.html '+' button opens create-lead",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "lists",
+      "name": "/app/clients/list.html renders rows",
+      "pass": true,
+      "details": "rows: 24"
+    },
+    {
+      "area": "lists",
+      "name": "/app/clients/list.html '+' button opens create-client",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "lists",
+      "name": "/app/clients/list.html row click opens card",
+      "pass": true,
+      "details": "http://localhost:3000/app/clients/card.html?id=CL-0001"
+    },
+    {
+      "area": "lists",
+      "name": "/app/deals/list.html renders rows",
+      "pass": true,
+      "details": "rows: 22"
+    },
+    {
+      "area": "lists",
+      "name": "/app/deals/list.html '+' button opens create-deal",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "lists",
+      "name": "/app/deals/list.html row click opens card",
+      "pass": true,
+      "details": "http://localhost:3000/app/deals/card.html?id=DL-0011"
+    },
+    {
+      "area": "lists",
+      "name": "/app/offers/list.html renders rows",
+      "pass": true,
+      "details": "rows: 12"
+    },
+    {
+      "area": "lists",
+      "name": "/app/offers/list.html '+' button opens create-offer",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "lists",
+      "name": "/app/offers/list.html row click opens card",
+      "pass": true,
+      "details": "http://localhost:3000/app/offers/view.html?id=KP-0001"
+    },
+    {
+      "area": "lists",
+      "name": "/app/tenders/list.html renders rows",
+      "pass": true,
+      "details": "rows: 7"
+    },
+    {
+      "area": "lists",
+      "name": "/app/tenders/list.html '+' button opens create-tender",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "lists",
+      "name": "/app/tenders/list.html row click opens card",
+      "pass": true,
+      "details": "http://localhost:3000/app/tenders/card.html?id=TN-0001"
+    },
+    {
+      "area": "lists",
+      "name": "/app/leads/kanban.html kanban renders",
+      "pass": true,
+      "details": "cols: 4, cards: 18"
+    },
+    {
+      "area": "lists",
+      "name": "/app/deals/kanban.html kanban renders",
+      "pass": true,
+      "details": "cols: 5, cards: 20"
+    },
+    {
+      "area": "lists",
+      "name": "/app/tasks/kanban.html kanban renders",
+      "pass": true,
+      "details": "cols: 5, cards: 35"
+    },
+    {
+      "area": "calendar",
+      "name": "/app/tasks/calendar.html arrows switch month",
+      "pass": true,
+      "details": "Июнь 2026 → Июль 2026 → Май 2026"
+    },
+    {
+      "area": "calendar",
+      "name": "/app/tasks/calendar.html grid has 42 cells",
+      "pass": true,
+      "details": "cells: 42"
+    },
+    {
+      "area": "calendar",
+      "name": "/app/tenders/calendar.html arrows switch month",
+      "pass": true,
+      "details": "Июнь 2026 → Июль 2026 → Май 2026"
+    },
+    {
+      "area": "calendar",
+      "name": "/app/tenders/calendar.html grid has 42 cells",
+      "pass": true,
+      "details": "cells: 42"
+    },
+    {
+      "area": "calendar",
+      "name": "tender calendar chips link to card",
+      "pass": true,
+      "details": "/app/tenders/card.html?id=TN-0006"
+    },
+    {
+      "area": "empty",
+      "name": "/app/leads/list.html?empty=1 empty-state with CTA",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "empty",
+      "name": "/app/leads/list.html?empty=1 CTA opens create-lead",
+      "pass": true,
+      "details": "create-lead"
+    },
+    {
+      "area": "empty",
+      "name": "/app/clients/list.html?empty=1 empty-state with CTA",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "empty",
+      "name": "/app/clients/list.html?empty=1 CTA opens create-client",
+      "pass": true,
+      "details": "create-client"
+    },
+    {
+      "area": "empty",
+      "name": "/app/deals/kanban.html?empty=1 empty-state with CTA",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "empty",
+      "name": "/app/deals/kanban.html?empty=1 CTA opens create-deal",
+      "pass": true,
+      "details": "create-deal"
+    },
+    {
+      "area": "empty",
+      "name": "/app/tasks/calendar.html?empty=1 empty-state with CTA",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "empty",
+      "name": "/app/tasks/calendar.html?empty=1 CTA opens create-task",
+      "pass": true,
+      "details": "create-task"
+    },
+    {
+      "area": "empty",
+      "name": "/app/dashboard-owner.html?skeleton=1 shows skeletons, then swaps to data",
+      "pass": true,
+      "details": "shown + swapped"
+    },
+    {
+      "area": "empty",
+      "name": "/app/clients/list.html?skeleton=1 shows skeletons, then swaps to data",
+      "pass": true,
+      "details": "shown + swapped"
+    },
+    {
+      "area": "empty",
+      "name": "/app/deals/kanban.html?skeleton=1 shows skeletons, then swaps to data",
+      "pass": true,
+      "details": "shown + swapped"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/overview.html charts attached",
+      "pass": true,
+      "details": "4/4"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/leads.html charts attached",
+      "pass": true,
+      "details": "4/4"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/deals.html charts attached",
+      "pass": true,
+      "details": "4/4"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/managers.html charts attached",
+      "pass": true,
+      "details": "3/3"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/offers.html charts attached",
+      "pass": true,
+      "details": "4/4"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/tasks.html charts attached",
+      "pass": true,
+      "details": "4/4"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/tenders.html charts attached",
+      "pass": true,
+      "details": "2/2"
+    },
+    {
+      "area": "reports",
+      "name": "/app/reports/time.html charts attached",
+      "pass": true,
+      "details": "2/2"
+    },
+    {
+      "area": "sources",
+      "name": "lead sources list = entry points",
+      "pass": true,
+      "details": "7/7"
+    },
+    {
+      "area": "sources",
+      "name": "site tokens: real sources, no demo domains",
+      "pass": true,
+      "details": "6/6"
+    },
+    {
+      "area": "sources",
+      "name": "integrations: drive, mail, parsers present",
+      "pass": true,
+      "details": "6/6"
+    },
+    {
+      "area": "sources",
+      "name": "leads list uses new source names only",
+      "pass": true,
+      "details": "ok"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/dashboard-owner.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/dashboard-manager.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/leads/list.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/deals/kanban.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/clients/list.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/tasks/calendar.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/reports/overview.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/settings/lead-sources.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "/app/login.html no horizontal overflow @390",
+      "pass": true,
+      "details": "scrollWidth 390 vs 390"
+    },
+    {
+      "area": "mobile",
+      "name": "burger button visible @390",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "mobile",
+      "name": "burger opens sidebar with scrim",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "mobile",
+      "name": "tap on scrim closes sidebar",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "mobile",
+      "name": "burger visible @768 when sidebar hidden",
+      "pass": true,
+      "details": "{\"burger\":true,\"sidebarOff\":true}"
+    },
+    {
+      "area": "misc",
+      "name": "favicon.ico served",
+      "pass": true,
+      "details": "status 200"
+    },
+    {
+      "area": "misc",
+      "name": "login page renders submit button",
+      "pass": true,
+      "details": ""
+    },
+    {
+      "area": "misc",
+      "name": "login button leads to dashboard (mock, no real auth — known stage-2 item)",
+      "pass": true,
+      "details": "http://localhost:3000/app/dashboard-owner.html"
+    },
+    {
+      "area": "misc",
+      "name": "404 page renders",
+      "pass": true,
+      "details": ""
+    }
+  ]
+}

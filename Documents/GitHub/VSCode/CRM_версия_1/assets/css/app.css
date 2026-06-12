@@ -122,6 +122,11 @@
   .app-header { flex-wrap: wrap; gap: 12px; min-height: 0; }
   .app-header > div:last-child { flex-wrap: wrap; }
   .card-flush { overflow-x: auto; }
+  /* any container with a data table scrolls instead of stretching the page */
+  *:has(> table.table-app) { overflow-x: auto; max-width: 100%; }
+  /* sticky th leaks past the scroll container and widens the page on mobile */
+  .table-app thead th { position: static; }
+  .card { min-width: 0; }
   .entity-header { flex-wrap: wrap; }
   .entity-header-actions { flex-wrap: wrap; }
   .stage-indicator { overflow-x: auto; max-width: 100%; padding-bottom: 4px; }
