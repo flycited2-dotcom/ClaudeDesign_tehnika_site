@@ -8,7 +8,7 @@ import { addCartItem } from "@/lib/cart-storage";
 import { decimalToNumber } from "@/lib/catalog";
 import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
-import { buildProductCardHighlights, productShortTitle } from "@/lib/product-display";
+import { productShortTitle } from "@/lib/product-display";
 import { productImageSrc } from "@/lib/product-images";
 import { computeB2BPrice, getRolePricingConfig } from "@/lib/role-pricing";
 import {
@@ -42,15 +42,9 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
   });
   const canOrder = fulfillment.canOrder && Boolean(price);
   const quantity = Math.max(product.multiplicity || 1, 1);
-  const highlights = buildProductCardHighlights({
-    title: fullName,
-    part: product.part,
-    warranty: product.warranty,
-    weight: product.weight,
-    volume: product.volume,
-    multiplicity: product.multiplicity,
-    attributes: product.attributes,
-  }).slice(0, 3);
+  // The model code (part) is the single most important thing a buyer scans for.
+  // Show it on its own line so it is never lost to the name's line-clamp.
+  const modelCode = partTrim;
   const inStock = product.isAvailable && Boolean(price);
   const href = `/product/${product.slug}`;
 
@@ -100,18 +94,10 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
         </div>
         <div className="p-body">
           <div className="p-meta">{product.vendor ?? "Товар"}</div>
+          {modelCode && <div className="p-model">{modelCode}</div>}
           <div className="p-name" title={fullName}>
             {name}
           </div>
-          {highlights.length > 0 && (
-            <div className="p-specs">
-              {highlights.map((spec) => (
-                <span key={spec} className="p-spec">
-                  {spec}
-                </span>
-              ))}
-            </div>
-          )}
           <div className={"p-stock " + (inStock ? "" : "low")}>
             <span className="dot" />
             {fulfillment.stockShortLabel}
@@ -150,7 +136,7 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
           aria-label="В корзину"
         >
           <ShoppingCart size={16} aria-hidden />
-          В корзину
+          Купить
         </button>
         <div className="p-card-secondary">
           <button
