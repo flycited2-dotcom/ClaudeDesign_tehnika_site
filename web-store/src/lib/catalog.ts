@@ -639,16 +639,30 @@ export async function getCatalogPage(query: CatalogQuery) {
 
   applySelectedBrands(filteredWhere, selectedBrands);
 
-  // Page 1 of bare /catalog root: fetch a wider pool and round-robin across
-  // top-level categories so the page doesn't fill up with one dominant
-  // category (Компьютерная техника has 16k mass-market vs everyone else < 10k).
-  const useInterleave = isDefaultPopularRoot && page === 1;
-  const fetchTake = useInterleave ? PRODUCTS_PER_PAGE * 5 : PRODUCTS_PER_PAGE;
-  const fetchSkip = useInterleave ? 0 : (page - 1) * PRODUCTS_PER_PAGE;
+  // Bare /catalog root: round-robin the first POPULAR_POOL_PAGES pages across
+  // top-level categories so the storefront isn't dominated by one category
+  // (Компьютерная техника has 16k mass-market vs everyone else < 10k).
+  //
+  // We fetch ONE shared pool (same cache key for every page in the window),
+  // round-robin REORDER all of it into a stable order, then slice the page
+  // window from that order. This avoids the old bug where only page 1 was
+  // interleaved while page 2+ offset-paged the raw order — products that the
+  // page-1 interleave pulled forward reappeared on later pages, and products it
+  // skipped were never shown. Page POPULAR_POOL_PAGES+1 continues from raw
+  // offset == pool size, so the boundary neither duplicates nor skips.
+  const POPULAR_POOL_PAGES = 5;
+  const usePool = isDefaultPopularRoot && page <= POPULAR_POOL_PAGES;
+  const fetchTake = usePool ? PRODUCTS_PER_PAGE * POPULAR_POOL_PAGES : PRODUCTS_PER_PAGE;
+  const fetchSkip = usePool ? 0 : (page - 1) * PRODUCTS_PER_PAGE;
 
   const { rawProducts, total } = await getCachedCatalogProducts(filteredWhere, query.sort, fetchSkip, fetchTake);
-  const products = useInterleave
-    ? interleaveByTopCategory(rawProducts, allCategories, PRODUCTS_PER_PAGE, 3)
+  const products = usePool
+    ? interleaveByTopCategory(
+        rawProducts,
+        allCategories,
+        rawProducts.length,
+        Number.POSITIVE_INFINITY,
+      ).slice((page - 1) * PRODUCTS_PER_PAGE, page * PRODUCTS_PER_PAGE)
     : rawProducts;
   const categories = await getCatalogCategoryTree(allCategories);
   const brands = await getCatalogBrands(brandWhere);

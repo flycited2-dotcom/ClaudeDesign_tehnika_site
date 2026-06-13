@@ -96,4 +96,21 @@ describe("interleaveByTopCategory", () => {
     const out = interleaveByTopCategory(products, cats, 4, 1);
     expect(out.length).toBe(4);
   });
+
+  it("is a permutation (no dup, no loss) when take>=length and no cap — the paginated-pool contract", () => {
+    const products: P[] = [
+      mk("l1", "laptops"),
+      mk("l2", "laptops"),
+      mk("l3", "laptops"),
+      mk("p1", "phones"),
+      mk("k1", "kitchen"),
+      mk("g1", "garden"),
+      mk("o1", null),
+      mk("o2", "unknown-cat"),
+    ];
+    const out = interleaveByTopCategory(products, cats, products.length, Number.POSITIVE_INFINITY);
+    expect(out.length).toBe(products.length);
+    expect(new Set(out.map((p) => p.id)).size).toBe(products.length);
+    expect(out.map((p) => p.id).sort()).toEqual(products.map((p) => p.id).sort());
+  });
 });
