@@ -97,10 +97,10 @@ body.app {
     gap: 10px;
     padding: 14px;
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-stroke);
+    /* Opaque so page content scrolling underneath the fixed bar is hidden,
+       not showing through (the "кнопка в кнопке / перекрывает текст" mess). */
+    background: #ffffff;
+    border: 1px solid rgba(33, 52, 108, 0.16);
     box-shadow: 0 18px 40px rgba(11, 20, 70, 0.22);
   }
   .mob-buy-bar .row {
@@ -588,6 +588,9 @@ body.app {
     justify-content: space-around;
     padding: 6px 4px;
     border-radius: 18px;
+    /* Opaque so product content scrolling under the bottom-nav is hidden. */
+    background: #ffffff;
+    border: 1px solid rgba(33, 52, 108, 0.16);
   }
   .screen-bar .sep,
   .screen-bar a:not(.sb-primary) {
@@ -1054,4 +1057,26 @@ body.app {
 }
 .filter-sheet .f-row input:checked + .box::after {
   font-size: 17px;
+}
+
+/* ============================================================
+   Button contrast (Iter 33). The glass .btn-soft/.btn-ghost had a
+   near-white (invisible) border and muted text, so the client
+   couldn't see where a button was. Give them a visible outline and
+   darker text so the boundary and label read clearly everywhere.
+   ============================================================ */
+.btn-soft {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1.5px solid rgba(33, 52, 108, 0.22);
+  box-shadow: 0 1px 4px rgba(33, 52, 108, 0.06);
+}
+.btn-ghost {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1.5px solid rgba(33, 52, 108, 0.18);
+}
+.btn-soft:hover {
+  background: #ffffff;
+  border-color: rgba(33, 52, 108, 0.3);
 }
