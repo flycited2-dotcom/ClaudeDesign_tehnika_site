@@ -24,6 +24,66 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-13 — Iter 24: аудит кода + мобильный аудит (агенты) → 6 фиксов безопасности/воронки ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `a9ba5e2` — "Iter 24: fix supplier-price leak, cart multiplicity block, JSON-LD/redirect hardening"
+- **Backup VPS:** `/var/www/climat-simf.ru.source-backup-20260613114707.tar.gz`
+- **Deploy:** 2026-06-13 11:47 UTC через `python scripts/deploy_vps.py --key-path ~/.ssh/climat_simf_deploy`
+  (additive: backup → tar overlay → `prisma db push` (no-op, схема не менялась) → `npm run build` →
+  pm2 delete+start → internal+public healthcheck). Все healthcheck'и зелёные.
+- **Контекст:** владелец попросил проверить код целиком, вычистить баги/несостыковки и **запустить
+  агентов для перепроверки мобильной версии** (подбор техники, фильтры, картинки, скидки, размер
+  заказов). Запущено 4 параллельных агента: каталог/поиск, карточки/товар, корзина/checkout,
+  статический код-ревью. 3 мобильных агента упёрлись в session-лимит до сдачи прозы, но успели снять
+  **80+ скриншотов на 360/412px** + интерактивные сценарии (тапы, фильтр-шит, роли). Код-ревью-агент
+  выдал полный отчёт (сохранён в `qa-mobile-audit/findings-code.md` вне репо). Каждую находку
+  **верифицировал по реальному коду** перед фиксом (receiving-code-review): часть оказалась
+  артефактами (см. ниже).
+- **Что вошло (6 фиксов, все surgical, lint/176 тестов/build зелёные, проверено на проде curl'ом):**
+  1. **Утечка закупочной цены в `/api/cart/quote`** — роут отдавал весь quote с `supplierPrice` и
+     `productId` любому клиенту. Теперь whitelist ответа (`sku/name/quantity/unitPrice/total/multiplicity`).
+     Проверено: POST на проде — `supplierPrice`/`productId` отсутствуют.
+  2. **Утечка `supplierPrice`+`manualPrice` в `/api/catalog/products-by-sku`** (favorites/compare) —
+     `findMany` с `include` без `select` сливал все колонки Product. Теперь strip двух внутренних полей
+     post-fetch (карточка рендерит только из `retailPrice`/`rrp`). Проверено: на проде их нет, `rrp` на месте.
+  3. **Корзина блокировала checkout на товарах с multiplicity > 1.** `+/−` шагали по 1 → количество
+     становилось не кратным → `buildOrderQuote` отклонял корзину → кнопка «к оформлению» исчезала
+     («Проверяем корзину» навсегда). `multiplicity` теперь течёт через quote, стэппер шагает по кратности.
+  4. **JSON-LD без экранирования** (`product/[slug]`) — `JSON.stringify` шёл прямо в
+     `dangerouslySetInnerHTML`; `</script>` в name/description из фида поставщика мог сломать страницу.
+     Новый `jsonLdHtml()` экранирует `<` и U+2028/U+2029.
+  5. **Open redirect после входа** — `next=//evil.com` проходил `startsWith("/")` и `new URL` уводил на
+     чужой домен. `safeNextPath()` режет `//` и `\`. Проверено: `?next=//evil.com` → 307 на
+     `/login?error=not_found`, НЕ на evil.com.
+  6. **Сортировка «Сначала дороже»** ставила товары без цены первыми (Postgres NULL первым на DESC).
+     Теперь `retailPrice desc nulls:last`.
+  + **Мобильная корзина (≤640px):** строка товара клала имя в колонку ~1 слова → переносило по одному
+     слову в строку. Сгруппировал контролы в `.cart-line-ctl`, на узких имя над контролами на всю ширину.
+     Проверено скриншотом на 360px: имя переносится нормально, overflow=0.
+- **Тесты:** +5 (jsonLdHtml экранирование, safeNextPath guard'ы, multiplicity passthrough) → **176/176**.
+- **Мобильный вердикт (по 80+ скриншотам агентов + мои проверки):** основная воронка на телефоне
+  работает. Drill-down каталог ✅, фильтр-шит непрозрачный и читаемый ✅ (`cat-sheet-open` выглядел
+  полупрозрачным — это кадр середины анимации slide-up, settled-состояние чистое), checkout-валидация
+  ✅ (заказ не уходит при пустой форме), API хаба 200/0.8с ✅. Пустые skeleton на корне `/catalog` —
+  кадр до резолва fetch, не баг.
+- **Верифицировано как реальное, но НЕ чинил этой итерацией** (кандидаты на Iter 25, детали в
+  `qa-mobile-audit/findings-code.md`):
+  - **P2-1** дубли/пропуски товаров между стр.1 и 2 на корневом `/catalog` (интерлив только page 1
+    конфликтует с offset-пагинацией; нужен редизайн, рискованно править на кэш-пути перед деплоем).
+  - **P2-13** на `/product/[slug]` для роли gov сервер-рендер показывает розницу + активную «В корзину»,
+    тогда как карточка/compare прячут цену («Цена по запросу») — сервер не знает роль (она в localStorage);
+    нужен role-aware client-island для цены/buy-bar.
+  - **P2-7** модал «Запросить опт-статус» (`role-upgrade-request-modal`) z-index 100 < bottom-nav 120 →
+    на мобиле nav поверх бэкдропа; поднять до 220 + lock scroll.
+  - **P2-9** счётчики на `/account` (`cart-count`/`fav-count`/`cmp-count`) навсегда «…» — нет client-island.
+  - **P2-12** callback/quote-заявки при отсутствии `TELEGRAM_*` env возвращают `{ok:true}` и теряются
+    (в отличие от заказов — нет следа в БД).
+  - Прочая гигиена (P3) — список в findings: мёртвый CSS, footer-форма подписки `action="#"`,
+    мёртвые якоря сайдбара кабинетов, Telegram-сообщение >4096 симв. на заказе 50+ позиций и т.д.
+- **Out of scope (как и раньше):** реальные опт-цены (нет поля в схеме), история заказов в кабинетах,
+  HTTP/2 + WebP для фото, антиспам/fail2ban почты, Gmail-репутация.
+
 ### 2026-06-08 — Iter 23.3 hotfix: product page horizontal overflow («холодильник торчит за экран») ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
