@@ -461,8 +461,10 @@ export function CatalogView({
 
         <div>
           {/* Mobile-only drill-down hub: shows children of the current
-              category as big tap-cards; hidden on desktop via CSS. */}
-          <MobileCatalogHub parentId={currentCategoryId} />
+              category as big tap-cards; hidden on desktop via CSS.
+              Suppressed on search — a query wants the matching PRODUCTS shown
+              straight away, not a category drill-down above them. */}
+          {!currentQuery?.trim() && <MobileCatalogHub parentId={currentCategoryId} />}
           {/* Mobile-only filter trigger button (hidden on desktop where the
               left sidebar provides the same filters). */}
           <MobileFilterSheet

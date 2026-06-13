@@ -1014,3 +1014,44 @@ body.app {
   background: #fff;
   flex-shrink: 0;
 }
+
+/* ============================================================
+   Filter rows (Iter 31). The .on class is static React state, so
+   tapping a checkbox never restyled the box (no feedback). Drive
+   the box off the LIVE native checkbox instead, and add a ✓.
+   On the mobile sheet the box moves to the right (thumb reach),
+   gets bigger, and rows are divided so you don't mis-tap.
+   ============================================================ */
+.f-row input:checked + .box {
+  background: linear-gradient(135deg, #75a2ff, #426dff);
+  border-color: transparent;
+  color: #fff;
+}
+.f-row input:checked + .box::after {
+  content: "\2713";
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1;
+}
+.filter-sheet .f-row {
+  gap: 12px;
+  margin: 0;
+  padding: 13px 2px;
+  font-size: 15px;
+  border-bottom: 1px solid rgba(33, 52, 108, 0.09);
+}
+.filter-sheet .f-row .box {
+  order: 3;
+  margin-left: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border-width: 2px;
+}
+.filter-sheet .f-row .cnt {
+  order: 2;
+  margin-left: auto;
+}
+.filter-sheet .f-row input:checked + .box::after {
+  font-size: 17px;
+}
