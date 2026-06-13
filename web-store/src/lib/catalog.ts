@@ -787,6 +787,7 @@ export async function getProductsForQuote(skus: number[]) {
     select: {
       id: true,
       sku: true,
+      slug: true,
       supplierName: true,
       name: true,
       retailPrice: true,
@@ -799,6 +800,7 @@ export async function getProductsForQuote(skus: number[]) {
   return products.map((product) => ({
     productId: product.id,
     sku: product.sku,
+    slug: product.slug,
     name: product.name ?? product.supplierName,
     price: decimalToNumber(product.retailPrice),
     supplierPrice: product.supplierPrice ? decimalToNumber(product.supplierPrice) : null,

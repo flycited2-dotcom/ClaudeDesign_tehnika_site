@@ -15,6 +15,7 @@ type QuoteItem = {
   unitPrice: number;
   total: number;
   multiplicity: number;
+  slug?: string;
 };
 
 type Quote = {
@@ -155,7 +156,16 @@ export function CartClient() {
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontWeight: 700, color: "var(--text)" }}>{item?.name ?? `SKU ${cartItem.sku}`}</p>
+                  {item?.slug ? (
+                    <Link
+                      href={`/product/${item.slug}`}
+                      style={{ display: "block", fontWeight: 700, color: "var(--text)", textDecoration: "none" }}
+                    >
+                      {item.name}
+                    </Link>
+                  ) : (
+                    <p style={{ fontWeight: 700, color: "var(--text)" }}>{item?.name ?? `SKU ${cartItem.sku}`}</p>
+                  )}
                   <p style={{ marginTop: 4, fontSize: 13, color: "var(--text-mute)" }}>SKU {cartItem.sku}</p>
                   <p style={{ marginTop: 4, fontSize: 13, color: "#0e6b3a" }}>
                     {fulfillment.stockLabel} · {fulfillment.deliveryShortLabel}

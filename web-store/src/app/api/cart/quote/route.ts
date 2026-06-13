@@ -31,6 +31,7 @@ export async function POST(request: Request) {
         unitPrice: item.unitPrice,
         total: item.total,
         multiplicity: item.multiplicity,
+        slug: item.slug,
       })),
       total: quote.total,
     });

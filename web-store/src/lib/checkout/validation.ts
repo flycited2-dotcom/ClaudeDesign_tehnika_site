@@ -11,6 +11,7 @@ export type QuoteProduct = {
   multiplicity: number;
   isAvailable: boolean;
   productId?: string;
+  slug?: string;
 };
 
 export type OrderQuoteItem = {
@@ -22,6 +23,7 @@ export type OrderQuoteItem = {
   total: number;
   productId?: string;
   multiplicity: number;
+  slug?: string;
 };
 
 export type OrderQuote = {
@@ -74,6 +76,7 @@ export function buildOrderQuote({
       total,
       productId: product.productId,
       multiplicity,
+      slug: product.slug,
     });
   }
 
