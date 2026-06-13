@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, ClipboardList, DatabaseZap, FileText, LogOut, Settings, ShieldCheck, Tags } from "lucide-react";
+import { BarChart3, Boxes, ClipboardList, DatabaseZap, FileText, LogOut, PhoneCall, Settings, ShieldCheck, Tags } from "lucide-react";
 import Link from "next/link";
 import { logoutAction } from "@/app/admin/actions";
 
@@ -7,6 +7,7 @@ const links = [
   ["/admin/products", "Товары", Boxes],
   ["/admin/categories", "Категории", Tags],
   ["/admin/orders", "Заказы", ClipboardList],
+  ["/admin/leads", "Заявки (звонок/КП)", PhoneCall],
   ["/admin/role-requests", "Заявки на роли", ShieldCheck],
   ["/admin/sync", "Синхронизация", DatabaseZap],
   ["/admin/settings", "Настройки", Settings],

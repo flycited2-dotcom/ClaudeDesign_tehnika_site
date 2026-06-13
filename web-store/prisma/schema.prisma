@@ -272,3 +272,33 @@ model Address {
   address    String
   updatedAt  DateTime @updatedAt
 }
+
+enum LeadType {
+  CALLBACK @map("callback")
+  QUOTE    @map("quote")
+}
+
+enum LeadStatus {
+  NEW     @map("new")
+  HANDLED @map("handled")
+}
+
+/// Callback / quote requests captured durably so a lead is never lost if the
+/// Telegram notification is unavailable. Telegram is sent best-effort after
+/// the row is persisted.
+model Lead {
+  id        String     @id @default(cuid())
+  type      LeadType
+  status    LeadStatus @default(NEW)
+  name      String
+  phone     String
+  email     String?
+  company   String?
+  inn       String?
+  scope     String?
+  context   String?
+  comment   String?
+  createdAt DateTime   @default(now())
+
+  @@index([status, createdAt])
+}

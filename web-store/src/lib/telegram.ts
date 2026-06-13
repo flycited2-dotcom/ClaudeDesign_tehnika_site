@@ -2,6 +2,28 @@ import type { OrderQuote } from "@/lib/checkout/validation";
 import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
 
+/**
+ * Best-effort plain-text notification to the manager chat. Returns whether the
+ * message was actually delivered so callers can decide on fallbacks. Never
+ * throws — a notification failure must not break the action that triggered it.
+ */
+export async function sendTelegramMessage(text: string): Promise<{ delivered: boolean }> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_MANAGER_CHAT_ID;
+  if (!token || !chatId) return { delivered: false };
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+    });
+    return { delivered: response.ok };
+  } catch {
+    return { delivered: false };
+  }
+}
+
 export function buildTelegramOrderMessage({
   orderNumber,
   customerName,

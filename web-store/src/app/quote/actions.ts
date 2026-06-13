@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { captureLead } from "@/lib/leads";
 
 export type QuoteState = {
   ok?: boolean;
@@ -59,27 +60,22 @@ export async function requestQuoteAction(
     .filter(Boolean)
     .join("\n");
 
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_MANAGER_CHAT_ID;
-
-  if (!token || !chatId) {
-    console.log("[quote]", text);
-    return { ok: true };
-  }
-
   try {
-    const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+    await captureLead({
+      type: "QUOTE",
+      name: customerName,
+      phone,
+      email: email || null,
+      company: companyName || null,
+      inn: inn || null,
+      scope,
+      context: context || null,
+      comment: comment || null,
+      telegramText: text,
     });
-    if (!response.ok) {
-      console.error("[quote] telegram failed", response.status);
-      return { error: "Не удалось отправить заявку. Позвоните нам напрямую." };
-    }
     return { ok: true };
   } catch (error) {
     console.error("[quote]", error);
-    return { error: "Не удалось отправить заявку. Позвоните нам напрямую." };
+    return { error: "Не удалось сохранить заявку. Позвоните нам напрямую." };
   }
 }
