@@ -60,11 +60,13 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
   const isFavorite = favorites.includes(product.sku);
   const isInCompare = compare.includes(product.sku);
   const [compareError, setCompareError] = useState<string | null>(null);
+  // gov buys via КП — don't let gov add to cart at the (hidden) retail price
+  const canBuy = canOrder && !(role === "gov" && pricing.govEnabled);
 
   function handleAddToCart(event: React.MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
-    if (canOrder) addCartItem(product.sku, quantity);
+    if (canBuy) addCartItem(product.sku, quantity);
   }
 
   function handleToggleFav(event: React.MouseEvent) {
@@ -143,7 +145,7 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
           type="button"
           className="btn btn-primary p-card-buy"
           data-testid="add-to-cart"
-          disabled={!canOrder}
+          disabled={!canBuy}
           onClick={handleAddToCart}
           aria-label="В корзину"
         >
