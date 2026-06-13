@@ -3,6 +3,7 @@
 import { FileText, X } from "lucide-react";
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
+import { PhoneField } from "@/components/phone-field";
 import { requestQuoteAction, type QuoteState } from "@/app/quote/actions";
 
 const initialState: QuoteState = {};
@@ -157,16 +158,7 @@ export function QuoteRequestButton({
                 </label>
                 <label style={labelStyle}>
                   Телефон
-                  <input
-                    className="input"
-                    name="phone"
-                    type="tel"
-                    inputMode="tel"
-                    required
-                    maxLength={40}
-                    placeholder="+7 …"
-                    style={{ height: 44 }}
-                  />
+                  <PhoneField required style={{ height: 44 }} />
                 </label>
                 <label style={labelStyle}>
                   Email

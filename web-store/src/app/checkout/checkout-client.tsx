@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { PhoneField } from "@/components/phone-field";
 import { createCheckoutOrder, type CheckoutState } from "@/app/checkout/actions";
 import { useCart } from "@/lib/use-cart";
 
@@ -56,7 +57,7 @@ export function CheckoutClient() {
       </label>
       <label style={labelStyle}>
         Телефон
-        <input className="input" name="phone" required inputMode="tel" />
+        <PhoneField required />
       </label>
       <label style={labelStyle}>
         Email

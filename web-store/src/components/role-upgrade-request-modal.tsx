@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PhoneField } from "@/components/phone-field";
 import { requestRoleUpgradeAction } from "@/app/role-request/actions";
 
 export function RoleUpgradeRequestModal({
@@ -163,14 +164,7 @@ export function RoleUpgradeRequestModal({
                 </label>
                 <label style={{ display: "grid", gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>Телефон*</span>
-                  <input
-                    name="phone"
-                    type="tel"
-                    required
-                    className="input"
-                    placeholder="+7 978 000-00-00"
-                    defaultValue={defaultPhone ?? ""}
-                  />
+                  <PhoneField required defaultValue={defaultPhone} />
                 </label>
                 <label style={{ display: "grid", gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)" }}>Комментарий</span>

@@ -4,6 +4,7 @@ import { Phone, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useActionState } from "react";
+import { PhoneField } from "@/components/phone-field";
 import { requestCallbackAction, type CallbackState } from "@/app/callback/actions";
 
 const initialState: CallbackState = {};
@@ -161,16 +162,7 @@ export function CallbackButton({
                 </label>
                 <label style={labelStyle}>
                   Телефон
-                  <input
-                    className="input"
-                    name="phone"
-                    type="tel"
-                    inputMode="tel"
-                    required
-                    maxLength={40}
-                    placeholder="+7 …"
-                    style={{ height: 44 }}
-                  />
+                  <PhoneField required style={{ height: 44 }} />
                 </label>
                 <label style={labelStyle}>
                   Комментарий (необязательно)

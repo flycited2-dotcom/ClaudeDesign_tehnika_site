@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { PhoneField } from "@/components/phone-field";
 import { createQuickOrder, type QuickOrderState } from "@/app/product/[slug]/quick-order-actions";
 
 const initialState: QuickOrderState = {};
@@ -53,7 +54,7 @@ export function QuickOrderForm({
         }}
       >
         <input className="input" name="customerName" required placeholder="Имя" style={{ height: 42 }} />
-        <input className="input" name="phone" required placeholder="Телефон" inputMode="tel" style={{ height: 42 }} />
+        <PhoneField required style={{ height: 42 }} />
       </div>
       {!compact ? (
         <textarea
