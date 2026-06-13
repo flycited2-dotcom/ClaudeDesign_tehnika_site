@@ -44,7 +44,6 @@ describe("sendOrderNotificationSafely", () => {
     });
 
     expect(message).toContain("Доставка под заказ 7 дней");
-    expect(message).toContain("Менеджер подтвердит наличие, цену и срок перед оформлением.");
     expect(message).not.toContain("день в день");
   });
 
@@ -71,9 +70,9 @@ describe("sendOrderNotificationSafely", () => {
       },
     });
 
-    expect(message).toContain("Быстрый заказ ORD-QUICK");
-    expect(message).toContain("Источник: карточка товара");
-    expect(message).toContain("Страница: https://climat-simf.ru/product/osushitel-11261200");
+    expect(message).toContain("Быстрый заказ");
+    expect(message).toContain("ORD-QUICK");
+    expect(message).toContain("https://climat-simf.ru/product/osushitel-11261200");
     expect(message).toContain("Позвонить после 18:00");
   });
 });

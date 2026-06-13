@@ -10,8 +10,21 @@ const TELEGRAM_MAX_LENGTH = 4096;
 export function clampTelegramText(text: string): string {
   if (text.length <= TELEGRAM_MAX_LENGTH) return text;
   const notice = "\n…(сообщение обрезано — полная заявка в админке)";
-  return text.slice(0, TELEGRAM_MAX_LENGTH - notice.length) + notice;
+  const budget = TELEGRAM_MAX_LENGTH - notice.length;
+  const slice = text.slice(0, budget);
+  // Cut at a line boundary so we don't truncate inside an HTML tag (which would
+  // make Telegram reject the whole message).
+  const lastNewline = slice.lastIndexOf("\n");
+  const safe = lastNewline > budget * 0.5 ? slice.slice(0, lastNewline) : slice;
+  return safe + notice;
 }
+
+/** Escape user-supplied text for Telegram HTML parse_mode. */
+export function escapeTelegramHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+export const TELEGRAM_DIVIDER = "➖➖➖➖➖➖➖➖➖➖";
 
 /**
  * Best-effort plain-text notification to the manager chat. Returns whether the
@@ -27,7 +40,12 @@ export async function sendTelegramMessage(text: string): Promise<{ delivered: bo
     const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text: clampTelegramText(text), disable_web_page_preview: true }),
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: clampTelegramText(text),
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
+      }),
     });
     return { delivered: response.ok };
   } catch {
@@ -55,24 +73,26 @@ export function buildTelegramOrderMessage({
   quote: OrderQuote;
 }) {
   const fulfillment = publicFulfillmentText({ isAvailable: true });
+  const e = escapeTelegramHtml;
+  const header = kind === "quick" ? "⚡ <b>Быстрый заказ</b>" : "🛒 <b>Новый заказ</b>";
   const lines = [
-    kind === "quick" ? `Быстрый заказ ${orderNumber}` : `Новый заказ ${orderNumber}`,
-    `Имя: ${customerName}`,
-    `Телефон: ${phone}`,
-    email ? `Email: ${email}` : null,
-    comment ? `Комментарий: ${comment}` : null,
-    kind === "quick" ? "Источник: карточка товара" : null,
-    sourceUrl ? `Страница: ${sourceUrl}` : null,
-    "",
-    "Состав заказа:",
+    `${header}  <code>${e(orderNumber)}</code>`,
+    TELEGRAM_DIVIDER,
+    `👤 <b>Имя:</b> ${e(customerName)}`,
+    `📞 <b>Телефон:</b> ${e(phone)}`,
+    email ? `📧 <b>Email:</b> ${e(email)}` : null,
+    comment ? `💬 <b>Комментарий:</b> ${e(comment)}` : null,
+    sourceUrl ? `🔗 ${e(sourceUrl)}` : null,
+    TELEGRAM_DIVIDER,
+    "📦 <b>Состав заказа:</b>",
     ...quote.items.map(
-      (item) => `- SKU ${item.sku} / ${item.name} / ${item.quantity} шт. / ${formatRub(item.unitPrice)} / ${formatRub(item.total)}`,
+      (item) =>
+        `• ${e(item.name)}\n    ${item.quantity} шт × ${formatRub(item.unitPrice)} = <b>${formatRub(item.total)}</b>  <i>(SKU ${item.sku})</i>`,
     ),
-    "",
-    fulfillment.deliveryLabel,
-    fulfillment.confirmationNote,
-    `Итого: ${formatRub(quote.total)}`,
-    `Дата: ${new Date().toLocaleString("ru-RU")}`,
+    TELEGRAM_DIVIDER,
+    `💰 <b>Итого: ${formatRub(quote.total)}</b>`,
+    `🚚 ${e(fulfillment.deliveryLabel)}`,
+    `🕐 ${e(new Date().toLocaleString("ru-RU"))}`,
   ].filter(Boolean);
 
   return lines.join("\n");
@@ -114,6 +134,7 @@ export async function sendTelegramOrderNotification({
       text: clampTelegramText(
         buildTelegramOrderMessage({ orderNumber, customerName, phone, email, comment, kind, sourceUrl, quote }),
       ),
+      parse_mode: "HTML",
       disable_web_page_preview: true,
     }),
   });

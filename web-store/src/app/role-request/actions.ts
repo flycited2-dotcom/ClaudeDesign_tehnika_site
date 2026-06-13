@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { storefront } from "@/lib/storefront";
+import { escapeTelegramHtml as e, sendTelegramMessage, TELEGRAM_DIVIDER } from "@/lib/telegram";
 
 const schema = z.object({
   requestedRole: z.enum(["b2b", "gov"]),
@@ -28,36 +29,24 @@ async function notifyManagerOnTelegram(payload: {
   phone: string;
   note?: string | null;
 }): Promise<void> {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_MANAGER_CHAT_ID;
-  if (!token || !chatId) return;
-
   const roleLabel = payload.requestedRole === "b2b" ? "опт-клиента" : "госзаказчика";
-  const lines = [
-    `Новая заявка на статус ${roleLabel} (${payload.requestId})`,
-    `Email: ${payload.email}`,
-    `Организация: ${payload.orgName}`,
-    payload.inn ? `ИНН: ${payload.inn}` : null,
-    `Контакт: ${payload.contactPerson}`,
-    `Телефон: ${payload.phone}`,
-    payload.note ? `Комментарий: ${payload.note}` : null,
-    "",
-    `Подтвердить: ${storefront.siteUrl}/admin/role-requests`,
-  ].filter(Boolean);
+  const text = [
+    `🤝 <b>Заявка на статус ${roleLabel}</b>`,
+    TELEGRAM_DIVIDER,
+    `📧 <b>Email:</b> ${e(payload.email)}`,
+    `🏢 <b>Организация:</b> ${e(payload.orgName)}`,
+    payload.inn ? `🔢 <b>ИНН:</b> ${e(payload.inn)}` : null,
+    `👤 <b>Контакт:</b> ${e(payload.contactPerson)}`,
+    `📞 <b>Телефон:</b> ${e(payload.phone)}`,
+    payload.note ? `💬 <b>Комментарий:</b> ${e(payload.note)}` : null,
+    TELEGRAM_DIVIDER,
+    `✅ Подтвердить: ${storefront.siteUrl}/admin/role-requests`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: lines.join("\n"),
-        disable_web_page_preview: true,
-      }),
-    });
-  } catch {
-    /* swallow notification errors — request is already persisted */
-  }
+  // best-effort — the request is already persisted in the DB
+  await sendTelegramMessage(text);
 }
 
 export async function requestRoleUpgradeAction(formData: FormData): Promise<RequestRoleUpgradeResult> {

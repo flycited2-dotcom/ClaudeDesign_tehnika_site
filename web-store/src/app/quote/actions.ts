@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { captureLead } from "@/lib/leads";
+import { escapeTelegramHtml as e, TELEGRAM_DIVIDER } from "@/lib/telegram";
 
 export type QuoteState = {
   ok?: boolean;
@@ -45,17 +46,18 @@ export async function requestQuoteAction(
 
   const { customerName, companyName, inn, phone, email, comment, context, scope } = parsed.data;
 
-  const header = scope === "b2b" ? "Запрос опт-цены" : "Запрос КП (44-ФЗ / 223-ФЗ)";
+  const header = scope === "b2b" ? "💼 <b>Запрос опт-цены</b>" : "📋 <b>Запрос КП (44-ФЗ / 223-ФЗ)</b>";
   const text = [
     header,
-    `Имя: ${customerName}`,
-    companyName ? `Организация: ${companyName}` : null,
-    inn ? `ИНН: ${inn}` : null,
-    `Телефон: ${phone}`,
-    email ? `Email: ${email}` : null,
-    context ? `Товар/раздел: ${context}` : null,
-    comment ? `Комментарий: ${comment}` : null,
-    `Дата: ${new Date().toLocaleString("ru-RU")}`,
+    TELEGRAM_DIVIDER,
+    `👤 <b>Имя:</b> ${e(customerName)}`,
+    companyName ? `🏢 <b>Организация:</b> ${e(companyName)}` : null,
+    inn ? `🔢 <b>ИНН:</b> ${e(inn)}` : null,
+    `📞 <b>Телефон:</b> ${e(phone)}`,
+    email ? `📧 <b>Email:</b> ${e(email)}` : null,
+    context ? `📦 <b>Товар/раздел:</b> ${e(context)}` : null,
+    comment ? `💬 <b>Комментарий:</b> ${e(comment)}` : null,
+    `🕐 ${new Date().toLocaleString("ru-RU")}`,
   ]
     .filter(Boolean)
     .join("\n");

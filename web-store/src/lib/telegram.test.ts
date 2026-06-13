@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { clampTelegramText, sendTelegramMessage } from "@/lib/telegram";
+import {
+  buildTelegramOrderMessage,
+  clampTelegramText,
+  escapeTelegramHtml,
+  sendTelegramMessage,
+} from "@/lib/telegram";
 
 describe("clampTelegramText", () => {
   it("leaves text within the limit unchanged", () => {
@@ -10,6 +15,29 @@ describe("clampTelegramText", () => {
     const out = clampTelegramText("x".repeat(5000));
     expect(out.length).toBeLessThanOrEqual(4096);
     expect(out).toContain("обрезано");
+  });
+});
+
+describe("escapeTelegramHtml", () => {
+  it("escapes < > & so HTML parse_mode is safe", () => {
+    expect(escapeTelegramHtml('a<b>&"')).toBe('a&lt;b&gt;&amp;"');
+  });
+});
+
+describe("buildTelegramOrderMessage", () => {
+  it("formats an order with bold, emoji and escaped user content", () => {
+    const msg = buildTelegramOrderMessage({
+      orderNumber: "ORD-1",
+      customerName: "Иван <скидка>",
+      phone: "+7 999",
+      kind: "quick",
+      quote: { total: 1000, items: [{ sku: 1, name: "Холодильник", quantity: 2, unitPrice: 500, total: 1000, multiplicity: 1 }] },
+    });
+    expect(msg).toContain("⚡ <b>Быстрый заказ</b>");
+    expect(msg).toContain("<b>Имя:</b> Иван &lt;скидка&gt;"); // escaped
+    expect(msg).toContain("💰 <b>Итого:");
+    expect(msg).toContain("Холодильник");
+    expect(msg).not.toContain("<скидка>"); // raw tag must not leak
   });
 });
 

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { captureLead } from "@/lib/leads";
+import { escapeTelegramHtml as e, TELEGRAM_DIVIDER } from "@/lib/telegram";
 
 export type CallbackState = {
   ok?: boolean;
@@ -35,11 +36,12 @@ export async function requestCallbackAction(
   const { customerName, phone, comment } = parsed.data;
 
   const text = [
-    "Запрос обратного звонка",
-    `Имя: ${customerName}`,
-    `Телефон: ${phone}`,
-    comment ? `Комментарий: ${comment}` : null,
-    `Дата: ${new Date().toLocaleString("ru-RU")}`,
+    "📞 <b>Запрос обратного звонка</b>",
+    TELEGRAM_DIVIDER,
+    `👤 <b>Имя:</b> ${e(customerName)}`,
+    `📞 <b>Телефон:</b> ${e(phone)}`,
+    comment ? `💬 <b>Комментарий:</b> ${e(comment)}` : null,
+    `🕐 ${new Date().toLocaleString("ru-RU")}`,
   ]
     .filter(Boolean)
     .join("\n");

@@ -1,5 +1,15 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import type { OrderQuote } from "@/lib/checkout/validation";
+import { formatRub } from "@/lib/format";
 import { storefront } from "@/lib/storefront";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 type SendArgs = {
   to: string;
@@ -219,5 +229,81 @@ export function buildRoleRejectedEmail({
 <p>К сожалению, заявка на статус ${roleLabel} для <b>«${orgName}»</b> отклонена.</p>
 <p>${reason}</p>
 <p style="color:#666;font-size:12px">${storefront.phones[0]} · ${storefront.email}</p>`;
+  return { subject, text, html };
+}
+
+/** Mailbox the manager reads (webmail) — internal order/lead notifications. */
+export function orderNotificationRecipient(): string {
+  return process.env.ORDER_NOTIFICATION_EMAIL || "info@climat-simf.ru";
+}
+
+export function buildOrderEmail({
+  orderNumber,
+  customerName,
+  phone,
+  email,
+  comment,
+  kind,
+  sourceUrl,
+  quote,
+}: {
+  orderNumber: string;
+  customerName: string;
+  phone: string;
+  email?: string | null;
+  comment?: string | null;
+  kind?: "order" | "quick";
+  sourceUrl?: string | null;
+  quote: OrderQuote;
+}): { subject: string; text: string; html: string } {
+  const e = escapeHtml;
+  const kindLabel = kind === "quick" ? "Быстрый заказ" : "Новый заказ";
+  const subject = `${kindLabel} ${orderNumber} — ${customerName}, ${formatRub(quote.total)}`;
+
+  const text = [
+    `${kindLabel} ${orderNumber}`,
+    ``,
+    `Имя: ${customerName}`,
+    `Телефон: ${phone}`,
+    email ? `Email: ${email}` : null,
+    comment ? `Комментарий: ${comment}` : null,
+    sourceUrl ? `Страница: ${sourceUrl}` : null,
+    ``,
+    `Состав заказа:`,
+    ...quote.items.map((i) => `• ${i.name} — ${i.quantity} шт × ${formatRub(i.unitPrice)} = ${formatRub(i.total)} (SKU ${i.sku})`),
+    ``,
+    `Итого: ${formatRub(quote.total)}`,
+    `Дата: ${new Date().toLocaleString("ru-RU")}`,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+  const rows = quote.items
+    .map(
+      (i) =>
+        `<tr><td style="padding:6px 10px;border-bottom:1px solid #eee">${e(i.name)}<br><span style="color:#888;font-size:12px">SKU ${i.sku}</span></td>` +
+        `<td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:center;white-space:nowrap">${i.quantity} шт</td>` +
+        `<td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">${formatRub(i.unitPrice)}</td>` +
+        `<td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap"><b>${formatRub(i.total)}</b></td></tr>`,
+    )
+    .join("");
+
+  const html = `<div style="font-family:Arial,sans-serif;max-width:640px;color:#1a1a2e">
+<h2 style="margin:0 0 12px">${e(kindLabel)} <span style="color:#426dff">${e(orderNumber)}</span></h2>
+<table style="border-collapse:collapse;margin:0 0 14px;font-size:14px">
+<tr><td style="padding:3px 10px 3px 0;color:#666">Имя</td><td style="padding:3px 0"><b>${e(customerName)}</b></td></tr>
+<tr><td style="padding:3px 10px 3px 0;color:#666">Телефон</td><td style="padding:3px 0"><b>${e(phone)}</b></td></tr>
+${email ? `<tr><td style="padding:3px 10px 3px 0;color:#666">Email</td><td style="padding:3px 0">${e(email)}</td></tr>` : ""}
+${comment ? `<tr><td style="padding:3px 10px 3px 0;color:#666">Комментарий</td><td style="padding:3px 0">${e(comment)}</td></tr>` : ""}
+${sourceUrl ? `<tr><td style="padding:3px 10px 3px 0;color:#666">Страница</td><td style="padding:3px 0"><a href="${e(sourceUrl)}">${e(sourceUrl)}</a></td></tr>` : ""}
+</table>
+<table style="border-collapse:collapse;width:100%;font-size:14px;border:1px solid #eee">
+<thead><tr style="background:#f5f7ff"><th style="padding:6px 10px;text-align:left">Товар</th><th style="padding:6px 10px">Кол-во</th><th style="padding:6px 10px;text-align:right">Цена</th><th style="padding:6px 10px;text-align:right">Сумма</th></tr></thead>
+<tbody>${rows}</tbody>
+</table>
+<p style="font-size:18px;margin:14px 0 4px"><b>Итого: ${formatRub(quote.total)}</b></p>
+<p style="color:#888;font-size:12px">${e(new Date().toLocaleString("ru-RU"))} · ${storefront.brand}</p>
+</div>`;
+
   return { subject, text, html };
 }
