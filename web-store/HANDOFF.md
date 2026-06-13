@@ -24,6 +24,31 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-13 — Iter 31+32: мобильный backlog владельца (название/корзина/фильтры/поиск) ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14` · **Commits:** `2c2e7f4` (Iter 31), `9b1ebaf` (Iter 32)
+- **Backups:** `…source-backup-20260613162727.tar.gz` (31), `…source-backup-20260613163607.tar.gz` (32)
+- **Deploy:** 2026-06-13 16:27 и 16:36 UTC через `deploy_vps.py`. Healthcheck'и зелёные.
+- **Контекст:** части 2-3 мобильного backlog'а (память `mobile-ux-backlog-2026-06-13`).
+- **Iter 31 (`2c2e7f4`):**
+  - **Название на карточке** — владелец: мало инфо до клика. Вернул описание на 4 строки (Iter 30
+    зажал до 2 ради модели). Модель остаётся отдельной строкой.
+  - **E — корзина кликабельна.** Cart хранил только `{sku,quantity}` → прокинул `slug` через
+    `getProductsForQuote` → `QuoteProduct`/`OrderQuoteItem` → whitelist `/api/cart/quote` → `cart-client`
+    строка-имя = `Link` на `/product/<slug>`. Проверено: quote API отдаёт slug.
+- **Iter 32 (`9b1ebaf`):**
+  - **C — фильтр-чекбоксы.** КОРЕНЬ бага: класс `.on` — статический React-стейт, тап по чекбоксу не
+    перекрашивал бокс (нет фидбэка). Перевёл индикацию на ЖИВОЙ нативный чекбокс
+    (`.f-row input:checked + .box` + галочка `✓`). На шите бокс ВПРАВО (`order:3`, под палец),
+    крупнее (26px), разделители между строками. Все группы (бренд/наличие/спеки). Проверено
+    Playwright'ом: бокс order 3 / 26px, тап → checked + градиент + ✓, скрин `iter32-filtersheet.png`.
+  - **D — поиск.** `/search` рендерил тот же `CatalogView` → на мобиле drill-down хаб категорий
+    показывался НАД результатами. Скрыл хаб при наличии query (`!currentQuery?.trim() &&
+    <MobileCatalogHub/>`) → поиск сразу показывает товары. Проверено: `/search?q=холодильник` →
+    0 хаб-плиток, 24 карточки. Enter уже работал (native form GET).
+- **Проверки:** lint чистый, 186/186 тестов, build зелёный (оба деплоя).
+- **DEFER:** C5 «в наличии» как отдельный фильтр (нужна stock-модель + query-param + тесты).
+
 ### 2026-06-13 — Iter 30: мобильная карточка (модель/чипы/кнопка) + перенос имён хаба ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14` · **Commit:** `b54c3d1` · **Backup:** `…source-backup-20260613160703.tar.gz`
