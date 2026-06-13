@@ -24,6 +24,26 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-13 — Iter 38: красивые Telegram-уведомления (HTML) + письма о заказах ✅
+
+- **Commit:** `74f2316` · **Backup:** `…source-backup-20260613213633.tar.gz` · **Deploy:** 21:36 UTC.
+- **Контекст:** владелец сделал быстрый заказ — сообщение бота «сплошняком», без выделений; и заказы
+  не приходят на почту.
+- **Telegram (task 2):** все уведомления переведены на `parse_mode: HTML` с эмодзи, `<b>жирным</b>` и
+  разделителями `➖➖➖`. Затронуты: заказы/быстрые заказы (`buildTelegramOrderMessage`), обратный
+  звонок, КП/опт (`quote`), заявка на роль (`role-request`, отрефакторен на общий `sendTelegramMessage`).
+  Пользовательский текст экранируется (`escapeTelegramHtml`); clamp 4096 режет по границе строки,
+  чтобы не рвать HTML-тег.
+- **Email (task 3):** заказов на почту не было ВООБЩЕ (только Telegram). Добавлен `buildOrderEmail`
+  (HTML-таблица) + отправка best-effort на ящик менеджера (`ORDER_NOTIFICATION_EMAIL`, дефолт
+  **info@climat-simf.ru**) от noreply@, рядом с Telegram — для checkout и быстрых заказов. Оба канала
+  независимы, заказ уже в БД.
+- **Task 1 (в группу, не в личку):** КОДА не требует — это смена `TELEGRAM_MANAGER_CHAT_ID` в
+  серверном `.env` на (отрицательный) chat_id группы + `pm2 restart`. Бот должен быть в группе.
+- **Проверки:** lint чистый, **189/189** тестов (+ escape/format/order-message), build зелёный.
+  Живую отправку не триггерил (ушло бы реальное уведомление); формат покрыт тестами, владелец
+  увидит на след. заказе / письмо в webmail info@.
+
 ### 2026-06-13 — Iter 37: кнопка «Купить» в mob-buy-bar перекрывала цену ✅
 
 - **Commit:** `fbf88c4` · **Backup:** `…source-backup-20260613203243.tar.gz` · **Deploy:** 20:32 UTC.
