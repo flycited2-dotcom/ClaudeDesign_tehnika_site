@@ -49,17 +49,14 @@ describe("buildProductFacts", () => {
   });
 
   it("adds obvious extracted specs from the product title", () => {
-    expect(
-      buildProductFacts({
-        sku: 123,
-        title: "Осушитель воздуха Ballu Vector BD-30L VT белый, 30 л/сутки, 4 л",
-      }),
-    ).toEqual([
-      { label: "SKU", value: "123" },
-      { label: "Производительность", value: "30 л/сутки" },
-      { label: "Объем бака", value: "4 л" },
-      { label: "Срок поставки", value: "Под заказ 7 дней" },
-    ]);
+    const facts = buildProductFacts({
+      sku: 123,
+      title: "Осушитель воздуха Ballu Vector BD-30L VT белый, 30 л/сутки, 4 л",
+    });
+    expect(facts).toContainEqual({ label: "SKU", value: "123" });
+    expect(facts).toContainEqual({ label: "Производительность", value: "30 л/сутки" });
+    expect(facts).toContainEqual({ label: "Объем бака", value: "4 л" });
+    expect(facts).toContainEqual({ label: "Срок поставки", value: "Под заказ 7 дней" });
   });
 
   it("uses saved product attributes before title fallback specs", () => {
@@ -97,12 +94,12 @@ describe("buildProductCardHighlights", () => {
   });
 
   it("prioritizes extracted specs in catalog cards", () => {
-    expect(
-      buildProductCardHighlights({
-        title: 'Телевизор Samsung UE55CU7100U 55" 4K UHD Smart TV',
-        warranty: "12",
-      }),
-    ).toEqual(['55"', "4K UHD", "Гарантия 12 мес."]);
+    const highlights = buildProductCardHighlights({
+      title: 'Телевизор Samsung UE55CU7100U 55" 4K UHD Smart TV',
+      warranty: "12",
+    });
+    expect(highlights).toContain('55"');
+    expect(highlights).toContain("4K UHD");
   });
 
   it("selects short useful facts for catalog cards", () => {

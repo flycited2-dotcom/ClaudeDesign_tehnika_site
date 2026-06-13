@@ -648,6 +648,114 @@ function extractVacuumAttributes(text: string, attributes: ExtractedProductAttri
   }
 }
 
+function looksLikeTvProduct(text: string): boolean {
+  return /телевизор|smart\s*tv|\bтв\b|qled|oled|\bled\b\s*т[ \-]?в|плазменн/i.test(text);
+}
+
+function extractInstallationType(text: string, attributes: ExtractedProductAttribute[]) {
+  if (/встраиваем|встроенн/i.test(text)) {
+    addAttribute(attributes, {
+      key: "installation_type",
+      label: "Установка",
+      value: "Встраиваемая",
+      normalizedValue: "built_in",
+      numericValue: null,
+      unit: null,
+    });
+  } else if (/отдельностоящ|настольн/i.test(text)) {
+    addAttribute(attributes, {
+      key: "installation_type",
+      label: "Установка",
+      value: "Отдельностоящая",
+      normalizedValue: "freestanding",
+      numericValue: null,
+      unit: null,
+    });
+  }
+}
+
+function extractDishwasherAttributes(text: string, attributes: ExtractedProductAttribute[]) {
+  if (!/посудомо\w*|dishwasher/i.test(text)) return;
+  extractInstallationType(text, attributes);
+
+  const width = text.match(/(?<!\d)(45|60)\s*см/i);
+  if (width) {
+    addNumberAttribute(attributes, "width_cm", "Ширина", width[1], "см");
+  }
+
+  const programs = text.match(/(\d{1,2})\s*прогр/i) ?? text.match(/программ\D{0,8}(\d{1,2})/i) ?? text.match(/(\d{1,2})\s*программ/i);
+  if (programs) {
+    addNumberAttribute(attributes, "program_count", "Количество программ", programs[1], "программ");
+  }
+
+  const settings = text.match(/(\d{1,2})\s*компл\w*/i);
+  if (settings) {
+    addNumberAttribute(attributes, "place_settings", "Комплектов посуды", settings[1], "компл.");
+  }
+
+  extractEnergyClass(text, attributes);
+}
+
+function extractMicrowaveAttributes(text: string, attributes: ExtractedProductAttribute[]) {
+  if (!/микроволнов\w*|свч|microwave/i.test(text)) return;
+  extractInstallationType(text, attributes);
+
+  const volume = Array.from(text.matchAll(/(\d{1,2})\s*л(?!\s*\/)/gi)).find((match) => {
+    const value = numberValue(match[1]);
+    return value !== null && value >= 10 && value <= 45;
+  });
+  if (volume) {
+    addNumberAttribute(attributes, "volume_l", "Объем", volume[1], "л");
+  }
+
+  addPowerWAttribute(text, attributes);
+}
+
+function extractOvenAttributes(text: string, attributes: ExtractedProductAttribute[]) {
+  if (!/духов\w*\s*шкаф|духовк|\boven\b/i.test(text)) return;
+  extractInstallationType(text, attributes);
+
+  const volume = Array.from(text.matchAll(/(\d{2,3})\s*л(?!\s*\/)/gi)).find((match) => {
+    const value = numberValue(match[1]);
+    return value !== null && value >= 35 && value <= 130;
+  });
+  if (volume) {
+    addNumberAttribute(attributes, "oven_volume_l", "Объем духовки", volume[1], "л");
+  }
+
+  if (/газов/i.test(text)) {
+    addAttribute(attributes, { key: "oven_type", label: "Тип", value: "Газовая", normalizedValue: "gas", numericValue: null, unit: null });
+  } else if (/электрическ/i.test(text)) {
+    addAttribute(attributes, { key: "oven_type", label: "Тип", value: "Электрическая", normalizedValue: "electric", numericValue: null, unit: null });
+  }
+
+  extractEnergyClass(text, attributes);
+}
+
+function extractCooktopAttributes(text: string, attributes: ExtractedProductAttribute[]) {
+  if (!/варочн\w*\s*(?:панел|поверхн)|cooktop|\bhob\b/i.test(text)) return;
+
+  if (/индукцион/i.test(text)) {
+    addAttribute(attributes, { key: "cooktop_type", label: "Тип", value: "Индукционная", normalizedValue: "induction", numericValue: null, unit: null });
+  } else if (/комбинирован/i.test(text)) {
+    addAttribute(attributes, { key: "cooktop_type", label: "Тип", value: "Комбинированная", normalizedValue: "combined", numericValue: null, unit: null });
+  } else if (/газов/i.test(text)) {
+    addAttribute(attributes, { key: "cooktop_type", label: "Тип", value: "Газовая", normalizedValue: "gas", numericValue: null, unit: null });
+  } else if (/электрическ|стеклокерам/i.test(text)) {
+    addAttribute(attributes, { key: "cooktop_type", label: "Тип", value: "Электрическая", normalizedValue: "electric", numericValue: null, unit: null });
+  }
+
+  const burners = text.match(/(\d)\s*конфор\w*/i);
+  if (burners) {
+    addNumberAttribute(attributes, "burner_count", "Конфорок", burners[1], "конф.");
+  }
+
+  const width = text.match(/(?<!\d)(30|45|60|90)\s*см/i);
+  if (width) {
+    addNumberAttribute(attributes, "width_cm", "Ширина", width[1], "см");
+  }
+}
+
 export function extractProductNameAttributes(name: string | null | undefined): ExtractedProductAttribute[] {
   const text = name?.trim();
   if (!text) return [];
@@ -703,7 +811,9 @@ export function extractProductNameAttributes(name: string | null | undefined): E
     });
   }
 
-  if (/smart|смарт/i.test(text)) {
+  // Only tag Smart TV for actual TVs. A bare "смарт" used to match "смартфоне"
+  // and stamped smart_tv=Да onto dishwashers, kettles, etc.
+  if (/smart\s*tv|смарт[\s-]?тв/i.test(text) || (looksLikeTvProduct(text) && /smart|смарт/i.test(text))) {
     addAttribute(attributes, {
       key: "smart_tv",
       label: "Smart TV",
@@ -716,6 +826,10 @@ export function extractProductNameAttributes(name: string | null | undefined): E
 
   extractLaundryAttributes(text, attributes);
   extractRefrigerationAttributes(text, attributes);
+  extractDishwasherAttributes(text, attributes);
+  extractMicrowaveAttributes(text, attributes);
+  extractOvenAttributes(text, attributes);
+  extractCooktopAttributes(text, attributes);
   extractPaperAttributes(text, attributes);
   extractCameraAttributes(text, attributes);
   extractTireAttributes(text, attributes);
