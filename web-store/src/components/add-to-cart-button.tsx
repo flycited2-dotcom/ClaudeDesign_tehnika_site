@@ -29,7 +29,11 @@ export function AddToCartButton({
       }}
       className={"btn btn-primary" + (compact ? " btn-sm" : "")}
       style={{
-        width: "100%",
+        // Compact = the sticky mobile buy bar: size to content so it sits to the
+        // right of the price instead of stretching full-width over it.
+        width: compact ? "auto" : "100%",
+        flexShrink: 0,
+        whiteSpace: "nowrap",
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? "not-allowed" : "pointer",
       }}
