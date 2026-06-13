@@ -24,6 +24,39 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-13 — Iter 26: надёжный захват лидов callback/КП (P2-12) ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `1015463` (фича) + HANDOFF/тест-коммит.
+- **Backup VPS:** `…source-backup-20260613125131.tar.gz`
+- **Deploy:** 2026-06-13 12:51 UTC через `python scripts/deploy_vps.py --key-path ~/.ssh/climat_simf_deploy`.
+  Деплой выполняет `prisma db push` (под `set -euo pipefail`) → **таблица `Lead` + enums `LeadType`/
+  `LeadStatus` созданы на проде** (иначе деплой бы упал). Healthcheck'и зелёные.
+- **Контекст:** очередь Iter 24/25. P2-12 — заявки на обратный звонок и КП были **только через
+  Telegram**: при отсутствии `TELEGRAM_*` env action писал `console.log` и возвращал фейковый
+  `{ok:true}` (тихая потеря), а при падении Telegram лид терялся совсем — в отличие от заказов и
+  заявок на роль, которые пишутся в БД.
+- **Что сделано (паттерн как у Order / RoleUpgradeRequest):**
+  - Модель `Lead` (type CALLBACK|QUOTE, status NEW|HANDLED, контакт + company/inn/scope/context/comment).
+  - `lib/leads.captureLead()` — сперва пишет строку в БД (источник истины), затем шлёт Telegram
+    best-effort через новый `lib/telegram.sendTelegramMessage()` (никогда не бросает, возвращает
+    `{delivered}`). Падение/отсутствие Telegram больше НЕ теряет лид.
+  - `callback/actions.ts` + `quote/actions.ts` переписаны на `captureLead`; ошибку пользователю
+    показываем только если упала durable-запись. Убрана фейк-success ветка и дублированный fetch.
+  - **Новая админка `/admin/leads`** (как `/admin/role-requests`): список лидов (новые сверху),
+    тоггл NEW↔HANDLED. Добавлена в навигацию `AdminShell`.
+- **Проверки:** lint чистый, **177/177** тестов (+1: `sendTelegramMessage` без env → `{delivered:false}`
+  без throw/сети), build зелёный.
+- **Проверено на проде:** `/ /cart /b2b /gov /product` = 200; `/admin/leads` = 307→`/admin/login`
+  (как `/admin/role-requests` — роут задеплоен, не 500). Таблица создана (db push под pipefail).
+- **НЕ делал на проде специально:** живую отправку формы callback/КП — она ушла бы **реальным
+  Telegram-уведомлением менеджеру** + создала бы тестовый лид (удалить без админ-доступа нельзя).
+  Владелец может сам оставить тестовую заявку и увидеть её в `/admin/leads` (+ тоггл «обработана»).
+  Админ-доступ: env `ADMIN_EMAIL`/`ADMIN_PASSWORD` на сервере.
+- **Осталось из очереди (Iter 27):** P2-1 (дубли/пропуски стр.1-2 корневого /catalog), P2-9
+  (счётчики /account), P3-гигиена (мёртвый CSS, footer-форма подписки `action="#"`, мёртвые якоря
+  сайдбаров, Telegram >4096 симв. на больших заказах) — `qa-mobile-audit/findings-code.md`.
+
 ### 2026-06-13 — Iter 25: ролевая цена gov на товаре/карточках + z-index опт-модала ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
