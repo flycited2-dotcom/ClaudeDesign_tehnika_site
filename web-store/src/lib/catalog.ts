@@ -225,7 +225,12 @@ function catalogProductOrderBy(sort: CatalogSort = "popular"): Prisma.ProductOrd
   }
 
   if (sort === "price_desc") {
-    return [{ isAvailable: "desc" }, { retailPrice: "desc" }, { hasImage: "desc" }, { updatedAt: "desc" }];
+    return [
+      { isAvailable: "desc" },
+      { retailPrice: { sort: "desc", nulls: "last" } },
+      { hasImage: "desc" },
+      { updatedAt: "desc" },
+    ];
   }
 
   if (sort === "new") {

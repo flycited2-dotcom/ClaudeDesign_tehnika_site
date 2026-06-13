@@ -14,6 +14,7 @@ type QuoteItem = {
   quantity: number;
   unitPrice: number;
   total: number;
+  multiplicity: number;
 };
 
 type Quote = {
@@ -55,9 +56,15 @@ export function CartClient() {
   const quotedBySku = useMemo(() => new Map(quote?.items.map((item) => [item.sku, item]) ?? []), [quote]);
   const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  function updateQuantity(sku: number, delta: number) {
+  function updateQuantity(sku: number, direction: number) {
+    // Step by the product's multiplicity so quantities stay a valid multiple.
+    // Stepping by 1 would make e.g. a 3-pack item land on 4 and the server quote
+    // would reject the cart ("продается кратно 3 шт."), blocking checkout.
+    const step = Math.max(quotedBySku.get(sku)?.multiplicity ?? 1, 1);
     const next = cart
-      .map((item) => (item.sku === sku ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item))
+      .map((item) =>
+        item.sku === sku ? { ...item, quantity: Math.max(step, item.quantity + direction * step) } : item,
+      )
       .filter((item) => item.quantity > 0);
     writeCart(next);
   }
@@ -137,6 +144,7 @@ export function CartClient() {
             return (
               <div
                 key={cartItem.sku}
+                className="cart-line"
                 style={{
                   display: "flex",
                   flexWrap: "wrap",
@@ -153,58 +161,60 @@ export function CartClient() {
                     {fulfillment.stockLabel} · {fulfillment.deliveryShortLabel}
                   </p>
                 </div>
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    background: "rgba(255,255,255,0.6)",
-                    border: "1px solid var(--glass-stroke)",
-                    borderRadius: 12,
-                  }}
-                >
+                <div className="cart-line-ctl" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      background: "rgba(255,255,255,0.6)",
+                      border: "1px solid var(--glass-stroke)",
+                      borderRadius: 12,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      style={{ padding: 8, color: "var(--text)" }}
+                      onClick={() => updateQuantity(cartItem.sku, -1)}
+                      aria-label="Уменьшить"
+                    >
+                      <Minus size={14} aria-hidden />
+                    </button>
+                    <span style={{ width: 40, textAlign: "center", fontWeight: 700, fontSize: 14 }}>
+                      {cartItem.quantity}
+                    </span>
+                    <button
+                      type="button"
+                      style={{ padding: 8, color: "var(--text)" }}
+                      onClick={() => updateQuantity(cartItem.sku, 1)}
+                      aria-label="Увеличить"
+                    >
+                      <Plus size={14} aria-hidden />
+                    </button>
+                  </div>
+                  <div
+                    style={{
+                      width: 130,
+                      textAlign: "right",
+                      fontWeight: 800,
+                      fontSize: 16,
+                      color: "var(--text)",
+                    }}
+                  >
+                    {item ? formatRub(item.total) : "..."}
+                  </div>
                   <button
                     type="button"
-                    style={{ padding: 8, color: "var(--text)" }}
-                    onClick={() => updateQuantity(cartItem.sku, -1)}
-                    aria-label="Уменьшить"
+                    style={{
+                      padding: 8,
+                      color: "var(--text-mute)",
+                      borderRadius: 10,
+                    }}
+                    onClick={() => removeItem(cartItem.sku)}
+                    aria-label="Удалить"
                   >
-                    <Minus size={14} aria-hidden />
-                  </button>
-                  <span style={{ width: 40, textAlign: "center", fontWeight: 700, fontSize: 14 }}>
-                    {cartItem.quantity}
-                  </span>
-                  <button
-                    type="button"
-                    style={{ padding: 8, color: "var(--text)" }}
-                    onClick={() => updateQuantity(cartItem.sku, 1)}
-                    aria-label="Увеличить"
-                  >
-                    <Plus size={14} aria-hidden />
+                    <Trash2 size={16} aria-hidden />
                   </button>
                 </div>
-                <div
-                  style={{
-                    width: 130,
-                    textAlign: "right",
-                    fontWeight: 800,
-                    fontSize: 16,
-                    color: "var(--text)",
-                  }}
-                >
-                  {item ? formatRub(item.total) : "..."}
-                </div>
-                <button
-                  type="button"
-                  style={{
-                    padding: 8,
-                    color: "var(--text-mute)",
-                    borderRadius: 10,
-                  }}
-                  onClick={() => removeItem(cartItem.sku)}
-                  aria-label="Удалить"
-                >
-                  <Trash2 size={16} aria-hidden />
-                </button>
               </div>
             );
           })}

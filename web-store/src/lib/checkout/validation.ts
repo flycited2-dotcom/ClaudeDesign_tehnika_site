@@ -21,6 +21,7 @@ export type OrderQuoteItem = {
   supplierPrice?: number | null;
   total: number;
   productId?: string;
+  multiplicity: number;
 };
 
 export type OrderQuote = {
@@ -72,6 +73,7 @@ export function buildOrderQuote({
       supplierPrice: product.supplierPrice,
       total,
       productId: product.productId,
+      multiplicity,
     });
   }
 

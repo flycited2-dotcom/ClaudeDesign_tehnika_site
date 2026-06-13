@@ -23,6 +23,22 @@ export function absoluteStorefrontUrl(path: string): string {
   return url.toString();
 }
 
+/**
+ * Serialize JSON-LD for inline injection into a <script> tag. JSON.stringify
+ * leaves `<` untouched, so a literal `</script>` (or the U+2028/U+2029 line
+ * separators) inside untrusted supplier data — product name/description come
+ * straight from the feed — would break out of the script element. Escape those
+ * to their unicode form, which is still valid JSON-LD.
+ */
+export function jsonLdHtml(value: object): string {
+  return JSON.stringify(value).replace(/[<\u2028\u2029]/g, (char) => {
+    const code = char.charCodeAt(0);
+    if (code === 0x3c) return "\\u003c";
+    if (code === 0x2028) return "\\u2028";
+    return "\\u2029";
+  });
+}
+
 function compactJsonLd<T extends object>(value: T): T {
   return JSON.parse(JSON.stringify(value, (_key, item) => (item === null || item === undefined || item === "" ? undefined : item))) as T;
 }

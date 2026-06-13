@@ -30,6 +30,9 @@ describe("buildOrderQuote", () => {
 
     expect(quote.total).toBe(63700);
     expect(quote.items).toHaveLength(2);
+    // multiplicity is passed through so the cart can step quantities correctly
+    expect(quote.items[0].multiplicity).toBe(1);
+    expect(quote.items[1].multiplicity).toBe(3);
   });
 
   it("rejects quantities that do not match multiplicity", () => {

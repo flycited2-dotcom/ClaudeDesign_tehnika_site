@@ -18,7 +18,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ products: [] });
     }
 
-    const products = await prisma.product.findMany({
+    const rows = await prisma.product.findMany({
       where: {
         sku: { in: skus },
         isActive: true,
@@ -35,6 +35,16 @@ export async function GET(request: Request) {
           orderBy: [{ key: "asc" }, { value: "asc" }],
         },
       },
+    });
+
+    // Public endpoint (favorites/compare): strip internal pricing fields so the
+    // supplier cost and manual price never reach the client. The product card
+    // renders from retailPrice/rrp only.
+    const products = rows.map((row) => {
+      const sanitized: Record<string, unknown> = { ...row };
+      delete sanitized.supplierPrice;
+      delete sanitized.manualPrice;
+      return sanitized;
     });
 
     return NextResponse.json({ products });

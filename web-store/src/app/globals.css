@@ -751,6 +751,25 @@ body.app {
 }
 
 /* ============================================================
+   Cart rows on narrow phones. The row uses inline flex with the
+   product name as flex:1 next to a fixed-width stepper + price +
+   delete. Below ~640px the name column collapses to ~one-word-
+   per-line. Stack the name above a full-width controls strip so
+   the name wraps naturally. (.cart-line-ctl groups the controls.)
+   ============================================================ */
+@media (max-width: 640px) {
+  .cart-line {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .cart-line-ctl {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ============================================================
    Mobile search row (Iter 23 → 23.2: removed sticky)
    Renders below .header.glass on viewports where the embedded
    desktop search (.hdr-search-wrap) is hidden by template CSS.

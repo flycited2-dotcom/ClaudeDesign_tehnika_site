@@ -19,6 +19,18 @@ export function publicBaseUrl(headers: Headers): string {
   const proto = headers.get("x-forwarded-proto") ?? "https";
   return host ? `${proto}://${host}` : storefront.siteUrl;
 }
+
+/**
+ * Validate a post-login `next` redirect target. Only same-site absolute paths
+ * are allowed. A bare `startsWith("/")` check still lets through protocol-
+ * relative URLs (`//evil.com`) and backslash variants, which `new URL(next,
+ * base)` would resolve to a foreign origin — an open redirect. Reject those.
+ */
+export function safeNextPath(next: string | null | undefined): string | null {
+  if (typeof next !== "string" || !next.startsWith("/")) return null;
+  if (next.startsWith("//") || next.includes("\\")) return null;
+  return next;
+}
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 

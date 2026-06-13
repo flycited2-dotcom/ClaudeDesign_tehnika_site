@@ -1,5 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { isValidEmail, normalizeEmail, roleToStorefront, storefrontToRole } from "@/lib/auth";
+import { isValidEmail, normalizeEmail, roleToStorefront, safeNextPath, storefrontToRole } from "@/lib/auth";
+
+describe("safeNextPath", () => {
+  it("accepts same-site absolute paths", () => {
+    expect(safeNextPath("/account")).toBe("/account");
+    expect(safeNextPath("/catalog/holodilniki?sort=price_asc")).toBe("/catalog/holodilniki?sort=price_asc");
+  });
+
+  it("rejects open-redirect vectors", () => {
+    expect(safeNextPath("//evil.com")).toBeNull();
+    expect(safeNextPath("/\\evil.com")).toBeNull();
+    expect(safeNextPath("https://evil.com")).toBeNull();
+    expect(safeNextPath("evil.com")).toBeNull();
+  });
+
+  it("rejects missing or empty input", () => {
+    expect(safeNextPath(null)).toBeNull();
+    expect(safeNextPath(undefined)).toBeNull();
+    expect(safeNextPath("")).toBeNull();
+  });
+});
 
 describe("normalizeEmail", () => {
   it("lowercases and trims", () => {

@@ -14,7 +14,7 @@ import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
 import { buildProductFacts, productDescriptionText, productShortTitle } from "@/lib/product-display";
 import { productImageSrc } from "@/lib/product-images";
-import { absoluteStorefrontUrl, buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo-jsonld";
+import { absoluteStorefrontUrl, buildBreadcrumbJsonLd, buildProductJsonLd, jsonLdHtml } from "@/lib/seo-jsonld";
 import { phoneHref, storefront } from "@/lib/storefront";
 
 export const revalidate = 300;
@@ -123,8 +123,8 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(productJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbJsonLd) }} />
 
       <div className="bread">
         <Link href={backHref} className="btn btn-ghost btn-sm" style={{ marginRight: 8 }}>

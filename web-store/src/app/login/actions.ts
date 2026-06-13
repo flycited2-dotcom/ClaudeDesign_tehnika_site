@@ -7,6 +7,7 @@ import {
   findOrCreateUser,
   isValidEmail,
   normalizeEmail,
+  safeNextPath,
 } from "@/lib/auth";
 import { buildMagicLinkEmail, sendMail } from "@/lib/mailer";
 import { storefront } from "@/lib/storefront";
@@ -42,7 +43,8 @@ export async function requestMagicLinkAction(formData: FormData): Promise<Reques
   const proto = headerStore.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" ? "https" : "http");
   const origin = host ? `${proto}://${host}` : storefront.siteUrl;
 
-  const nextParam = parsed.data.next && parsed.data.next.startsWith("/") ? `&next=${encodeURIComponent(parsed.data.next)}` : "";
+  const safeNext = safeNextPath(parsed.data.next);
+  const nextParam = safeNext ? `&next=${encodeURIComponent(safeNext)}` : "";
   const url = `${origin}/login/verify?token=${token}${nextParam}`;
 
   const mail = buildMagicLinkEmail({ url, email });

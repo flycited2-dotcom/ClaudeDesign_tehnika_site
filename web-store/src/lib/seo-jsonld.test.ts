@@ -1,5 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { absoluteStorefrontUrl, buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo-jsonld";
+import { absoluteStorefrontUrl, buildBreadcrumbJsonLd, buildProductJsonLd, jsonLdHtml } from "@/lib/seo-jsonld";
+
+describe("jsonLdHtml", () => {
+  it("escapes < so a </script> in supplier data cannot break out of the inline script", () => {
+    const html = jsonLdHtml({ name: "x</script><script>alert(1)</script>" });
+    expect(html).not.toContain("</script>");
+    expect(html).toContain("\\u003c/script>");
+  });
+
+  it("escapes U+2028 / U+2029 line separators but keeps normal spaces untouched", () => {
+    const sep = String.fromCharCode(0x2028);
+    const para = String.fromCharCode(0x2029);
+    const html = jsonLdHtml({ name: `a${sep}b c${para}d` });
+    expect(html).toContain("\\u2028");
+    expect(html).toContain("\\u2029");
+    expect(html).not.toContain(sep);
+    expect(html).not.toContain(para);
+    // a regular space must survive (guards against escaping the wrong char)
+    expect(html).toContain("b c");
+  });
+});
 
 describe("absoluteStorefrontUrl", () => {
   it("builds canonical absolute storefront URLs", () => {

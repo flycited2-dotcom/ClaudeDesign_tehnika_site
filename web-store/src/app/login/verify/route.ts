@@ -5,6 +5,7 @@ import {
   findOrCreateUser,
   publicBaseUrl,
   roleToStorefront,
+  safeNextPath,
   setSessionCookie,
 } from "@/lib/auth";
 
@@ -36,10 +37,7 @@ export async function GET(request: NextRequest) {
   });
   await setSessionCookie(session.token, session.expiresAt);
 
-  const target =
-    typeof next === "string" && next.startsWith("/")
-      ? next
-      : ROLE_HOME[roleToStorefront(user.role)];
+  const target = safeNextPath(next) ?? ROLE_HOME[roleToStorefront(user.role)];
 
   return NextResponse.redirect(new URL(target, publicBaseUrl(request.headers)));
 }
