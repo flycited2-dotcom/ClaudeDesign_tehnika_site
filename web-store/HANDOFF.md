@@ -24,6 +24,45 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-13 — Iter 25: ролевая цена gov на товаре/карточках + z-index опт-модала ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commits:** `deadedb` (страница товара + опт-модал), `2c49965` (карточки каталога).
+- **Backups VPS:** `…source-backup-20260613121029.tar.gz` (deadedb), `…source-backup-20260613122449.tar.gz` (2c49965).
+- **Deploy:** 2026-06-13 12:10 и 12:24 UTC через `python scripts/deploy_vps.py --key-path ~/.ssh/climat_simf_deploy`. Healthcheck'и зелёные.
+- **Контекст:** очередь Iter 25 из аудита Iter 24. Владелец: «начни с gov-цены и z-index опт-модала».
+- **Что починено:**
+  1. **P2-13 — ролевая цена gov на странице товара.** Aside-цена (36px), «В корзину», быстрый
+     заказ и mob-buy-bar рендерились на сервере БЕЗ знания роли → gov видел розницу и мог заказать
+     по рознице, минуя КП (карточка/compare цену прятали — несостыковка). Вынес блок покупки в два
+     client-компонента, читающих роль: **`ProductBuyBlock`** (aside) и **`ProductMobBuyBar`** (липкая
+     мобильная панель). Для gov+govEnabled: «Цена по запросу», без РРЦ/корзины/быстрого заказа,
+     кнопка «Запросить КП». b2c/b2b — без изменений (b2b по-прежнему получает опт-ноту из
+     `ProductAsideActions`). Пропсы сериализуемы (RSC-safe).
+  2. **P2-13b (доделка) — gov add-to-cart на карточках каталога.** `GlassProductCard` прятал цену
+     для gov, но кнопка «В корзину» оставалась активной (цена-то есть) → gov мог добавить в корзину
+     из каталога/поиска/похожих и оформить по рознице. Закрыл: `canBuy = canOrder && !(gov && govEnabled)`.
+  3. **P2-7 — z-index опт-модала.** `RoleUpgradeRequestModal` имел backdrop `zIndex:100` < нижней
+     навигации `.screen-bar` (120) → на мобиле nav рисовался поверх бэкдропа и кликался, скролл body
+     не блокировался. Поднял до `zIndex:220` + добавил scroll-lock + Escape (паттерн callback/quote
+     модалов) + `WebkitBackdropFilter`.
+- **Проверки локально:** lint чистый, **176/176** тестов, build зелёный.
+- **Проверено на проде (Playwright, cookie `techno_market_role_preview`):**
+  - Gov страница товара: aside = «Цена по запросу», нет «В корзину», есть «Запросить КП»;
+    mob-buy-bar = «Цена по запросу» + «Запросить КП» (вместо «46 500 ₽ · Купить»). Скриншот
+    `qa-mobile-audit/shots/iter25-gov-product-384.png`.
+  - B2c страница товара: цена + «В корзину» на месте (регрессий нет).
+  - Карточки каталога (главная popular): **gov — 8/8 «В корзину» disabled, 8/8 «Цена по запросу»;
+    b2c — 8/8 enabled, цена видна.**
+  - Funnel routes `/ /catalog /product /b2b /gov /cart /compare` = 200, тёплые <1.5с.
+- **P2-7 рантайм:** опт-модал рендерится только для залогиненного b2c-юзера (аноним видит ссылку
+  «Войти и запросить опт-статус»), поэтому рантайм-проверка требует email-логина. Фикс подтверждён
+  ревью+build: `zIndex 220 > 120`, паттерн идентичен рабочим callback/quote модалам.
+- **Осталось из очереди Iter 24 (на Iter 26):** P2-1 (дубли/пропуски стр.1-2 корневого /catalog),
+  P2-9 (счётчики /account), P2-12 (потеря callback/quote-заявок без `TELEGRAM_*` env), P3-гигиена
+  (мёртвый CSS, footer-форма подписки `action="#"`, мёртвые якоря сайдбаров, Telegram >4096 симв.) —
+  список в `qa-mobile-audit/findings-code.md`.
+
 ### 2026-06-13 — Iter 24: аудит кода + мобильный аудит (агенты) → 6 фиксов безопасности/воронки ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
