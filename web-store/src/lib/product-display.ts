@@ -132,14 +132,25 @@ const productAttributeFactOrder = [
 
 const productAttributeFactRank = new Map(productAttributeFactOrder.map((key, index) => [key, index]));
 
-function buildAttributeFacts(attributes: ProductAttributeFactInput[] | null | undefined): ProductFact[] {
+// Negative-boolean attribute values carry no useful spec info ("Нет холодильника"
+// type rows just clutter the table).
+const NEGATIVE_ATTRIBUTE_VALUES = new Set(["нет", "-", "—", "отсутствует", "не поддерживается", "false"]);
+
+function buildAttributeFacts(
+  attributes: ProductAttributeFactInput[] | null | undefined,
+  isTvLike: boolean,
+): ProductFact[] {
   const seen = new Set<string>();
 
   return [...(attributes ?? [])]
     .sort((left, right) => (productAttributeFactRank.get(left.key) ?? 999) - (productAttributeFactRank.get(right.key) ?? 999))
     .flatMap((attribute) => {
+      // The supplier feed mis-tags many non-TV products with smart_tv=Да; only
+      // surface it for products that actually look like a TV.
+      if (attribute.key === "smart_tv" && !isTvLike) return [];
       const label = attribute.label.trim();
       const value = attribute.value.trim();
+      if (NEGATIVE_ATTRIBUTE_VALUES.has(value.toLocaleLowerCase("ru-RU"))) return [];
       const id = `${label}:${value}`;
       if (!label || !value || seen.has(id)) return [];
       seen.add(id);
@@ -152,8 +163,13 @@ export function buildProductFacts(product: ProductFactInput): ProductFact[] {
   const facts: ProductFact[] = [];
 
   pushFact(facts, "SKU", product.sku);
-  const attributeFacts = buildAttributeFacts(product.attributes);
-  const titleFacts = attributeFacts.length ? [] : extractProductNameSpecs(product.title);
+  const isTvLike = /телевизор|\bтв\b|\btv\b|smart\s*tv/i.test(`${product.categoryName ?? ""} ${product.title ?? ""}`);
+  const attributeFacts = buildAttributeFacts(product.attributes, isTvLike);
+  // Always pull specs out of the (rich) product name and merge them in — the
+  // supplier attribute set is sparse, so the name is often the only real source
+  // of characteristics. Skip any whose label is already covered by an attribute.
+  const usedLabels = new Set(attributeFacts.map((fact) => fact.label));
+  const titleFacts = extractProductNameSpecs(product.title).filter((spec) => !usedLabels.has(spec.label));
   for (const spec of [...attributeFacts, ...titleFacts]) {
     pushFact(facts, spec.label, spec.value);
   }
@@ -171,7 +187,8 @@ export function buildProductFacts(product: ProductFactInput): ProductFact[] {
 }
 
 export function buildProductCardHighlights(product: ProductCardHighlightInput): string[] {
-  const attributeHighlights = buildAttributeFacts(product.attributes).map((spec) => spec.value);
+  const isTvLike = /телевизор|\bтв\b|\btv\b|smart\s*tv/i.test(product.title ?? "");
+  const attributeHighlights = buildAttributeFacts(product.attributes, isTvLike).map((spec) => spec.value);
   const highlights = [
     ...(attributeHighlights.length ? attributeHighlights : extractProductNameSpecs(product.title).map((spec) => spec.value)),
     warrantyLabel(product.warranty) ? `Гарантия ${warrantyLabel(product.warranty)}` : null,
