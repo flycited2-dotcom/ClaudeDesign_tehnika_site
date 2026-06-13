@@ -24,6 +24,41 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-13 — Iter 29: P2-9 счётчики /account + блок P3-гигиены ✅
+
+- **Branch:** `claude/affectionate-shamir-feac14`
+- **Commit:** `d6b3b4b`
+- **Backup VPS:** `…source-backup-20260613140808.tar.gz`
+- **Deploy:** 2026-06-13 14:08 UTC через `python scripts/deploy_vps.py --key-path ~/.ssh/climat_simf_deploy`. Healthcheck'и зелёные.
+- **Контекст:** P2-9 + P3-гигиена из аудита Iter 24. Каждую находку верифицировал по коду.
+- **Что вошло (9 фиксов):**
+  - **P2-9** — карточки статистики `/account` (Корзина/Избранное/Сравнение) были захардкожены «…».
+    Новый client-island `AccountStatValue` читает cart/favorites/compare из storage.
+  - **#8 Telegram 4096** — крупный заказ (50+ позиций) терял уведомление (400). `clampTelegramText`
+    обрезает, чтобы всегда доходило; полная заявка — в админке.
+  - **#9 Compare «Гарантия»** — строковая гарантия гналась через `formatNumber` → у всех «—».
+    Теперь `warrantyLabel` («12 мес.», «1 год»).
+  - **#14 getProductsForQuote** — `Boolean(Decimal(0))===true` → товар 0 ₽ заказуем через API при
+    «Цена уточняется» в UI. Гейт на `decimalToNumber(...) > 0`.
+  - **#7** — опечатка лейбла сортировки «обновленные» → «обновлённые».
+  - **#6** — бейдж корзины: bottom-nav показывал число позиций, шапка — сумму количеств; теперь оба
+    сумма количеств.
+  - **#4 Footer** — WhatsApp → `wa.me/79785792995`; мёртвая «Карта» (`href="#"`) удалена.
+  - **#3 Сайдбар кабинетов** — убраны мёртвые `#`-якоря (orders/kp/docs/… не построены); все роли
+    теперь показывают рабочие Кабинет/Избранное/Сравнение.
+  - **#2/#5** — удалён мёртвый экспорт `setStorefrontRole` и мёртвый CSS (`cat-filters-*`,
+    `cat-mobile-toggle`, `aside.collapsed`).
+- **Проверки:** lint чистый, **186/186** тестов (+2 `clampTelegramText`, compare-тест поправлен под
+  строковую схему гарантии). build зелёный.
+- **Проверено на проде (Playwright):** footer = Telegram + WhatsApp(wa.me), «Карта» убрана; сортировка
+  «Сначала обновлённые»; сайдбар `/b2b` = Кабинет/Избранное/Сравнение, **мёртвых #-якорей НЕТ**;
+  бейдж корзины bottom-nav = сумма количеств. (Счётчики `/account` — за авторизацией, не проверял
+  анонимно, но island build-verified и использует те же хуки, что и проверенный бейдж.)
+- **Осталось из аудита (defer):** checkout-robustness (#11 сырые Prisma-ошибки, #12 JSON.parse,
+  #13 лимит quantity, #19 reset модалов), security-deeper (#20 чистка токенов, #21 экранирование
+  email-шаблонов), ops (#16-18,#22), admin-auth #10 (админку не трогаем) — `qa-mobile-audit/findings-code.md`.
+  + долг по проработке админки.
+
 ### 2026-06-13 — Iter 28: дубли/пропуски товаров между страницами корневого /catalog (P2-1) ✅
 
 - **Branch:** `claude/affectionate-shamir-feac14`
