@@ -2,16 +2,15 @@ import type { Metadata } from "next";
 import { ArrowLeft, CheckCircle2, CreditCard, Phone, Truck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AddToCartButton } from "@/components/add-to-cart-button";
 import { GlassProductCard } from "@/components/glass-product-card";
 import { ProductAsideActions } from "@/components/product-aside-actions";
+import { ProductBuyBlock } from "@/components/product-buy-block";
 import { ProductGallery } from "@/components/product-gallery";
-import { QuickOrderForm } from "@/components/quick-order-form";
+import { ProductMobBuyBar } from "@/components/product-mob-buy-bar";
 import { StockBadge } from "@/components/stock-badge";
 import { decimalToNumber, getCategoryPathById, getProductBySlug, getRelatedProducts } from "@/lib/catalog";
 import { buildCatalogBreadcrumbItems, truncateBreadcrumbLabel } from "@/lib/catalog-breadcrumbs";
 import { publicFulfillmentText } from "@/lib/fulfillment";
-import { formatRub } from "@/lib/format";
 import { buildProductFacts, productDescriptionText, productShortTitle } from "@/lib/product-display";
 import { productImageSrc } from "@/lib/product-images";
 import { absoluteStorefrontUrl, buildBreadcrumbJsonLd, buildProductJsonLd, jsonLdHtml } from "@/lib/seo-jsonld";
@@ -119,7 +118,6 @@ export default async function ProductPage({ params }: Props) {
     ...categoryPath.map((category) => ({ name: category.name, url: `/catalog/${category.slug}` })),
     { name, url: productPath },
   ]);
-  const minimumQuantity = Math.max(product.multiplicity || 1, 1);
 
   return (
     <>
@@ -243,56 +241,16 @@ export default async function ProductPage({ params }: Props) {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <StockBadge state={product.stockStatus} label={fulfillment.stockLabel} />
           </div>
-          <div
-            style={{
-              marginTop: 20,
-              fontSize: 36,
-              fontWeight: 900,
-              letterSpacing: "-0.02em",
-              color: "var(--text)",
-            }}
-          >
-            {price ? formatRub(price) : "Цена уточняется"}
-          </div>
-          {product.rrp ? (
-            <div style={{ marginTop: 6, fontSize: 13, color: "var(--text-mute)" }}>
-              РРЦ: {formatRub(decimalToNumber(product.rrp))}
-            </div>
-          ) : null}
-          <div
-            style={{
-              marginTop: 18,
-              padding: 14,
-              borderRadius: 16,
-              background: "rgba(34,221,136,0.10)",
-              color: "#0e6b3a",
-              fontSize: 13,
-              lineHeight: 1.5,
-            }}
-          >
-            <p style={{ fontWeight: 700 }}>{fulfillment.deliveryLabel}</p>
-            <p style={{ marginTop: 4 }}>{fulfillment.confirmationNote}</p>
-          </div>
-          <div style={{ marginTop: 18 }}>
-            <AddToCartButton
-              sku={product.sku}
-              multiplicity={product.multiplicity}
-              disabled={!fulfillment.canOrder || !price}
-            />
-          </div>
-          <div style={{ marginTop: 12 }}>
-            <QuickOrderForm
-              sku={product.sku}
-              quantity={minimumQuantity}
-              sourceUrl={productUrl}
-              disabled={!fulfillment.canOrder || !price}
-            />
-          </div>
-          {product.multiplicity > 1 ? (
-            <p style={{ marginTop: 10, fontSize: 13, color: "#a85d00" }}>
-              Заказ кратно {product.multiplicity} шт.
-            </p>
-          ) : null}
+          <ProductBuyBlock
+            sku={product.sku}
+            price={price}
+            rrp={product.rrp ? decimalToNumber(product.rrp) : null}
+            multiplicity={product.multiplicity}
+            canOrder={fulfillment.canOrder && Boolean(price)}
+            sourceUrl={productUrl}
+            deliveryLabel={fulfillment.deliveryLabel}
+            confirmationNote={fulfillment.confirmationNote}
+          />
           <ProductAsideActions
             sku={product.sku}
             retailPrice={price}
@@ -449,20 +407,15 @@ export default async function ProductPage({ params }: Props) {
         </a>
       </section>
 
-      <div className="mob-buy-bar">
-        <div className="row">
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p className="name">{shortTitle}</p>
-            <p className="price">{price ? formatRub(price) : "Цена уточняется"}</p>
-          </div>
-          <AddToCartButton
-            sku={product.sku}
-            multiplicity={product.multiplicity}
-            disabled={!fulfillment.canOrder || !price}
-            compact
-          />
-        </div>
-      </div>
+      <ProductMobBuyBar
+        sku={product.sku}
+        shortTitle={shortTitle}
+        price={price}
+        multiplicity={product.multiplicity}
+        canOrder={fulfillment.canOrder && Boolean(price)}
+        productName={name}
+        productHref={productPath}
+      />
     </>
   );
 }

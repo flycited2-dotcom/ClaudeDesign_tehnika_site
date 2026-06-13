@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { requestRoleUpgradeAction } from "@/app/role-request/actions";
 
 export function RoleUpgradeRequestModal({
@@ -25,6 +25,20 @@ export function RoleUpgradeRequestModal({
     | { status: "ok"; message: string }
     | { status: "error"; error: string }
   >({ status: "idle" });
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,7 +88,8 @@ export function RoleUpgradeRequestModal({
             inset: 0,
             background: "rgba(15,20,30,0.45)",
             backdropFilter: "blur(4px)",
-            zIndex: 100,
+            WebkitBackdropFilter: "blur(4px)",
+            zIndex: 220,
             display: "grid",
             placeItems: "center",
             padding: 16,
