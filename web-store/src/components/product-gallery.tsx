@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ProductImageFallback } from "@/components/product-image-fallback";
 
 export type ProductGalleryImage = {
@@ -22,6 +22,26 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
 
   function showNext() {
     setActiveIndex((current) => (current >= images.length - 1 ? 0 : current + 1));
+  }
+
+  // Touch swipe to browse photos on mobile. `swiped` guards the tap handlers
+  // (open lightbox / close) so a horizontal swipe doesn't also fire a click.
+  const touchStartX = useRef<number | null>(null);
+  const swiped = useRef(false);
+
+  function onTouchStart(event: React.TouchEvent) {
+    touchStartX.current = event.touches[0]?.clientX ?? null;
+    swiped.current = false;
+  }
+
+  function onTouchEnd(event: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const deltaX = (event.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+    touchStartX.current = null;
+    if (!hasManyImages || Math.abs(deltaX) < 40) return;
+    swiped.current = true;
+    if (deltaX < 0) showNext();
+    else showPrevious();
   }
 
   useEffect(() => {
@@ -58,8 +78,17 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
           background: "rgba(255,255,255,0.55)",
           border: "1px solid var(--glass-stroke)",
           cursor: activeImage ? "zoom-in" : "default",
+          touchAction: "pan-y",
         }}
-        onClick={() => activeImage && setLightbox(true)}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        onClick={() => {
+          if (swiped.current) {
+            swiped.current = false;
+            return;
+          }
+          if (activeImage) setLightbox(true);
+        }}
       >
         {activeImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -209,7 +238,15 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
 
       {lightbox && activeImage && (
         <div
-          onClick={() => setLightbox(false)}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          onClick={() => {
+            if (swiped.current) {
+              swiped.current = false;
+              return;
+            }
+            setLightbox(false);
+          }}
           role="dialog"
           aria-label={`Фото ${activeIndex + 1} из ${images.length}`}
           style={{
@@ -224,6 +261,7 @@ export function ProductGallery({ images, name }: { images: ProductGalleryImage[]
             justifyContent: "center",
             padding: 24,
             cursor: "zoom-out",
+            touchAction: "pan-y",
           }}
         >
           <button
