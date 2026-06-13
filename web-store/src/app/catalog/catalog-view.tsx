@@ -24,7 +24,7 @@ const catalogSortLabels: Record<CatalogSort, string> = {
   popular: "Сначала рекомендуемые",
   price_asc: "Сначала дешевле",
   price_desc: "Сначала дороже",
-  new: "Сначала обновленные",
+  new: "Сначала обновлённые",
 };
 
 type CatalogUrlState = {

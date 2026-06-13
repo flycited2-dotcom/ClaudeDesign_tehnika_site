@@ -10,7 +10,7 @@ function mkProduct(
     part: string | null;
     isAvailable: boolean;
     retailPrice: number | null;
-    warranty: number | null;
+    warranty: string | null;
     weight: number | null;
     volume: number | null;
     attributes: Array<{ key: string; value: string }>;
@@ -140,12 +140,13 @@ describe("buildCompareRows", () => {
     expect(stock.values).toEqual(["Да", "Да"]);
   });
 
-  it("missing numeric fields render as '—'", () => {
-    const a = mkProduct({ warranty: 12 });
+  it("warranty: numeric string gets a unit, text passes through, missing is '—'", () => {
+    const a = mkProduct({ warranty: "12" });
     const b = mkProduct({ warranty: null });
-    const rows = buildCompareRows([a, b]);
+    const c = mkProduct({ warranty: "1 год" });
+    const rows = buildCompareRows([a, b, c]);
     const warranty = rows.find((r) => r.label === "Гарантия")!;
-    expect(warranty.values).toEqual(["12 мес", "—"]);
+    expect(warranty.values).toEqual(["12 мес.", "—", "1 год"]);
     expect(warranty.hasDiff).toBe(true);
   });
 

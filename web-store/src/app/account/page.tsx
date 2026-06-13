@@ -3,6 +3,7 @@ import { ArrowRight, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AccountShell } from "@/components/account-shell";
+import { AccountStatValue } from "@/components/account-stat-value";
 import { getCurrentUser, roleToStorefront } from "@/lib/auth";
 import { storefront } from "@/lib/storefront";
 
@@ -41,17 +42,17 @@ export default async function AccountPage() {
         <div className="acc-stats" style={{ marginTop: 18 }}>
           <div className="acc-stat">
             <div className="l">Корзина</div>
-            <div className="v" id="cart-count">…</div>
+            <div className="v"><AccountStatValue kind="cart" /></div>
             <div className="d">локально на устройстве</div>
           </div>
           <div className="acc-stat">
             <div className="l">Избранное</div>
-            <div className="v" id="fav-count">…</div>
+            <div className="v"><AccountStatValue kind="favorites" /></div>
             <div className="d">сохраняется в браузере</div>
           </div>
           <div className="acc-stat">
             <div className="l">К сравнению</div>
-            <div className="v" id="cmp-count">…</div>
+            <div className="v"><AccountStatValue kind="compare" /></div>
             <div className="d">до 4 товаров</div>
           </div>
           <div className="acc-stat">

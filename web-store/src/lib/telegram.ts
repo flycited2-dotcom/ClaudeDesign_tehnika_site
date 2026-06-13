@@ -2,6 +2,17 @@ import type { OrderQuote } from "@/lib/checkout/validation";
 import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
 
+// Telegram's sendMessage rejects text over 4096 chars with HTTP 400 — a large
+// order (50+ line items) would otherwise lose its notification entirely. Clamp
+// so the notification always goes through; the full record lives in the admin.
+const TELEGRAM_MAX_LENGTH = 4096;
+
+export function clampTelegramText(text: string): string {
+  if (text.length <= TELEGRAM_MAX_LENGTH) return text;
+  const notice = "\n…(сообщение обрезано — полная заявка в админке)";
+  return text.slice(0, TELEGRAM_MAX_LENGTH - notice.length) + notice;
+}
+
 /**
  * Best-effort plain-text notification to the manager chat. Returns whether the
  * message was actually delivered so callers can decide on fallbacks. Never
@@ -16,7 +27,7 @@ export async function sendTelegramMessage(text: string): Promise<{ delivered: bo
     const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+      body: JSON.stringify({ chat_id: chatId, text: clampTelegramText(text), disable_web_page_preview: true }),
     });
     return { delivered: response.ok };
   } catch {
@@ -100,7 +111,9 @@ export async function sendTelegramOrderNotification({
     },
     body: JSON.stringify({
       chat_id: chatId,
-      text: buildTelegramOrderMessage({ orderNumber, customerName, phone, email, comment, kind, sourceUrl, quote }),
+      text: clampTelegramText(
+        buildTelegramOrderMessage({ orderNumber, customerName, phone, email, comment, kind, sourceUrl, quote }),
+      ),
       disable_web_page_preview: true,
     }),
   });

@@ -803,6 +803,8 @@ export async function getProductsForQuote(skus: number[]) {
     price: decimalToNumber(product.retailPrice),
     supplierPrice: product.supplierPrice ? decimalToNumber(product.supplierPrice) : null,
     multiplicity: product.multiplicity,
-    isAvailable: product.isAvailable && Boolean(product.retailPrice),
+    // Boolean(Decimal(0)) is true, so a 0 ₽ product would be orderable via the
+    // API while the UI shows "Цена уточняется". Gate on the numeric price > 0.
+    isAvailable: product.isAvailable && decimalToNumber(product.retailPrice) > 0,
   }));
 }

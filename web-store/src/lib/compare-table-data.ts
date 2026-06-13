@@ -2,6 +2,7 @@ import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
 
 import { decimalToNumber } from "@/lib/catalog";
 import { formatRub } from "@/lib/format";
+import { warrantyLabel } from "@/lib/product-display";
 
 export type CompareProduct = Product & {
   attributes?: ProductAttribute[];
@@ -111,7 +112,7 @@ export function buildCompareRows(products: CompareProduct[]): CompareRow[] {
     ),
     baseRow(
       "Гарантия",
-      products.map((p) => formatNumber(p.warranty, "мес")),
+      products.map((p) => warrantyLabel(p.warranty) ?? EMPTY),
     ),
     baseRow(
       "Вес",

@@ -1,4 +1,4 @@
-import { Mail, MapPin, MessageCircle, Send } from "lucide-react";
+import { Mail, MessageCircle, Send } from "lucide-react";
 import { storefront } from "@/lib/storefront";
 
 export function SiteFooter() {
@@ -31,11 +31,15 @@ export function SiteFooter() {
           >
             <Send size={18} aria-hidden />
           </a>
-          <a className="social" title="WhatsApp" href="#" aria-label="WhatsApp">
+          <a
+            className="social"
+            title="WhatsApp"
+            href="https://wa.me/79785792995"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="WhatsApp"
+          >
             <MessageCircle size={18} aria-hidden />
-          </a>
-          <a className="social" title={storefront.region} href="#" aria-label="Карта">
-            <MapPin size={18} aria-hidden />
           </a>
         </div>
       </div>

@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { sendTelegramMessage } from "@/lib/telegram";
+import { clampTelegramText, sendTelegramMessage } from "@/lib/telegram";
+
+describe("clampTelegramText", () => {
+  it("leaves text within the limit unchanged", () => {
+    expect(clampTelegramText("short")).toBe("short");
+  });
+
+  it("clamps text over 4096 chars and appends a notice", () => {
+    const out = clampTelegramText("x".repeat(5000));
+    expect(out.length).toBeLessThanOrEqual(4096);
+    expect(out).toContain("обрезано");
+  });
+});
 
 describe("sendTelegramMessage", () => {
   let prevToken: string | undefined;

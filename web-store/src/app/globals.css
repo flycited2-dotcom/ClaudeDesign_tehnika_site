@@ -482,19 +482,6 @@ body.app {
   font-weight: 700;
 }
 
-/* Mobile collapsible filters on catalog: show toggle <details> */
-.cat-filters-mobile {
-  display: none;
-}
-@media (max-width: 1180px) {
-  .cat-filters-mobile {
-    display: block;
-  }
-  .cat-filters-desktop {
-    display: none;
-  }
-}
-
 /* Admin pages: glassify Tailwind cards via wrapper without rewriting each page.
    Higher specificity than Tailwind utilities (.admin-area .bg-white > .bg-white). */
 .admin-area .bg-white {
@@ -527,20 +514,9 @@ body.app {
   border-color: var(--glass-stroke);
 }
 
-/* Mobile filter collapsing for catalog: template handles .cat-layout
-   collapse, but we still want a "Filters" toggle button on mobile */
-.cat-mobile-toggle {
-  display: none;
-}
 @media (max-width: 1180px) {
-  .cat-mobile-toggle {
-    display: inline-flex;
-  }
   .cat-layout > aside {
     order: 2;
-  }
-  .cat-layout > aside.collapsed {
-    display: none;
   }
 }
 

@@ -70,7 +70,12 @@ export function SiteScreenBar() {
   const cart = useCart();
   const favorites = useFavorites();
   const compare = useCompare();
-  const counts = { cart: cart.length, favorites: favorites.length, compare: compare.length };
+  const counts = {
+    // total item quantity, matching the header cart badge (favorites/compare are lists)
+    cart: cart.reduce((sum, item) => sum + item.quantity, 0),
+    favorites: favorites.length,
+    compare: compare.length,
+  };
 
   return (
     <nav className="screen-bar" aria-label="Быстрая навигация">
