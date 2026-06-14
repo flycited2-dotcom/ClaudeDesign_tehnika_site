@@ -28,23 +28,28 @@ export async function getRoleContext(): Promise<{
   orgName: string | null;
   email: string | null;
 }> {
-  const user = await getCurrentUser();
-  if (user) {
+  try {
+    const user = await getCurrentUser();
+    if (user) {
+      return {
+        role: roleToStorefront(user.role),
+        isAuthenticated: true,
+        userName: user.name,
+        orgName: user.orgName,
+        email: user.email,
+      };
+    }
+    const store = await cookies();
+    const previewCookie = parseRole(store.get(ROLE_PREVIEW_COOKIE)?.value);
     return {
-      role: roleToStorefront(user.role),
-      isAuthenticated: true,
-      userName: user.name,
-      orgName: user.orgName,
-      email: user.email,
+      role: previewCookie ?? DEFAULT_ROLE,
+      isAuthenticated: false,
+      userName: null,
+      orgName: null,
+      email: null,
     };
+  } catch {
+    // A DB blip must not white-screen the whole site via the root layout.
+    return { role: DEFAULT_ROLE, isAuthenticated: false, userName: null, orgName: null, email: null };
   }
-  const store = await cookies();
-  const previewCookie = parseRole(store.get(ROLE_PREVIEW_COOKIE)?.value);
-  return {
-    role: previewCookie ?? DEFAULT_ROLE,
-    isAuthenticated: false,
-    userName: null,
-    orgName: null,
-    email: null,
-  };
 }

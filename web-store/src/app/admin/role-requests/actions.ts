@@ -24,7 +24,7 @@ export async function approveRoleUpgradeAction(formData: FormData): Promise<void
 
   const result = await prisma.$transaction(async (tx) => {
     const request = await tx.roleUpgradeRequest.findUnique({ where: { id: parsed.requestId } });
-    if (!request) throw new Error("Request not found");
+    if (!request) return { transitioned: false as const };
     if (request.status !== "PENDING") return { transitioned: false as const };
 
     await tx.user.update({
@@ -69,24 +69,33 @@ export async function rejectRoleUpgradeAction(formData: FormData): Promise<void>
     reviewNote: formData.get("reviewNote") ? String(formData.get("reviewNote")) : undefined,
   });
 
-  const updated = await prisma.roleUpgradeRequest.update({
-    where: { id: parsed.requestId },
-    data: {
-      status: "REJECTED",
-      reviewedAt: new Date(),
-      reviewedBy: adminEmail(),
-      reviewNote: parsed.reviewNote || null,
-    },
-    include: { user: true },
+  const result = await prisma.$transaction(async (tx) => {
+    const request = await tx.roleUpgradeRequest.findUnique({ where: { id: parsed.requestId } });
+    if (!request) return { transitioned: false as const };
+    if (request.status !== "PENDING") return { transitioned: false as const };
+
+    const updated = await tx.roleUpgradeRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "REJECTED",
+        reviewedAt: new Date(),
+        reviewedBy: adminEmail(),
+        reviewNote: parsed.reviewNote || null,
+      },
+    });
+    return { transitioned: true as const, request: updated };
   });
 
-  if (updated.user) {
-    const mail = buildRoleRejectedEmail({
-      role: updated.requestedRole === "B2B" ? "b2b" : "gov",
-      orgName: updated.orgName,
-      note: updated.reviewNote,
-    });
-    await sendMail({ from: mailFromInfo(), to: updated.user.email, subject: mail.subject, text: mail.text, html: mail.html });
+  if (result.transitioned) {
+    const user = await prisma.user.findUnique({ where: { id: result.request.userId } });
+    if (user) {
+      const mail = buildRoleRejectedEmail({
+        role: result.request.requestedRole === "B2B" ? "b2b" : "gov",
+        orgName: result.request.orgName,
+        note: result.request.reviewNote,
+      });
+      await sendMail({ from: mailFromInfo(), to: user.email, subject: mail.subject, text: mail.text, html: mail.html });
+    }
   }
 
   revalidatePath("/admin/role-requests");
