@@ -6,11 +6,14 @@
 //     node scripts/shoot-admin.mjs
 import { chromium } from "playwright";
 import { mkdirSync } from "fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
 const BASE = process.env.SHOOT_BASE || "https://climat-simf.ru";
 const EMAIL = process.env.ADMIN_EMAIL || "";
 const PASSWORD = process.env.ADMIN_PASSWORD || "";
-const OUT = process.env.SHOOT_OUT || "shots";
+// Always write to web-store/shots regardless of the current directory.
+const OUT = process.env.SHOOT_OUT || join(dirname(fileURLToPath(import.meta.url)), "..", "shots");
 const TAG = process.env.SHOOT_TAG || "admin";
 const ONLY = process.env.SHOOT_ONLY; // optional: comma list of page names
 
