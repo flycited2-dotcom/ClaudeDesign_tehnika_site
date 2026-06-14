@@ -45,20 +45,22 @@ export default async function AdminPage() {
       total: Number(order.total),
     })),
   });
+  // Uniform glass cards; the urgency is carried by the number colour only, not by
+  // four different card backgrounds (that mix read as visual clutter).
   const queueToneClasses = {
-    red: "border-red-100 bg-red-50 text-red-800",
-    amber: "border-amber-100 bg-amber-50 text-amber-800",
-    teal: "border-teal-100 bg-teal-50 text-teal-800",
-    zinc: "border-zinc-200 bg-white text-zinc-700",
+    red: "text-red-600",
+    amber: "text-amber-600",
+    teal: "text-teal-700",
+    zinc: "text-zinc-900",
   };
 
   return (
     <AdminShell title="Обзор">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {dashboard.actionQueue.map((item) => (
-          <div key={item.label} className={`rounded-lg border p-4 shadow-sm ${queueToneClasses[item.tone]}`}>
-            <p className="text-sm font-semibold">{item.label}</p>
-            <p className="mt-2 text-3xl font-black">{item.count.toLocaleString("ru-RU")}</p>
+          <div key={item.label} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
+            <p className="text-sm font-semibold text-zinc-500">{item.label}</p>
+            <p className={`mt-2 text-3xl font-black ${queueToneClasses[item.tone]}`}>{item.count.toLocaleString("ru-RU")}</p>
           </div>
         ))}
       </div>
