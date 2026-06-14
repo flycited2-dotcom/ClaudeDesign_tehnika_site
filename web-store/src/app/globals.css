@@ -523,25 +523,41 @@ body.app {
 .admin-area input[class*="border-zinc"],
 .admin-area textarea[class*="border-zinc"],
 .admin-area select[class*="border-zinc"] {
-  background: rgba(255, 255, 255, 0.6);
-  border-color: var(--glass-stroke);
+  background: #fff;
+  border-color: rgba(20, 40, 90, 0.2);
+}
+.admin-area input:focus,
+.admin-area textarea:focus,
+.admin-area select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(66, 109, 255, 0.15);
 }
 
-/* Admin glass polish — bring buttons/tables closer to the storefront surface.
+/* Admin glass polish — match the storefront: real accent buttons + glassy tables.
    Unlayered rules beat Tailwind's layered utilities, so no !important needed. */
 .admin-area .rounded-lg {
   border-radius: 14px;
 }
-/* Primary action buttons (dark/teal in the markup) -> site accent gradient. */
-.admin-area .bg-zinc-950,
-.admin-area .bg-teal-700 {
+/* Bare text-like action buttons become real site-accent buttons. Sidebar nav
+   (.admin-nav-link) is excluded so it keeps its own styling. */
+.admin-area button:not(.admin-nav-link) {
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 0;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff;
-  border: 0;
+  transition: filter 0.15s ease;
 }
-.admin-area .bg-zinc-950:hover,
-.admin-area .bg-teal-700:hover {
+.admin-area button:not(.admin-nav-link):hover {
   filter: brightness(1.06);
+}
+/* Destructive actions stay red. */
+.admin-area button[class*="rose"]:not(.admin-nav-link),
+.admin-area button[class*="red"]:not(.admin-nav-link) {
+  background: linear-gradient(135deg, #ff8190, #e0344d);
 }
 /* Tables: glassy header + readable hover rows. */
 .admin-area thead {
