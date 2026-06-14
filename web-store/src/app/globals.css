@@ -527,6 +527,33 @@ body.app {
   border-color: var(--glass-stroke);
 }
 
+/* Admin glass polish — bring buttons/tables closer to the storefront surface.
+   Unlayered rules beat Tailwind's layered utilities, so no !important needed. */
+.admin-area .rounded-lg {
+  border-radius: 14px;
+}
+/* Primary action buttons (dark/teal in the markup) -> site accent gradient. */
+.admin-area .bg-zinc-950,
+.admin-area .bg-teal-700 {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border: 0;
+}
+.admin-area .bg-zinc-950:hover,
+.admin-area .bg-teal-700:hover {
+  filter: brightness(1.06);
+}
+/* Tables: glassy header + readable hover rows. */
+.admin-area thead {
+  background: rgba(255, 255, 255, 0.5);
+}
+.admin-area tbody tr {
+  transition: background 0.15s ease;
+}
+.admin-area tbody tr:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
 /* Admin shell layout. Grid lives here (not inline) so it can collapse on mobile. */
 .admin-area {
   display: grid;
