@@ -36,6 +36,8 @@ export function ProductBuyBlock({
   const role = useStorefrontRole();
   const pricing = getRolePricingConfig();
   const isGovQuote = role === "gov" && pricing.govEnabled;
+  // b2b and gov are quote-only — they request a price (КП) instead of ordering directly.
+  const isQuoteOnly = role === "b2b" || isGovQuote;
   const minimumQuantity = Math.max(multiplicity || 1, 1);
 
   return (
@@ -70,7 +72,7 @@ export function ProductBuyBlock({
         <p style={{ fontWeight: 700 }}>{deliveryLabel}</p>
         <p style={{ marginTop: 4 }}>{confirmationNote}</p>
       </div>
-      {!isGovQuote && (
+      {!isQuoteOnly && (
         <>
           <div style={{ marginTop: 18 }}>
             <AddToCartButton sku={sku} multiplicity={multiplicity} disabled={!canOrder} />

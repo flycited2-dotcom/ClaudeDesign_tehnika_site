@@ -2,6 +2,8 @@
 // values are available both on the server and inside client components
 // without prop-drilling.
 
+import type { StorefrontRole } from "@/lib/role";
+
 const DEFAULT_B2B_DISCOUNT = 25;
 const DEFAULT_B2B_MIN_QTY = 5;
 const DEFAULT_GOV_ENABLED = true;
@@ -37,4 +39,13 @@ export function computeB2BPrice(retailPrice: number, discountPercent: number): n
   if (retailPrice <= 0) return 0;
   const discounted = retailPrice * (1 - discountPercent / 100);
   return Math.round(discounted / 10) * 10;
+}
+
+/**
+ * Only retail (b2c) can place a direct order. b2b and gov go through the quote
+ * (КП) flow where a manager confirms the real price — there is no real wholesale
+ * price source yet, and gov purchases require a formal offer (44-ФЗ / 223-ФЗ).
+ */
+export function canPlaceDirectOrder(role: StorefrontRole): boolean {
+  return role === "b2c";
 }

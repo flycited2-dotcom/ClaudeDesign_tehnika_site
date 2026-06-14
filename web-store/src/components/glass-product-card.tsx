@@ -54,8 +54,9 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
   const isFavorite = favorites.includes(product.sku);
   const isInCompare = compare.includes(product.sku);
   const [compareError, setCompareError] = useState<string | null>(null);
-  // gov buys via КП — don't let gov add to cart at the (hidden) retail price
-  const canBuy = canOrder && !(role === "gov" && pricing.govEnabled);
+  // Only retail (b2c) orders directly; b2b/gov request a price (КП) instead.
+  const canBuy = canOrder && role === "b2c";
+  const isQuoteOnly = role === "b2b" || (role === "gov" && pricing.govEnabled);
 
   function handleAddToCart(event: React.MouseEvent) {
     event.preventDefault();
@@ -127,17 +128,23 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
         </div>
       </Link>
       <div className="p-card-actions">
-        <button
-          type="button"
-          className="btn btn-primary p-card-buy"
-          data-testid="add-to-cart"
-          disabled={!canBuy}
-          onClick={handleAddToCart}
-          aria-label="В корзину"
-        >
-          <ShoppingCart size={16} aria-hidden />
-          Купить
-        </button>
+        {isQuoteOnly ? (
+          <Link href={href} className="btn btn-primary p-card-buy">
+            {role === "gov" ? "Запросить КП" : "Запросить опт-цену"}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary p-card-buy"
+            data-testid="add-to-cart"
+            disabled={!canBuy}
+            onClick={handleAddToCart}
+            aria-label="В корзину"
+          >
+            <ShoppingCart size={16} aria-hidden />
+            Купить
+          </button>
+        )}
         <div className="p-card-secondary">
           <button
             type="button"

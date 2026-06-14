@@ -31,6 +31,8 @@ export function ProductMobBuyBar({
   const role = useStorefrontRole();
   const pricing = getRolePricingConfig();
   const isGovQuote = role === "gov" && pricing.govEnabled;
+  // b2b and gov are quote-only — request a price (КП) instead of a direct order.
+  const isQuoteOnly = role === "b2b" || isGovQuote;
 
   return (
     <div className="mob-buy-bar">
@@ -41,11 +43,11 @@ export function ProductMobBuyBar({
             {isGovQuote ? "Цена по запросу" : price ? formatRub(price) : "Цена уточняется"}
           </p>
         </div>
-        {isGovQuote ? (
+        {isQuoteOnly ? (
           <QuoteRequestButton
-            scope="gov"
+            scope={role === "gov" ? "gov" : "b2b"}
             context={`${productName} — ${productHref}`}
-            buttonLabel="Запросить КП"
+            buttonLabel={role === "gov" ? "Запросить КП" : "Запросить опт-цену"}
             buttonClassName="btn btn-primary btn-sm"
           />
         ) : (

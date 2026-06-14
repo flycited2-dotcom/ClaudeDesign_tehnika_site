@@ -3,6 +3,8 @@ import { buildOrderQuote, type CartInputItem } from "@/lib/checkout/validation";
 import { getProductsForQuote } from "@/lib/catalog";
 import { prisma } from "@/lib/db";
 import { sendOrderNotificationSafely } from "@/lib/order-notifications";
+import { getActiveRole } from "@/lib/role";
+import { canPlaceDirectOrder } from "@/lib/role-pricing";
 
 export type CheckoutInput = {
   customerName: string;
@@ -25,6 +27,13 @@ export async function quoteCart(cartItems: CartInputItem[]) {
 }
 
 export async function createLocalOrder(input: CheckoutInput) {
+  const role = await getActiveRole();
+  if (!canPlaceDirectOrder(role)) {
+    throw new Error(
+      "Оптовые и государственные заказы оформляются через запрос цены (КП): оставьте заявку на странице товара — менеджер подготовит предложение.",
+    );
+  }
+
   const quote = await quoteCart(input.cartItems);
   const orderNo = orderNumber();
 
