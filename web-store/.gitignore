@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# visual QA screenshots (scripts/shoot-admin.mjs)
+/shots
+
 # next.js
 /.next/
 /out/
