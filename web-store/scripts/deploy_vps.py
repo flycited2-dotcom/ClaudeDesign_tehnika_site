@@ -68,7 +68,11 @@ def build_remote_deploy_script(
             install.rstrip(),
             "npx prisma generate",
             "npx prisma db push --skip-generate",
-            f"npm run build >{quoted_log} 2>&1",
+            # Clear only the Turbopack persistent cache (not the whole .next) so a
+            # stale incremental cache can't fail/poison the build, while pm2 keeps
+            # serving the current build during the rebuild (no 500 window).
+            "rm -rf .next/cache",
+            f"npm run build 2>&1 | tee {quoted_log}",
             "test -f .next/prerender-manifest.json",
             "test -s .next/BUILD_ID",
             f"pm2 delete {quoted_process} >/tmp/{process_name}-pm2.log 2>&1 || true",

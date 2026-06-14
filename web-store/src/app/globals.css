@@ -541,7 +541,7 @@ body.app {
 }
 /* Buttons: subtle by default; accent only for the primary action. Sidebar nav
    (.admin-nav-link) keeps its own styling. Calm look — not a wall of blue. */
-.admin-area button:not(.admin-nav-link) {
+.admin-area button:not(.admin-nav-link):not(.adm-btn) {
   padding: 8px 14px;
   border-radius: 12px;
   font-weight: 600;
@@ -551,7 +551,7 @@ body.app {
   color: var(--text);
   transition: background 0.15s ease, filter 0.15s ease;
 }
-.admin-area button:not(.admin-nav-link):hover {
+.admin-area button:not(.admin-nav-link):not(.adm-btn):hover {
   background: rgba(255, 255, 255, 0.95);
 }
 /* Primary action buttons (dark/teal/emerald in the markup) -> site accent. */
