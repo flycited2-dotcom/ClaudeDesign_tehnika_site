@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { ChromeGate } from "@/components/chrome-gate";
 import { RoleProvider } from "@/components/role-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -63,10 +64,16 @@ export default async function RootLayout({
           orgName={roleContext.orgName}
           email={roleContext.email}
         >
-          <SiteHeader />
+          <ChromeGate>
+            <SiteHeader />
+          </ChromeGate>
           <main>{children}</main>
-          <SiteFooter />
-          <SiteScreenBar />
+          <ChromeGate>
+            <SiteFooter />
+          </ChromeGate>
+          <ChromeGate>
+            <SiteScreenBar />
+          </ChromeGate>
         </RoleProvider>
       </body>
     </html>

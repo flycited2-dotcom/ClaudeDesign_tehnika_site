@@ -25,7 +25,7 @@ export default async function AdminOrdersPage() {
 
   return (
     <AdminShell title="Заказы">
-      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-stone-50 text-xs uppercase tracking-wide text-zinc-500">
             <tr>

@@ -40,7 +40,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         <input name="q" defaultValue={q} placeholder="SKU, название, бренд, партномер" className="h-10 min-w-0 flex-1 rounded-lg border border-zinc-200 px-3 text-sm" />
         <button className="h-10 rounded-lg bg-zinc-950 px-4 text-sm font-semibold text-white">Найти</button>
       </form>
-      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-stone-50 text-xs uppercase tracking-wide text-zinc-500">
             <tr>

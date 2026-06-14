@@ -16,82 +16,27 @@ const links = [
 
 export function AdminShell({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <div
-      className="admin-area"
-      style={{
-        display: "grid",
-        gap: 24,
-        gridTemplateColumns: "260px minmax(0, 1fr)",
-        alignItems: "start",
-      }}
-    >
-      <aside className="glass" style={{ padding: 16, borderRadius: 22, position: "sticky", top: 100 }}>
-        <p
-          style={{
-            padding: "6px 12px",
-            fontSize: 11,
-            fontWeight: 800,
-            textTransform: "uppercase",
-            letterSpacing: 1,
-            color: "var(--text-mute)",
-          }}
-        >
-          Админка
-        </p>
-        <nav style={{ display: "grid", gap: 2 }}>
+    <div className="admin-area">
+      <aside className="glass admin-aside">
+        <p className="admin-aside-label">Админка</p>
+        <nav className="admin-nav">
           {links.map(([href, label, Icon]) => (
-            <Link
-              key={href}
-              href={href}
-              className="f-row"
-              style={{ margin: 0, gap: 12 }}
-            >
+            <Link key={href} href={href} className="admin-nav-link">
               <Icon size={16} aria-hidden />
-              <span style={{ flex: 1 }}>{label}</span>
+              <span>{label}</span>
             </Link>
           ))}
         </nav>
-        <form
-          action={logoutAction}
-          style={{
-            marginTop: 14,
-            paddingTop: 12,
-            borderTop: "1px solid rgba(255,255,255,0.5)",
-          }}
-        >
-          <button
-            type="submit"
-            className="f-row"
-            style={{
-              margin: 0,
-              gap: 12,
-              cursor: "pointer",
-              color: "var(--text-mute)",
-              border: 0,
-              background: "none",
-              width: "100%",
-              textAlign: "left",
-              font: "inherit",
-            }}
-          >
+        <form action={logoutAction} className="admin-logout-form">
+          <button type="submit" className="admin-nav-link admin-logout">
             <LogOut size={16} aria-hidden />
-            <span style={{ flex: 1 }}>Выйти</span>
+            <span>Выйти</span>
           </button>
         </form>
       </aside>
 
-      <section style={{ minWidth: 0 }}>
-        <h1
-          style={{
-            marginBottom: 24,
-            fontSize: 30,
-            fontWeight: 900,
-            letterSpacing: "-0.01em",
-            color: "var(--text)",
-          }}
-        >
-          {title}
-        </h1>
+      <section className="admin-main">
+        <h1 className="admin-title">{title}</h1>
         {children}
       </section>
     </div>

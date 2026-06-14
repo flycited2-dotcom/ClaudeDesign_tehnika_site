@@ -527,6 +527,103 @@ body.app {
   border-color: var(--glass-stroke);
 }
 
+/* Admin shell layout. Grid lives here (not inline) so it can collapse on mobile. */
+.admin-area {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  align-items: start;
+}
+.admin-aside {
+  padding: 16px;
+  border-radius: 22px;
+  position: sticky;
+  top: 100px;
+}
+.admin-aside-label {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-mute);
+}
+.admin-nav {
+  display: grid;
+  gap: 2px;
+}
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  color: var(--text-2);
+  text-decoration: none;
+  font: inherit;
+  border: 0;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.admin-nav-link > span {
+  flex: 1;
+}
+.admin-nav-link:hover {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--text);
+}
+.admin-logout-form {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.5);
+}
+.admin-logout {
+  color: var(--text-mute);
+}
+.admin-logout:hover {
+  background: rgba(255, 90, 90, 0.12);
+  color: #c0344d;
+}
+.admin-main {
+  min-width: 0;
+}
+.admin-title {
+  margin-bottom: 24px;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+@media (max-width: 900px) {
+  .admin-area {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  /* Sidebar becomes a top bar; nav is a horizontal-scroll strip so it doesn't eat vertical space. */
+  .admin-aside {
+    position: static;
+    top: auto;
+  }
+  .admin-nav {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 4px;
+  }
+  .admin-nav-link {
+    white-space: nowrap;
+  }
+  .admin-title {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+}
+
 @media (max-width: 1180px) {
   .cat-layout > aside {
     order: 2;
