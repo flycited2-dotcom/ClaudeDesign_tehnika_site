@@ -1,67 +1,112 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { OrderStatus } from "@prisma/client";
 import { AdminShell } from "@/components/admin-shell";
+import { CatalogPager } from "@/components/catalog-pager";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { formatDateTime, formatRub } from "@/lib/format";
-import { orderStatusMeta } from "@/lib/order-status";
+import { orderStatusMeta, type OrderStatusTone } from "@/lib/order-status";
 import { phoneHref } from "@/lib/storefront";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOrdersPage() {
-  await requireAdmin();
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
+const PAGE_SIZE = 30;
 
-  const statusToneClasses = {
-    red: "bg-red-50 text-red-800",
-    amber: "bg-amber-50 text-amber-800",
-    blue: "bg-sky-50 text-sky-800",
-    green: "bg-emerald-50 text-emerald-800",
-    zinc: "bg-zinc-100 text-zinc-700",
-  };
+const toneToBadge: Record<OrderStatusTone, string> = {
+  red: "adm-badge--danger",
+  amber: "adm-badge--new",
+  blue: "adm-badge--active",
+  green: "adm-badge--success",
+  zinc: "adm-badge--muted",
+};
+
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function first(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function AdminOrdersPage({ searchParams }: Props) {
+  await requireAdmin();
+  const params = await searchParams;
+  const page = Math.max(1, Number(first(params.page)) || 1);
+
+  const [total, newCount, orders] = await Promise.all([
+    prisma.order.count(),
+    prisma.order.count({ where: { status: OrderStatus.NEW } }),
+    prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <AdminShell title="Заказы">
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-white shadow-sm">
-        <table className="w-full min-w-[720px] text-left text-sm">
-          <thead className="bg-stone-50 text-xs uppercase tracking-wide text-zinc-500">
+      <div className="adm-section-right" style={{ marginBottom: 14 }}>
+        <span className="adm-badge adm-badge--muted">Всего: {total.toLocaleString("ru-RU")}</span>
+        {newCount > 0 ? <span className="adm-badge adm-badge--danger">Новых: {newCount.toLocaleString("ru-RU")}</span> : null}
+      </div>
+
+      <div className="adm-card" style={{ padding: 0, overflowX: "auto" }}>
+        <table className="adm-table">
+          <thead>
             <tr>
-              <th className="px-4 py-3">Номер</th>
-              <th className="px-4 py-3">Клиент</th>
-              <th className="px-4 py-3">Статус</th>
-              <th className="px-4 py-3">Сумма</th>
-              <th className="px-4 py-3">Дата</th>
+              <th>Номер</th>
+              <th>Клиент</th>
+              <th>Статус</th>
+              <th className="adm-num">Сумма</th>
+              <th>Дата</th>
+              <th aria-hidden />
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-100">
-            {orders.map((order) => (
-              <tr key={order.id}>
-                <td className="px-4 py-3">
-                  <Link href={`/admin/orders/${order.id}`} className="font-semibold text-teal-800 hover:text-teal-950">
-                    {order.orderNumber}
-                  </Link>
+          <tbody>
+            {orders.map((order) => {
+              const meta = orderStatusMeta[order.status];
+              return (
+                <tr key={order.id}>
+                  <td>
+                    <Link href={`/admin/orders/${order.id}`} className="font-semibold" style={{ color: "var(--accent-2)" }}>
+                      {order.orderNumber}
+                    </Link>
+                  </td>
+                  <td>
+                    <div className="font-medium" style={{ color: "var(--text)" }}>
+                      {order.customerName}
+                    </div>
+                    <a href={phoneHref(order.phone)} className="text-xs font-semibold" style={{ color: "var(--accent-2)" }}>
+                      {order.phone}
+                    </a>
+                  </td>
+                  <td>
+                    <span className={`adm-badge ${toneToBadge[meta.tone]}`}>{meta.label}</span>
+                  </td>
+                  <td className="adm-num font-semibold">{formatRub(Number(order.total))}</td>
+                  <td style={{ color: "var(--text-mute)" }}>{formatDateTime(order.createdAt)}</td>
+                  <td className="adm-col-actions">
+                    <Link href={`/admin/orders/${order.id}`} aria-label="Открыть заказ" style={{ color: "var(--text-mute)" }}>
+                      <ChevronRight size={18} aria-hidden style={{ display: "inline" }} />
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+            {!orders.length ? (
+              <tr>
+                <td colSpan={6} style={{ color: "var(--text-mute)", textAlign: "center", padding: "28px 14px" }}>
+                  Заказов пока нет.
                 </td>
-                <td className="px-4 py-3">
-                  <div className="font-medium text-zinc-950">{order.customerName}</div>
-                  <a href={phoneHref(order.phone)} className="text-xs font-semibold text-teal-800 hover:text-teal-950">
-                    {order.phone}
-                  </a>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusToneClasses[orderStatusMeta[order.status].tone]}`}>
-                    {orderStatusMeta[order.status].label}
-                  </span>
-                </td>
-                <td className="px-4 py-3">{formatRub(Number(order.total))}</td>
-                <td className="px-4 py-3">{formatDateTime(order.createdAt)}</td>
               </tr>
-            ))}
+            ) : null}
           </tbody>
         </table>
       </div>
+
+      <CatalogPager page={page} totalPages={totalPages} buildHref={(p) => `/admin/orders?page=${p}`} />
     </AdminShell>
   );
 }

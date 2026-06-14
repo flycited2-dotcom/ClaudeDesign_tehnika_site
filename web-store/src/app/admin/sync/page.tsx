@@ -1,3 +1,4 @@
+import { Play } from "lucide-react";
 import { runSyncAction } from "@/app/admin/actions";
 import { AdminShell } from "@/components/admin-shell";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -5,6 +6,12 @@ import { prisma } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
+
+function statusBadge(status: string): string {
+  if (status === "success") return "adm-badge--success";
+  if (status === "running") return "adm-badge--running";
+  return "adm-badge--danger";
+}
 
 export default async function AdminSyncPage() {
   await requireAdmin();
@@ -19,27 +26,63 @@ export default async function AdminSyncPage() {
           ["prices", "Цены и остатки", "get_active_products"],
           ["images", "Изображения", "read_new metadata"],
         ].map(([type, title, subtitle]) => (
-          <form key={type} action={runSyncAction} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
+          <form key={type} action={runSyncAction} className="adm-card">
+            <p className="font-bold" style={{ fontSize: 16, color: "var(--text)" }}>
+              {title}
+            </p>
+            <p className="mt-1 text-sm" style={{ color: "var(--text-mute)" }}>
+              {subtitle}
+            </p>
             <input type="hidden" name="type" value={type} />
-            <p className="text-lg font-bold text-zinc-950">{title}</p>
-            <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>
-            <button className="mt-5 h-10 w-full rounded-lg bg-zinc-950 text-sm font-semibold text-white hover:bg-teal-800">Запустить</button>
+            <button className="adm-btn adm-btn--soft" style={{ marginTop: 16, width: "100%" }}>
+              <Play size={15} aria-hidden />
+              Запустить
+            </button>
           </form>
         ))}
       </div>
 
-      <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-        <h2 className="text-lg font-bold text-zinc-950">Журнал</h2>
-        <div className="mt-4 divide-y divide-zinc-100">
-          {logs.map((log) => (
-            <div key={log.id} className="grid gap-2 py-3 text-sm md:grid-cols-[120px_100px_1fr_160px]">
-              <span className="font-semibold">{log.type}</span>
-              <span>{log.status}</span>
-              <span className="text-zinc-600">{log.message ?? `${log.processed}/${log.total}`}</span>
-              <span className="text-zinc-500">{formatDateTime(log.startedAt)}</span>
-            </div>
-          ))}
-        </div>
+      <div className="adm-section-head" style={{ marginTop: 28 }}>
+        <h2>Журнал</h2>
+      </div>
+      <div className="adm-card" style={{ padding: 0, overflowX: "auto" }}>
+        <table className="adm-table" style={{ tableLayout: "fixed", minWidth: 680 }}>
+          <colgroup>
+            <col style={{ width: 130 }} />
+            <col style={{ width: 110 }} />
+            <col />
+            <col style={{ width: 170 }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Тип</th>
+              <th>Статус</th>
+              <th>Сообщение</th>
+              <th>Когда</th>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map((log) => (
+              <tr key={log.id}>
+                <td className="font-semibold">{log.type}</td>
+                <td>
+                  <span className={`adm-badge ${statusBadge(log.status)}`}>{log.status}</span>
+                </td>
+                <td className="adm-cell-trunc" style={{ color: "var(--text-2)" }} title={log.message ?? `${log.processed}/${log.total}`}>
+                  {log.message ?? `${log.processed}/${log.total}`}
+                </td>
+                <td style={{ color: "var(--text-mute)" }}>{formatDateTime(log.startedAt)}</td>
+              </tr>
+            ))}
+            {!logs.length ? (
+              <tr>
+                <td colSpan={4} style={{ color: "var(--text-mute)", textAlign: "center", padding: "28px 14px" }}>
+                  Журнал пуст.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
       </div>
     </AdminShell>
   );
