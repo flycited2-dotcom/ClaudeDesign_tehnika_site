@@ -1,4 +1,4 @@
-import { BarChart3, Boxes, ClipboardList, DatabaseZap, FileText, LogOut, PhoneCall, Settings, ShieldCheck, Tags } from "lucide-react";
+import { ArrowLeft, BarChart3, Boxes, ClipboardList, DatabaseZap, FileText, LogOut, PhoneCall, Settings, ShieldCheck, Tags } from "lucide-react";
 import Link from "next/link";
 import { logoutAction } from "@/app/admin/actions";
 
@@ -16,8 +16,20 @@ const links = [
 
 export function AdminShell({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <div className="admin-area">
-      <aside className="glass admin-aside">
+    <div className="adm-content" style={{ margin: "0 auto" }}>
+      <header className="glass-strong adm-topbar">
+        <span className="adm-topbar-brand">
+          БытТехОпт
+          <span className="adm-topbar-tag">Админ-панель</span>
+        </span>
+        <Link href="/" className="adm-topbar-link">
+          <ArrowLeft size={16} aria-hidden />
+          <span>На сайт</span>
+        </Link>
+      </header>
+
+      <div className="admin-area">
+        <aside className="glass admin-aside">
         <p className="admin-aside-label">Админка</p>
         <nav className="admin-nav">
           {links.map(([href, label, Icon]) => (
@@ -35,10 +47,11 @@ export function AdminShell({ children, title }: { children: React.ReactNode; tit
         </form>
       </aside>
 
-      <section className="admin-main">
-        <h1 className="admin-title">{title}</h1>
-        {children}
-      </section>
+        <section className="admin-main">
+          <h1 className="admin-title">{title}</h1>
+          {children}
+        </section>
+      </div>
     </div>
   );
 }

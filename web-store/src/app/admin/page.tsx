@@ -45,134 +45,182 @@ export default async function AdminPage() {
       total: Number(order.total),
     })),
   });
-  // Uniform glass cards; the urgency is carried by the number colour only, not by
-  // four different card backgrounds (that mix read as visual clutter).
-  const queueToneClasses = {
-    red: "text-red-600",
-    amber: "text-amber-600",
-    teal: "text-teal-700",
-    zinc: "text-zinc-900",
-  };
+  // Calm, systematic colour: one urgency role (red, for new leads waiting),
+  // accent for other actionable counts, muted for reference catalog numbers.
+  const queueValueTone = {
+    red: "alert",
+    amber: "accent",
+    teal: "accent",
+    zinc: "muted",
+  } as const;
+
+  const salesMetrics = [
+    ["Заявок всего", dashboard.sales.totalOrders.toLocaleString("ru-RU"), ClipboardList],
+    ["Активные заявки", dashboard.sales.activeOrders.toLocaleString("ru-RU"), PhoneCall],
+    ["Оборот заявок", formatRub(dashboard.sales.totalRevenue), BadgeCheck],
+    ["В наличии", dashboard.productCoverage.available.toLocaleString("ru-RU"), PackageCheck],
+  ] as const;
 
   return (
     <AdminShell title="Обзор">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {dashboard.actionQueue.map((item) => (
-          <div key={item.label} className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
-            <p className="text-sm font-semibold text-zinc-500">{item.label}</p>
-            <p className={`mt-2 text-3xl font-black ${queueToneClasses[item.tone]}`}>{item.count.toLocaleString("ru-RU")}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          ["Заявок всего", dashboard.sales.totalOrders.toLocaleString("ru-RU"), ClipboardList],
-          ["Активные заявки", dashboard.sales.activeOrders.toLocaleString("ru-RU"), PhoneCall],
-          ["Оборот заявок", formatRub(dashboard.sales.totalRevenue), BadgeCheck],
-          ["В наличии", dashboard.productCoverage.available.toLocaleString("ru-RU"), PackageCheck],
-        ].map(([label, value, Icon]) => (
-          <div key={label as string} className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-zinc-500">{label as string}</p>
-              <Icon className="size-5 text-teal-700" aria-hidden />
+      <section>
+        <div className="adm-section-head">
+          <h2>Оперативная работа</h2>
+          <p className="adm-section-meta">Заявки и качество каталога</p>
+        </div>
+        <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3 xl:grid-cols-5">
+          {dashboard.actionQueue.map((item) => (
+            <div key={item.label} className="adm-metric">
+              <p className="adm-metric-l">{item.label}</p>
+              <p className={`adm-metric-v ${queueValueTone[item.tone]}`}>{item.count.toLocaleString("ru-RU")}</p>
             </div>
-            <p className="mt-3 text-3xl font-black text-zinc-950">{value as string}</p>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-zinc-950">Последние заявки</h2>
-            <Link href="/admin/orders" className="inline-flex items-center gap-1 text-sm font-semibold text-teal-800 hover:text-teal-950">
+      <section className="mt-6">
+        <div className="adm-section-head">
+          <h2>Сводка</h2>
+        </div>
+        <div className="adm-metrics">
+          {salesMetrics.map(([label, value, Icon]) => (
+            <div key={label} className="adm-metric">
+              <div className="adm-metric-head">
+                <p className="adm-metric-l">{label}</p>
+                <Icon size={18} aria-hidden />
+              </div>
+              <p className="adm-metric-v">{value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="mt-10 grid gap-6 xl:grid-cols-[1fr_360px]">
+        <div className="adm-card">
+          <div className="adm-section-head">
+            <h3>Последние заявки</h3>
+            <Link href="/admin/orders" className="adm-topbar-link">
               Все заказы
-              <ArrowRight className="size-4" aria-hidden />
+              <ArrowRight size={16} aria-hidden />
             </Link>
           </div>
-          <div className="mt-4 divide-y divide-zinc-100">
+          <div className="divide-y divide-[rgba(33,52,108,0.1)]">
             {dashboard.latestOrders.map((order) => (
-              <Link key={order.id} href={`/admin/orders/${order.id}`} className="grid gap-2 py-3 text-sm hover:bg-stone-50 sm:grid-cols-[1fr_120px_120px]">
+              <Link
+                key={order.id}
+                href={`/admin/orders/${order.id}`}
+                className="grid gap-2 rounded-lg px-2 py-3 text-sm transition hover:bg-[rgba(79,125,255,0.06)] sm:grid-cols-[1fr_120px_120px]"
+              >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-teal-800">{order.orderNumber}</span>
+                    <span className="font-semibold" style={{ color: "var(--accent-2)" }}>
+                      {order.orderNumber}
+                    </span>
                     {order.comment?.toLocaleLowerCase("ru-RU").includes("быстрый заказ") ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800">
-                        <Zap className="size-3" aria-hidden />
+                      <span className="adm-badge adm-badge--active">
+                        <Zap size={12} aria-hidden />
                         быстрый
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 truncate text-zinc-600">
+                  <p className="mt-1 truncate" style={{ color: "var(--text-mute)" }}>
                     {order.customerName} · {order.phone}
                   </p>
                 </div>
-                <span className="font-semibold text-zinc-700">{order.status}</span>
-                <span className="font-bold text-zinc-950">{formatRub(order.total)}</span>
+                <span className="font-semibold" style={{ color: "var(--text-2)" }}>
+                  {order.status}
+                </span>
+                <span className="font-bold" style={{ color: "var(--text)" }}>
+                  {formatRub(order.total)}
+                </span>
               </Link>
             ))}
-            {!dashboard.latestOrders.length ? <p className="py-4 text-sm text-zinc-500">Заявок пока нет.</p> : null}
+            {!dashboard.latestOrders.length ? (
+              <p className="py-4 text-sm" style={{ color: "var(--text-mute)" }}>
+                Заявок пока нет.
+              </p>
+            ) : null}
           </div>
         </div>
 
         <div className="grid gap-6">
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-zinc-950">Качество каталога</h2>
-            <div className="mt-4 grid gap-3 text-sm">
-              <div className="flex items-center justify-between rounded-md bg-stone-50 p-3">
-                <span className="inline-flex items-center gap-2 text-zinc-600">
-                  <ImageOff className="size-4 text-zinc-400" aria-hidden />
-                  Без фото
-                </span>
-                <strong>{dashboard.productCoverage.withoutImages.toLocaleString("ru-RU")}</strong>
-              </div>
-              <div className="flex items-center justify-between rounded-md bg-stone-50 p-3">
-                <span className="inline-flex items-center gap-2 text-zinc-600">
-                  <AlertCircle className="size-4 text-zinc-400" aria-hidden />
-                  Без цены
-                </span>
-                <strong>{dashboard.productCoverage.withoutPrices.toLocaleString("ru-RU")}</strong>
-              </div>
-              <div className="flex items-center justify-between rounded-md bg-stone-50 p-3">
-                <span className="inline-flex items-center gap-2 text-zinc-600">
-                  <CameraOff className="size-4 text-zinc-400" aria-hidden />
-                  Всего товаров
-                </span>
-                <strong>{dashboard.productCoverage.total.toLocaleString("ru-RU")}</strong>
-              </div>
+          <div className="adm-card">
+            <div className="adm-section-head">
+              <h3>Качество каталога</h3>
+            </div>
+            <div className="grid gap-2 text-sm">
+              {[
+                [ImageOff, "Без фото", dashboard.productCoverage.withoutImages],
+                [AlertCircle, "Без цены", dashboard.productCoverage.withoutPrices],
+                [CameraOff, "Всего товаров", dashboard.productCoverage.total],
+              ].map(([Icon, label, value]) => {
+                const TypedIcon = Icon as typeof ImageOff;
+                return (
+                  <div
+                    key={label as string}
+                    className="flex items-center justify-between rounded-lg px-3 py-2.5"
+                    style={{ background: "rgba(255,255,255,0.55)", border: "1px solid var(--glass-stroke)" }}
+                  >
+                    <span className="inline-flex items-center gap-2" style={{ color: "var(--text-2)" }}>
+                      <TypedIcon size={16} aria-hidden style={{ color: "var(--text-mute)" }} />
+                      {label as string}
+                    </span>
+                    <strong style={{ color: "var(--text)" }}>{(value as number).toLocaleString("ru-RU")}</strong>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-zinc-950">Популярные поиски</h2>
-            <div className="mt-4 divide-y divide-zinc-100">
+          <div className="adm-card">
+            <div className="adm-section-head">
+              <h3>Популярные поиски</h3>
+            </div>
+            <div className="divide-y divide-[rgba(33,52,108,0.1)]">
               {popularSearches.map((item) => (
-                <Link key={item.term} href={`/search?q=${encodeURIComponent(item.term)}`} className="flex items-center justify-between gap-3 py-3 text-sm hover:bg-stone-50">
-                  <span className="inline-flex min-w-0 items-center gap-2 text-zinc-700">
-                    <Search className="size-4 shrink-0 text-zinc-400" aria-hidden />
+                <Link
+                  key={item.term}
+                  href={`/search?q=${encodeURIComponent(item.term)}`}
+                  className="flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-sm transition hover:bg-[rgba(79,125,255,0.06)]"
+                >
+                  <span className="inline-flex min-w-0 items-center gap-2" style={{ color: "var(--text-2)" }}>
+                    <Search size={16} aria-hidden style={{ color: "var(--text-mute)" }} className="shrink-0" />
                     <span className="truncate">{item.term}</span>
                   </span>
-                  <strong className="shrink-0 text-zinc-950">{item.count.toLocaleString("ru-RU")}</strong>
+                  <strong className="shrink-0" style={{ color: "var(--text)" }}>
+                    {item.count.toLocaleString("ru-RU")}
+                  </strong>
                 </Link>
               ))}
-              {!popularSearches.length ? <p className="py-4 text-sm text-zinc-500">Поисковых запросов пока нет.</p> : null}
+              {!popularSearches.length ? (
+                <p className="py-4 text-sm" style={{ color: "var(--text-mute)" }}>
+                  Поисковых запросов пока нет.
+                </p>
+              ) : null}
             </div>
           </div>
 
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-bold text-zinc-950">Последние синхронизации</h2>
-            <div className="mt-4 divide-y divide-zinc-100">
+          <div className="adm-card">
+            <div className="adm-section-head">
+              <h3>Последние синхронизации</h3>
+            </div>
+            <div className="grid gap-2 text-sm">
               {logs.map((log) => (
-                <div key={log.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-                  <span className="font-semibold">{log.type}</span>
-                  <span className="text-zinc-500">{formatDateTime(log.startedAt)}</span>
-                  <span className={log.status === "success" ? "text-emerald-700" : log.status === "running" ? "text-amber-700" : "text-red-700"}>
+                <div key={log.id} className="flex flex-wrap items-center justify-between gap-2 py-1.5">
+                  <span className="font-semibold" style={{ color: "var(--text)" }}>
+                    {log.type}
+                  </span>
+                  <span style={{ color: "var(--text-mute)" }}>{formatDateTime(log.startedAt)}</span>
+                  <span className={`adm-badge ${log.status === "success" ? "adm-badge--success" : log.status === "running" ? "adm-badge--running" : "adm-badge--danger"}`}>
                     {log.status}
                   </span>
                 </div>
               ))}
-              {!logs.length ? <p className="py-4 text-sm text-zinc-500">Логов пока нет.</p> : null}
+              {!logs.length ? (
+                <p className="py-4 text-sm" style={{ color: "var(--text-mute)" }}>
+                  Логов пока нет.
+                </p>
+              ) : null}
             </div>
           </div>
         </div>

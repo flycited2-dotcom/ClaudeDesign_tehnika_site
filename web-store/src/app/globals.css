@@ -682,6 +682,355 @@ body.app {
   }
 }
 
+/* ============================================================
+   ADMIN COMPONENT KIT (.adm-*)
+   Bridges the admin to the glass storefront language, built on the
+   SAME :root tokens as the витрина (glass-template.css). Pages migrate
+   onto these classes; the legacy `.admin-area` utility-intercept block
+   above is removed only once every page is migrated. The admin is a
+   working tool, so surfaces are denser / less translucent than the shop.
+   glass-template.css stays untouched.
+   ============================================================ */
+
+/* Glass roof above the admin grid (mirrors SiteHeader). */
+.adm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  border-radius: 18px;
+}
+.adm-topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.adm-topbar-tag {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-2);
+}
+.adm-topbar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.adm-topbar-link:hover {
+  color: var(--accent-2);
+}
+
+/* Cap the working width so rows/tables don't stretch the full 1520px. */
+.adm-content {
+  max-width: 1240px;
+}
+
+/* Card — base content surface. */
+.adm-card {
+  padding: 22px;
+  border-radius: 16px;
+  background: var(--glass-bg-3);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Section heading inside admin content. */
+.adm-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.adm-section-head h2,
+.adm-section-head h3 {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.adm-section-meta {
+  font-size: 13px;
+  color: var(--text-mute);
+}
+.adm-section-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Metric card (dashboard). */
+.adm-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.adm-metric {
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--glass-stroke);
+  box-shadow: var(--shadow-card);
+}
+.adm-metric-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.adm-metric-head svg {
+  color: var(--accent);
+  opacity: 0.7;
+}
+.adm-metric-l {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-mute);
+}
+.adm-metric-v {
+  margin-top: 6px;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.adm-metric-v.accent {
+  color: var(--accent-2);
+}
+.adm-metric-v.alert {
+  color: #c0344d;
+}
+.adm-metric-v.muted {
+  font-size: 22px;
+  color: var(--text-2);
+}
+
+/* Buttons — calm by default; one loud primary; danger as outline. */
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+.adm-btn--soft {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1.5px solid rgba(33, 52, 108, 0.22);
+}
+.adm-btn--soft:hover {
+  background: #fff;
+  border-color: rgba(33, 52, 108, 0.32);
+}
+.adm-btn--primary {
+  color: #fff;
+  border: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 8px 18px rgba(75, 116, 255, 0.28);
+}
+.adm-btn--primary:hover {
+  filter: brightness(1.06);
+}
+.adm-btn--danger {
+  color: #c0344d;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(224, 52, 77, 0.45);
+}
+.adm-btn--danger:hover {
+  background: rgba(224, 52, 77, 0.08);
+}
+.adm-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Form fields. */
+.adm-field {
+  display: grid;
+  gap: 6px;
+}
+.adm-field > label,
+.adm-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-mute);
+}
+.adm-input,
+.adm-field input,
+.adm-field select,
+.adm-field textarea {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid rgba(20, 40, 90, 0.2);
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.adm-field textarea {
+  height: auto;
+  min-height: 96px;
+  padding: 10px 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.adm-input:focus,
+.adm-field input:focus,
+.adm-field select:focus,
+.adm-field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(66, 109, 255, 0.15);
+}
+.adm-input::placeholder {
+  color: var(--text-soft);
+}
+
+/* Status badge — palette mirrors the storefront .status-* pills. */
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.adm-badge--new {
+  background: #ffc857;
+  color: #3a2a00;
+}
+.adm-badge--active {
+  background: rgba(79, 125, 255, 0.18);
+  color: var(--accent-2);
+}
+.adm-badge--success {
+  background: rgba(61, 214, 140, 0.18);
+  color: #1ea866;
+}
+.adm-badge--running {
+  background: rgba(128, 104, 255, 0.16);
+  color: #4f3ad6;
+}
+.adm-badge--danger {
+  background: rgba(255, 87, 87, 0.18);
+  color: #cc3a3a;
+}
+.adm-badge--muted {
+  background: rgba(33, 52, 108, 0.08);
+  color: var(--text-mute);
+}
+
+/* Table — single primitive for admin lists. */
+.adm-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
+}
+.adm-table thead th {
+  text-align: left;
+  padding: 11px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  background: rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid var(--glass-stroke);
+}
+.adm-table tbody td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  color: var(--text);
+  border-bottom: 1px solid rgba(33, 52, 108, 0.1);
+}
+.adm-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.adm-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.32);
+}
+.adm-table tbody tr:hover {
+  background: rgba(79, 125, 255, 0.06);
+}
+.adm-table .adm-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.adm-table .adm-col-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+.adm-cell-trunc {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Feedback banner for forms (success / error). */
+.adm-feedback {
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.adm-feedback--ok {
+  background: rgba(34, 221, 136, 0.14);
+  color: #0e6b3a;
+}
+.adm-feedback--err {
+  background: rgba(255, 87, 87, 0.16);
+  color: #c0344d;
+}
+
+/* Centred auth screen (login) — no sidebar grid. */
+.adm-auth {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - 140px);
+  padding: 24px 0;
+}
+.adm-auth-card {
+  width: min(420px, 100%);
+}
+
+@media (max-width: 900px) {
+  .adm-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1180px) {
   .cat-layout > aside {
     order: 2;
