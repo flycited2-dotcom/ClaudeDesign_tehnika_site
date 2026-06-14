@@ -6,7 +6,15 @@ const COOKIE_NAME = "store_admin_session";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function secret(): string {
-  return process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD || "change-me-before-production";
+  // No insecure default: a hard-coded fallback would let anyone forge admin
+  // tokens. Prefer a dedicated ADMIN_SESSION_SECRET; ADMIN_PASSWORD stays as a
+  // legacy fallback so existing deployments keep working until the dedicated
+  // secret is set, but the public literal is gone.
+  const value = process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD;
+  if (!value) {
+    throw new Error("ADMIN_SESSION_SECRET (or ADMIN_PASSWORD) must be set for admin authentication.");
+  }
+  return value;
 }
 
 export function createAdminToken(email: string, issuedAt = Date.now()): string {
@@ -55,7 +63,11 @@ export async function loginAdmin(email: string, password: string): Promise<boole
     return false;
   }
 
-  if (email !== process.env.ADMIN_EMAIL || password !== process.env.ADMIN_PASSWORD) {
+  // Constant-time comparison so login can't be probed via response timing.
+  const provided = Buffer.from(password);
+  const expected = Buffer.from(process.env.ADMIN_PASSWORD);
+  const passwordMatches = provided.length === expected.length && timingSafeEqual(provided, expected);
+  if (email !== process.env.ADMIN_EMAIL || !passwordMatches) {
     return false;
   }
 
