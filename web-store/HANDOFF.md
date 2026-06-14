@@ -24,6 +24,20 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-14 — Iter 40: адаптивный каркас админки + снятие витринного chrome ✅
+
+- **Commit:** `f07822e` · **Backup:** `…source-backup-20260614115935.tar.gz` · **Deploy:** ~11:59 UTC.
+- **Аудит, направление 1 (наибольший рычаг).** Корень: у админки не было своего layout, а `AdminShell`
+  использовал inline-сетку `260px` → админка тянула всю витринную шапку/футер/нижнюю панель и не
+  сворачивалась на мобиле (контент сжат в полоску).
+- `ChromeGate` (client) скрывает `SiteHeader/SiteFooter/SiteScreenBar` на `/admin*` (серверный
+  `SiteFooter` передан как children — валидный RSC; pathname резолвится в SSR, без мерцания).
+- Сетка `AdminShell` перенесена из inline в CSS-класс `.admin-area` с брейкпоинтом `<=900px`:
+  сайдбар отлипает, его навигация становится горизонтальной полосой прокрутки, контент на всю ширину.
+- Таблицы (заказы, товары) `overflow-hidden` → `overflow-x-auto` — правые колонки прокручиваются.
+- **Проверки:** 190/190, lint + build зелёные. Прод: на `/admin/login` 0 витринных маркеров,
+  на витрине chrome цел. Покрывает аудит B0-1/2, B1-1/2/4/5/8.
+
 ### 2026-06-14 — Iter 39: заказы в Telegram-группу — chat_id из админки (фикс) ✅
 
 - **Commit:** `1a1b3c5` · **Backup:** `…source-backup-20260614104941.tar.gz` · **Deploy:** ~10:49 UTC.
