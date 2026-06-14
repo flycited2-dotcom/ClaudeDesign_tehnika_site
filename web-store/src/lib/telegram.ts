@@ -1,6 +1,21 @@
 import type { OrderQuote } from "@/lib/checkout/validation";
 import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
+import { getStoreSettings } from "@/lib/settings";
+
+/**
+ * Manager chat id, sourced from the admin settings (DB) with an env fallback.
+ * /admin/settings is the source of truth, so the owner can point notifications
+ * at a group chat without a redeploy. Never throws — if the DB is unreachable we
+ * fall back to the env var so notifications still go out.
+ */
+async function resolveManagerChatId(): Promise<string> {
+  try {
+    return (await getStoreSettings()).telegramChatId;
+  } catch {
+    return process.env.TELEGRAM_MANAGER_CHAT_ID ?? "";
+  }
+}
 
 // Telegram's sendMessage rejects text over 4096 chars with HTTP 400 — a large
 // order (50+ line items) would otherwise lose its notification entirely. Clamp
@@ -33,7 +48,7 @@ export const TELEGRAM_DIVIDER = "➖➖➖➖➖➖➖➖➖➖";
  */
 export async function sendTelegramMessage(text: string): Promise<{ delivered: boolean }> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_MANAGER_CHAT_ID;
+  const chatId = await resolveManagerChatId();
   if (!token || !chatId) return { delivered: false };
 
   try {
@@ -118,7 +133,7 @@ export async function sendTelegramOrderNotification({
   quote: OrderQuote;
 }) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_MANAGER_CHAT_ID;
+  const chatId = await resolveManagerChatId();
 
   if (!token || !chatId) {
     return { skipped: true };

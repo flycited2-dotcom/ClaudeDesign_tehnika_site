@@ -1,10 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildTelegramOrderMessage,
   clampTelegramText,
   escapeTelegramHtml,
   sendTelegramMessage,
 } from "@/lib/telegram";
+import { getStoreSettings } from "@/lib/settings";
+
+vi.mock("@/lib/settings", () => ({ getStoreSettings: vi.fn() }));
+
+const mockedGetStoreSettings = vi.mocked(getStoreSettings);
+const storeSettings = (telegramChatId: string) => ({
+  markupPercent: 25,
+  minMarkupRub: 300,
+  priceMode: "formula" as const,
+  orderCreateEnabled: false,
+  telegramChatId,
+});
 
 describe("clampTelegramText", () => {
   it("leaves text within the limit unchanged", () => {
@@ -44,10 +56,13 @@ describe("buildTelegramOrderMessage", () => {
 describe("sendTelegramMessage", () => {
   let prevToken: string | undefined;
   let prevChat: string | undefined;
+  let prevFetch: typeof globalThis.fetch;
 
   beforeEach(() => {
     prevToken = process.env.TELEGRAM_BOT_TOKEN;
     prevChat = process.env.TELEGRAM_MANAGER_CHAT_ID;
+    prevFetch = globalThis.fetch;
+    mockedGetStoreSettings.mockResolvedValue(storeSettings(""));
   });
 
   afterEach(() => {
@@ -55,11 +70,28 @@ describe("sendTelegramMessage", () => {
     else process.env.TELEGRAM_BOT_TOKEN = prevToken;
     if (prevChat === undefined) delete process.env.TELEGRAM_MANAGER_CHAT_ID;
     else process.env.TELEGRAM_MANAGER_CHAT_ID = prevChat;
+    globalThis.fetch = prevFetch;
+    vi.clearAllMocks();
   });
 
   it("reports not delivered (and does not throw or hit the network) when env is unset", async () => {
     delete process.env.TELEGRAM_BOT_TOKEN;
     delete process.env.TELEGRAM_MANAGER_CHAT_ID;
     await expect(sendTelegramMessage("test")).resolves.toEqual({ delivered: false });
+  });
+
+  it("sends to the admin-configured chat id from settings, not only env", async () => {
+    delete process.env.TELEGRAM_MANAGER_CHAT_ID; // env has no chat id
+    process.env.TELEGRAM_BOT_TOKEN = "test-token";
+    mockedGetStoreSettings.mockResolvedValue(storeSettings("-1009999")); // admin set the group id
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const result = await sendTelegramMessage("hi");
+
+    expect(result).toEqual({ delivered: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(body.chat_id).toBe("-1009999");
   });
 });
