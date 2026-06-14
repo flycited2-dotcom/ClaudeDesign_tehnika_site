@@ -24,6 +24,34 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-14 — Iter 43: edge-гард /admin + убран forgeable-литерал + constant-time вход ✅
+
+- **Commit:** `14aceb3` · **Backup:** `…source-backup-20260614163046.tar.gz` · **Deploy:** ~16:30 UTC.
+- **Аудит, направление 3 (безопасность) — части без правки серверного .env.**
+- `middleware`: `/admin` (кроме `/admin/login`) требует admin-cookie на edge → редирект на
+  `/admin/login`. Грубый presence-гард; полная HMAC-авторизация остаётся в `requireAdmin()`. C-P1-4.
+- `admin-auth.secret()`: убран публичный литерал `"change-me-before-production"` (делал токены
+  подделываемыми в дефолте). Приоритет `ADMIN_SESSION_SECRET`, `ADMIN_PASSWORD` — legacy-фолбэк (без
+  блокировки), throw если нет ни одного. Частично C-P0-1.
+- `loginAdmin`: constant-time сравнение пароля (`timingSafeEqual`). Частично C-P0-2.
+- **Проверки:** 194/194, lint + build зелёные. Прод: `/admin*`→307 `/admin/login`, `/admin/login`→200.
+- **ОСТАЁТСЯ на стороне владельца (серверный `.env`, из репо нельзя):** задать выделенный случайный
+  `ADMIN_SESSION_SECRET` + перейти на хэш пароля. Критичная дыра (forgeable-литерал) уже закрыта;
+  это — доп. укрепление, удобно сделать вместе с плановой сменой паролей.
+
+### 2026-06-14 — Iter 42: error-boundaries + guard отклонения заявок + устойчивый layout ✅
+
+- **Commit:** `6197c7f` · **Backup:** `…source-backup-20260614162403.tar.gz` · **Deploy:** ~16:24 UTC.
+- **Аудит, направления 2 и 4(reject).**
+- `app/error.tsx` + `app/admin/error.tsx` + `app/global-error.tsx` — вместо белого «Application
+  error» показывают брендовую карточку восстановления при падении запроса страницы (таймаут пула на
+  `/catalog/[slug]`, `/product/[slug]`) или действия админки (zod `.parse`, Prisma P2025). Закрывает F-P0-3 / A-P0-2.
+- `rejectRoleUpgradeAction` — теперь в `$transaction` с guard `PENDING` (как approve), письмо только при
+  реальном переходе (было: повторная отправка письма + понижение уже одобренной); approve больше не
+  бросает на отсутствующем id. Закрывает A-P0-1 / C-P1-7.
+- `getRoleContext` обёрнут в try/catch — сбой БД не роняет весь сайт через корневой layout (фолбэк на анон b2c).
+- **Проверки:** 194/194, lint + build зелёные.
+
 ### 2026-06-14 — Iter 41: b2b и gov — только КП (блок прямого заказа на сервере) ✅
 
 - **Commit:** `c24e220` · **Backup:** `…source-backup-20260614161733.tar.gz` · **Deploy:** ~16:17 UTC.
