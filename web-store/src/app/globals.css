@@ -495,95 +495,10 @@ body.app {
   font-weight: 700;
 }
 
-/* Admin pages: glassify Tailwind cards via wrapper without rewriting each page.
-   Higher specificity than Tailwind utilities (.admin-area .bg-white > .bg-white). */
-.admin-area .bg-white {
-  background-color: var(--glass-bg-2);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-.admin-area .bg-stone-50 {
-  background-color: rgba(255, 255, 255, 0.5);
-}
-.admin-area [class*="border-zinc-2"],
-.admin-area [class*="border-zinc-1"],
-.admin-area [class*="border-emerald-1"],
-.admin-area [class*="border-amber-1"],
-.admin-area [class*="border-red-1"],
-.admin-area [class*="border-teal-1"] {
-  border-color: var(--glass-stroke);
-}
-.admin-area .shadow-sm,
-.admin-area .shadow-md,
-.admin-area .shadow-lg,
-.admin-area .shadow-xl,
-.admin-area .shadow-2xl {
-  box-shadow: var(--shadow-card);
-}
-.admin-area input[class*="border-zinc"],
-.admin-area textarea[class*="border-zinc"],
-.admin-area select[class*="border-zinc"] {
-  background: #fff;
-  border-color: rgba(20, 40, 90, 0.2);
-}
-.admin-area input:focus,
-.admin-area textarea:focus,
-.admin-area select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(66, 109, 255, 0.15);
-}
-
-/* Admin glass polish — match the storefront: real accent buttons + glassy tables.
-   Unlayered rules beat Tailwind's layered utilities, so no !important needed. */
-.admin-area .rounded-lg {
-  border-radius: 14px;
-}
-/* Buttons: subtle by default; accent only for the primary action. Sidebar nav
-   (.admin-nav-link) keeps its own styling. Calm look — not a wall of blue. */
-.admin-area button:not(.admin-nav-link):not(.adm-btn) {
-  padding: 8px 14px;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--glass-stroke);
-  background: rgba(255, 255, 255, 0.7);
-  color: var(--text);
-  transition: background 0.15s ease, filter 0.15s ease;
-}
-.admin-area button:not(.admin-nav-link):not(.adm-btn):hover {
-  background: rgba(255, 255, 255, 0.95);
-}
-/* Primary action buttons (dark/teal/emerald in the markup) -> site accent. */
-.admin-area button.bg-zinc-950:not(.admin-nav-link),
-.admin-area button.bg-teal-700:not(.admin-nav-link),
-.admin-area button.bg-emerald-600:not(.admin-nav-link) {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff;
-  border: 0;
-}
-.admin-area button.bg-zinc-950:not(.admin-nav-link):hover,
-.admin-area button.bg-teal-700:not(.admin-nav-link):hover,
-.admin-area button.bg-emerald-600:not(.admin-nav-link):hover {
-  filter: brightness(1.06);
-}
-/* Destructive actions: red outline, not a loud fill. */
-.admin-area button[class*="rose"]:not(.admin-nav-link),
-.admin-area button[class*="red"]:not(.admin-nav-link) {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(224, 52, 77, 0.45);
-  color: #c0344d;
-}
-/* Tables: glassy header + readable hover rows. */
-.admin-area thead {
-  background: rgba(255, 255, 255, 0.5);
-}
-.admin-area tbody tr {
-  transition: background 0.15s ease;
-}
-.admin-area tbody tr:hover {
-  background: rgba(255, 255, 255, 0.45);
-}
+/* Admin content styling now lives entirely in the .adm-* kit (cards, tables,
+   buttons, fields, badges, metrics, feedback) defined further down. The legacy
+   ".admin-area <tailwind-utility>" override layer was removed once every admin
+   page was migrated to the kit (Iter 50). */
 
 /* Admin shell layout. Grid lives here (not inline) so it can collapse on mobile. */
 .admin-area {

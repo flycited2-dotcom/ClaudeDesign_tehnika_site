@@ -109,7 +109,7 @@ export default async function AdminPage() {
               <Link
                 key={order.id}
                 href={`/admin/orders/${order.id}`}
-                className="grid gap-2 rounded-lg px-2 py-3 text-sm transition hover:bg-[rgba(79,125,255,0.06)] sm:grid-cols-[1fr_120px_120px]"
+                className="grid gap-2 rounded-xl px-2 py-3 text-sm transition hover:bg-[rgba(79,125,255,0.06)] sm:grid-cols-[1fr_120px_120px]"
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -158,7 +158,7 @@ export default async function AdminPage() {
                 return (
                   <div
                     key={label as string}
-                    className="flex items-center justify-between rounded-lg px-3 py-2.5"
+                    className="flex items-center justify-between rounded-xl px-3 py-2.5"
                     style={{ background: "rgba(255,255,255,0.55)", border: "1px solid var(--glass-stroke)" }}
                   >
                     <span className="inline-flex items-center gap-2" style={{ color: "var(--text-2)" }}>
@@ -181,7 +181,7 @@ export default async function AdminPage() {
                 <Link
                   key={item.term}
                   href={`/search?q=${encodeURIComponent(item.term)}`}
-                  className="flex items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-sm transition hover:bg-[rgba(79,125,255,0.06)]"
+                  className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 text-sm transition hover:bg-[rgba(79,125,255,0.06)]"
                 >
                   <span className="inline-flex min-w-0 items-center gap-2" style={{ color: "var(--text-2)" }}>
                     <Search size={16} aria-hidden style={{ color: "var(--text-mute)" }} className="shrink-0" />

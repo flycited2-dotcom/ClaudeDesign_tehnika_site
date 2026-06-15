@@ -53,7 +53,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       </div>
 
       <div className="adm-card" style={{ padding: 0, overflowX: "auto" }}>
-        <table className="adm-table">
+        <table className="adm-table" style={{ minWidth: 720 }}>
           <thead>
             <tr>
               <th>Номер</th>
