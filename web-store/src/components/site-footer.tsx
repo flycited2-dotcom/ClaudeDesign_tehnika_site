@@ -1,5 +1,16 @@
 import { Mail, MessageCircle, Send } from "lucide-react";
-import { storefront } from "@/lib/storefront";
+import Link from "next/link";
+import { FooterSubscribe } from "@/components/footer-subscribe";
+import { phoneHref, storefront } from "@/lib/storefront";
+
+const FOOTER_LINKS = [
+  ["/catalog", "Каталог"],
+  ["/b2b", "Опт (B2B)"],
+  ["/gov", "Госзакупки"],
+  ["/service", "Сервис"],
+  ["/#contacts", "Контакты"],
+  ["/privacy", "Персональные данные"],
+] as const;
 
 export function SiteFooter() {
   return (
@@ -16,10 +27,7 @@ export function SiteFooter() {
             </div>
           </div>
         </div>
-        <form className="email-form" action="#" method="post">
-          <input name="email" type="email" placeholder="Ваш e-mail" aria-label="Ваш e-mail" />
-          <button type="submit">Подписаться</button>
-        </form>
+        <FooterSubscribe email={storefront.email} />
         <div className="socials">
           <a
             className="social"
@@ -42,6 +50,28 @@ export function SiteFooter() {
             <MessageCircle size={18} aria-hidden />
           </a>
         </div>
+      </div>
+
+      <nav
+        style={{ display: "flex", flexWrap: "wrap", gap: "10px 22px", padding: "18px 0 0", fontSize: 14 }}
+        aria-label="Разделы сайта"
+      >
+        {FOOTER_LINKS.map(([href, label]) => (
+          <Link key={href} href={href} style={{ color: "var(--text-2)", textDecoration: "none", fontWeight: 600 }}>
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 18px", fontSize: 14, marginTop: 10 }}>
+        {storefront.phones.map((phone) => (
+          <a key={phone} href={phoneHref(phone)} style={{ color: "var(--text)", textDecoration: "none", fontWeight: 700 }}>
+            {phone}
+          </a>
+        ))}
+        <a href={`mailto:${storefront.email}`} style={{ color: "var(--text-2)", textDecoration: "none" }}>
+          {storefront.email}
+        </a>
       </div>
 
       <div className="footer-bottom">

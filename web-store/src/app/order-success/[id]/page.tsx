@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,6 +9,12 @@ import { buildCustomerOrderSteps } from "@/lib/order-status";
 import { phoneHref, storefront } from "@/lib/storefront";
 
 export const dynamic = "force-dynamic";
+
+// Order confirmation is reachable by raw order id — keep it out of search indexes.
+export const metadata: Metadata = {
+  title: "Заказ создан",
+  robots: { index: false, follow: false },
+};
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -73,9 +80,6 @@ export default async function OrderSuccessPage({ params }: Props) {
             >
               <span>
                 SKU {item.sku} · {item.name} × {item.quantity}
-                <span style={{ marginTop: 4, display: "block", fontSize: 12, color: "#0e6b3a" }}>
-                  Доставка под заказ 7 дней
-                </span>
               </span>
               <strong style={{ color: "var(--text)" }}>{formatRub(Number(item.total))}</strong>
             </div>

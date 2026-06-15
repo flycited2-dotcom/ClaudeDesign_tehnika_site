@@ -29,6 +29,18 @@ export default function PrivacyPage() {
         style={{ padding: 32, borderRadius: 24, display: "grid", gap: 22, lineHeight: 1.7, color: "var(--text-2)" }}
       >
         <section>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>Оператор персональных данных</h3>
+          <p style={{ marginTop: 8 }}>
+            Оператор — {storefront.brand} (ИНН 9102228140, ОГРН 1149102018830), сайт {storefront.siteUrl}.
+            Обработка персональных данных ведётся в соответствии с Федеральным законом от 27.07.2006 № 152-ФЗ
+            «О персональных данных». Контакт по вопросам обработки данных:{" "}
+            <a href={`mailto:${storefront.email}`} style={{ fontWeight: 700, color: "var(--accent-2)" }}>
+              {storefront.email}
+            </a>
+            , {storefront.phones.join(", ")}.
+          </p>
+        </section>
+        <section>
           <h3 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)" }}>Какие данные мы получаем</h3>
           <p style={{ marginTop: 8 }}>
             При оформлении заказа {storefront.brand} получает имя, телефон, email при его указании, состав заказа и комментарий покупателя.
@@ -56,6 +68,7 @@ export default function PrivacyPage() {
             или позвоните: {storefront.phones.join(", ")}.
           </p>
         </section>
+        <p style={{ fontSize: 13, color: "var(--text-mute)" }}>Редакция от 15 июня 2026 г.</p>
       </article>
 
       <Link href="/catalog" className="btn btn-primary" style={{ marginTop: 20, display: "inline-flex" }}>

@@ -1244,6 +1244,14 @@ body.app {
 .cat-hub-tile { display: none; }
 .mob-filter-trigger { display: none; }
 
+/* B2B/GOV hero banner: stack the CTA column under the text on phones
+   (template .b2b-banner is `1fr auto` and was never stacked on mobile). */
+@media (max-width: 760px) {
+  .b2b-banner {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 760px) {
   /* Drop the desktop sidebar entirely on mobile — drill-down hub +
      bottom-sheet filters replace it. */
