@@ -59,6 +59,7 @@ export default async function CatalogFilterLandingPage({ params }: Props) {
   return (
     <CatalogView
       title={landing.heading}
+      intro={landing.description}
       categoryPath={data.categoryPath}
       products={data.products}
       total={data.total}

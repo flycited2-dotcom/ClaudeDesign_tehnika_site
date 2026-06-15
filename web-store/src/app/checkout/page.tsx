@@ -26,9 +26,7 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
-      <div style={{ maxWidth: 720 }}>
-        <CheckoutClient />
-      </div>
+      <CheckoutClient />
     </>
   );
 }

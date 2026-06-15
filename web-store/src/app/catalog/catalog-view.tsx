@@ -311,6 +311,7 @@ function ActiveFilterChips({
 
 export function CatalogView({
   title,
+  intro,
   categoryPath = [],
   products,
   total,
@@ -336,6 +337,7 @@ export function CatalogView({
   error,
 }: {
   title: string;
+  intro?: string;
   categoryPath?: FlatCategory[];
   products: Array<Product & { images?: ProductImage[]; attributes?: ProductAttribute[] }>;
   total: number;
@@ -432,6 +434,12 @@ export function CatalogView({
           <div className="meta">{total.toLocaleString("ru-RU")} товаров</div>
         </div>
       </div>
+
+      {intro ? (
+        <p style={{ margin: "0 4px 18px", maxWidth: 760, color: "var(--text-mute)", fontSize: 15, lineHeight: 1.6 }}>
+          {intro}
+        </p>
+      ) : null}
 
       <div className="cat-layout">
         <aside
