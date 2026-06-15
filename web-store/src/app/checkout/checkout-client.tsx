@@ -41,7 +41,7 @@ export function CheckoutClient() {
     fetch("/api/cart/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: cartJson,
+      body: JSON.stringify({ items: cart }),
     })
       .then(async (response) => {
         const json = await response.json();
@@ -57,7 +57,7 @@ export function CheckoutClient() {
     return () => {
       cancelled = true;
     };
-  }, [cartJson, cart.length]);
+  }, [cart]);
 
   if (!cart.length) {
     return (
