@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeftRight, Heart, LogOut, User } from "lucide-react";
+import { ArrowLeftRight, Heart, LogOut, Phone, User } from "lucide-react";
 import Link from "next/link";
 import { storefront } from "@/lib/storefront";
 import { ROLE_LABELS, type StorefrontRole } from "@/lib/use-role";
@@ -135,7 +135,7 @@ export function AccountShell({
               href={`tel:${storefront.phones[0].replace(/[^\d+]/g, "")}`}
               style={{ marginTop: 14, color: "var(--text-mute)" }}
             >
-              <LogOut size={16} aria-hidden />
+              <Phone size={16} aria-hidden />
               Связаться с менеджером
             </a>
             {user && (
