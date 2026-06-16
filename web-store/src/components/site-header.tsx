@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   Heart,
+  Landmark,
   LayoutGrid,
   Menu,
   Package,
@@ -456,7 +457,7 @@ export function SiteHeader() {
               <Package size={18} aria-hidden /> B2B / Опт
             </Link>
             <Link href="/gov" className="mob-item" onClick={() => setMobOpen(false)}>
-              <Package size={18} aria-hidden /> Госзакупки
+              <Landmark size={18} aria-hidden /> Госзакупки
             </Link>
             <Link href="/service" className="mob-item" onClick={() => setMobOpen(false)}>
               <Wrench size={18} aria-hidden /> Сервис
