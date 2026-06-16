@@ -130,6 +130,9 @@ export default async function Home() {
                 {RU_NUMBER.format(category.productCount)} моделей
               </div>
             </div>
+            <div className="cat-art" aria-hidden>
+              <span className="cat-art-mono">{category.name.charAt(0).toUpperCase()}</span>
+            </div>
             <div className="circle-arrow">
               <ArrowRight size={16} aria-hidden />
             </div>

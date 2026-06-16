@@ -15,6 +15,18 @@ body.app {
   padding-bottom: 96px;
 }
 
+/* The floating ScreenBar is a mobile-only bottom-nav: on desktop the full
+   navigation already lives in the header + footer, so hide the bar and reclaim
+   the reserved space (otherwise it floats over the footer / lower content). */
+@media (min-width: 761px) {
+  .screen-bar {
+    display: none;
+  }
+  body.app {
+    padding-bottom: 0;
+  }
+}
+
 /* ScreenBar items are <Link> (renders as <a>); template CSS targets <button>.
    Mirror those rules onto <a> without touching glass-template.css. */
 .screen-bar a {
@@ -147,10 +159,48 @@ body.app {
   object-fit: contain;
   display: block;
 }
+.p-card .p-art {
+  position: relative;
+}
 .p-card .p-art-placeholder {
-  font-size: 13px;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f4f4f5, #e8f3ef, #fff7ed);
   color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 600;
   text-align: center;
+}
+.p-card .p-art-placeholder svg {
+  color: rgba(36, 55, 99, 0.28);
+}
+
+/* Home hero & category tiles: turn the template "image-placeholder" look
+   (dashed border + diagonal stripes) into finished glass panels — real photos
+   arrive later, but these should already read as intentional. */
+.hero-stage {
+  border: 1px solid var(--glass-stroke);
+  background:
+    radial-gradient(58% 68% at 60% 45%, rgba(255, 255, 255, 0.72), transparent 70%),
+    linear-gradient(135deg, rgba(222, 233, 255, 0.6), rgba(255, 240, 229, 0.5));
+}
+.cat-art {
+  border: 0;
+  background:
+    radial-gradient(80% 80% at 72% 32%, rgba(79, 125, 255, 0.14), transparent 70%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.5), rgba(224, 234, 255, 0.42));
+}
+.cat-art .cat-art-mono {
+  font-size: 92px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.05em;
+  color: rgba(79, 125, 255, 0.16);
 }
 .p-card .p-model {
   margin-top: 4px;

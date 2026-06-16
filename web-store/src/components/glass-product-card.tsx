@@ -1,7 +1,7 @@
 "use client";
 
 import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
-import { ArrowLeftRight, Heart, ShoppingCart } from "lucide-react";
+import { ArrowLeftRight, Heart, ImageOff, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { addCartItem } from "@/lib/cart-storage";
@@ -89,7 +89,10 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
               // eslint-disable-next-line @next/next/no-img-element
               <img src={image} alt={fullName} loading="lazy" />
             ) : (
-              <div className="p-art-placeholder">Фото уточняется</div>
+              <div className="p-art-placeholder">
+                <ImageOff size={28} aria-hidden />
+                Фото уточняется
+              </div>
             )}
           </div>
         </div>
