@@ -202,6 +202,15 @@ body.app {
   letter-spacing: -0.05em;
   color: rgba(79, 125, 255, 0.16);
 }
+
+/* Hero "feature-float" cards are decorative and absolutely positioned for a wide
+   hero — on phones they collide/overlap. Hide them on mobile (the trust section
+   lower on the page repeats the same three points). */
+@media (max-width: 760px) {
+  .feature-float {
+    display: none;
+  }
+}
 .p-card .p-model {
   margin-top: 4px;
   font-size: 14px;
