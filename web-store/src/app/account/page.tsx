@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, ShoppingCart } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, ClipboardList, Heart, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AccountShell } from "@/components/account-shell";
@@ -78,13 +78,13 @@ export default async function AccountPage() {
             <ShoppingCart size={16} aria-hidden /> Перейти в корзину
           </Link>
           <Link href="/favorites" className="btn btn-soft" style={{ justifyContent: "flex-start" }}>
-            ❤ Избранное
+            <Heart size={16} aria-hidden /> Избранное
           </Link>
           <Link href="/compare" className="btn btn-soft" style={{ justifyContent: "flex-start" }}>
-            ⇆ Сравнить выбранные
+            <ArrowLeftRight size={16} aria-hidden /> Сравнить выбранные
           </Link>
           <Link href="/checkout" className="btn btn-soft" style={{ justifyContent: "flex-start" }}>
-            📞 Оформить заявку
+            <ClipboardList size={16} aria-hidden /> Оформить заявку
           </Link>
         </div>
       </div>
