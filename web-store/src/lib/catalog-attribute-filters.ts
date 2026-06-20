@@ -1,5 +1,10 @@
 import type { Prisma } from "@prisma/client";
-import { catalogAttributeFacetKeys, catalogRangeAttributeKeys } from "@/lib/catalog-attribute-registry";
+import {
+  catalogAttributeFacetKeys,
+  catalogRangeAttributeKeys,
+  getCatalogAttributeMarketingRank,
+  type CatalogAttributeFamily,
+} from "@/lib/catalog-attribute-registry";
 
 export type CatalogAttributeFilter = {
   key: string;
@@ -47,6 +52,20 @@ const keyRank = new Map(catalogAttributeFacetKeys.map((key, index) => [key, inde
 
 function isAllowedAttributeKey(key: string, allowedKeys?: string[]): boolean {
   return !allowedKeys || allowedKeys.includes(key);
+}
+
+/**
+ * Сравнение ключей атрибутов для порядка секций фасетов. Если задано семейство
+ * категории — маркетинговый порядок (B4) с keyRank-добивкой; иначе — старый
+ * порядок по keyRank (обратная совместимость).
+ */
+function compareAttributeKeysForFamily(left: string, right: string, family?: CatalogAttributeFamily | null): number {
+  if (family) {
+    const leftRank = getCatalogAttributeMarketingRank(left, family);
+    const rightRank = getCatalogAttributeMarketingRank(right, family);
+    if (leftRank !== rightRank) return leftRank - rightRank;
+  }
+  return (keyRank.get(left) ?? 999) - (keyRank.get(right) ?? 999);
 }
 
 export function catalogAttributeFilterParam(filter: CatalogAttributeFilter): string {
@@ -146,10 +165,14 @@ export function buildCatalogAttributeRangeFilterWhere(filters: CatalogAttributeR
   };
 }
 
-export function buildCatalogAttributeRangeGroups(rows: CatalogAttributeRangeGroup[], allowedKeys?: string[]): CatalogAttributeRangeGroup[] {
+export function buildCatalogAttributeRangeGroups(
+  rows: CatalogAttributeRangeGroup[],
+  allowedKeys?: string[],
+  family?: CatalogAttributeFamily | null,
+): CatalogAttributeRangeGroup[] {
   return rows
     .filter((row) => keyRank.has(row.key) && isAllowedAttributeKey(row.key, allowedKeys) && row.count > 0 && Number.isFinite(row.min) && Number.isFinite(row.max) && row.min < row.max)
-    .sort((left, right) => (keyRank.get(left.key) ?? 999) - (keyRank.get(right.key) ?? 999));
+    .sort((left, right) => compareAttributeKeysForFamily(left.key, right.key, family));
 }
 
 function toProductWhereArray(value: Prisma.ProductWhereInput["AND"]): Prisma.ProductWhereInput[] {
@@ -177,6 +200,7 @@ export function buildCatalogAttributeFilterGroups(
   rows: CatalogAttributeFacetRow[],
   activeFilters: CatalogAttributeFilter[] = [],
   allowedKeys?: string[],
+  family?: CatalogAttributeFamily | null,
 ): CatalogAttributeFilterGroup[] {
   const active = new Set(activeFilters.map(catalogAttributeFilterParam));
   const groups = new Map<string, CatalogAttributeFilterGroup>();
@@ -198,7 +222,7 @@ export function buildCatalogAttributeFilterGroups(
   }
 
   return Array.from(groups.values())
-    .sort((left, right) => (keyRank.get(left.key) ?? 999) - (keyRank.get(right.key) ?? 999))
+    .sort((left, right) => compareAttributeKeysForFamily(left.key, right.key, family))
     .map((group) => ({
       ...group,
       options: group.options

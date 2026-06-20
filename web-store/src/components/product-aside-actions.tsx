@@ -73,7 +73,7 @@ export function ProductAsideActions({
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+      <div className="aside-fav-row" style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <button
           type="button"
           onClick={() => toggleFavoriteStorage(sku)}
@@ -81,6 +81,7 @@ export function ProductAsideActions({
           className="btn btn-soft"
           style={{
             flex: 1,
+            minWidth: 0,
             justifyContent: "center",
             color: isFavorite ? "#ff5757" : undefined,
           }}
@@ -96,6 +97,7 @@ export function ProductAsideActions({
           className="btn btn-soft"
           style={{
             flex: 1,
+            minWidth: 0,
             justifyContent: "center",
             color: isInCompare ? "var(--accent-2)" : undefined,
           }}

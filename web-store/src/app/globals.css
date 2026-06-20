@@ -102,13 +102,18 @@ body.app {
   .mob-buy-bar {
     display: grid;
     position: fixed;
-    left: 12px;
-    right: 12px;
+    /* Respect the notch / rounded-corner safe area so the bar (and its right
+       edge + "Купить" button) is never clipped by the screen border. */
+    left: max(12px, env(safe-area-inset-left));
+    right: max(12px, env(safe-area-inset-right));
     bottom: 12px;
     z-index: 30;
     gap: 10px;
     padding: 14px;
     border-radius: 20px;
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow: hidden;
     /* Opaque so page content scrolling underneath the fixed bar is hidden,
        not showing through (the "кнопка в кнопке / перекрывает текст" mess). */
     background: #ffffff;
@@ -1106,9 +1111,11 @@ body.app {
     height: 22px;
     stroke-width: 1.75;
   }
-  /* Bottom-nav now ~64px tall (icon + label + padding) — reserve space + air. */
+  /* Bottom-nav now ~64px tall (icon + label + padding) — reserve space + air.
+     Add the device safe-area so the footer below the floating bar is not
+     clipped on notched phones (P0-B). */
   body.app {
-    padding-bottom: 86px;
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
   }
 
   /* Sticky header: make the glass opaque enough that scrolled content
@@ -1182,7 +1189,10 @@ body.app {
     bottom: 92px !important;
   }
   main {
-    padding-bottom: 170px !important;
+    /* Clear the fixed bottom-nav (+ the product page's buy-bar) AND the device
+       safe-area so card actions / cart controls are always tappable above the
+       floating bar, never hidden under it (P0-B). */
+    padding-bottom: calc(170px + env(safe-area-inset-bottom)) !important;
   }
   /* Iter 23.3: prevent product page from overflowing horizontally.
      Root cause: ProductGallery renders <img> inside an inline-styled
@@ -1565,4 +1575,330 @@ body.app {
 .btn-soft:hover {
   background: #ffffff;
   border-color: rgba(33, 52, 108, 0.3);
+}
+
+/* ============================================================
+   Mobile QA fixes (2026-06-17). All overrides — glass-template.css
+   is left untouched.
+   ============================================================ */
+
+/* P0-A — /product aside fav/compare row: the two .btn-soft buttons
+   (icon + "В избранное" / "К сравнению") overran 360px and wrapped to
+   2 lines / clipped at the right edge. min-width:0 (set inline) lets them
+   shrink; here we trim the wide template padding/gap so the labels stay on
+   one line, and below 400px we stack the row into a single column so each
+   button gets the full width. */
+.aside-fav-row .btn {
+  padding-left: 12px;
+  padding-right: 12px;
+  gap: 6px;
+}
+@media (max-width: 400px) {
+  .aside-fav-row {
+    flex-direction: column;
+  }
+}
+
+/* P0-D — listing card ♥/⇆ icons: enlarge the tap target so a tap lands on
+   the button instead of falling through to the card <Link>. 36px → 44px tall
+   (Apple/Material min touch size), wider gap to separate the two. The buttons
+   already stopPropagation/preventDefault, so a real hit toggles cleanly. */
+.p-card .p-card-secondary {
+  gap: 10px;
+}
+.p-card .p-card-icon {
+  height: 44px;
+  min-width: 44px;
+}
+
+/* P1-B — strikethrough RRP on narrow 2-col cards was clipped ("59 990 ₽"
+   → "59 ₽") because the price row is a plain block inside an overflow:hidden
+   card. Make it a wrapping flex row: keep each number unbreakable (nowrap) and
+   let the old price drop to its own line below the current price when there is
+   no room beside it, so the full value is always visible. */
+.p-card .p-price-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+}
+.p-card .p-price-row .new,
+.p-card .p-price-row .old {
+  white-space: nowrap;
+}
+/* The card markup adds an inline margin-left:10px on .old; the flex column-gap
+   already provides the spacing, so drop the now-redundant inline margin's
+   effect by zeroing it (inline style wins, so override via the gap above is
+   enough — but keep .old from being squeezed). */
+.p-card .p-price-row .old {
+  flex: 0 0 auto;
+}
+
+/* P1-C — .input was near-invisible on the warm light gradient: translucent
+   white fill + white-ish glass border. Raise border contrast and fill density
+   for unfocused fields (focus state from the template is kept). .btn-ghost /
+   .btn-soft contrast was already strengthened in Iter 33 above, so they are
+   left as-is — visibly outlined but still subordinate to .btn-primary. */
+.input {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(36, 55, 99, 0.16);
+}
+
+/* ============================================================
+   Catalog filters redesign (2026-06-21, Поток 1 — Вариант 1).
+   Flexible sidebar column, wrapping filter values, collapsible
+   accordions, quick-pick chips, "Показать ещё", active chips.
+   All overrides — glass-template.css stays untouched. The desktop
+   column override below replaces the template's fixed 280px.
+   ============================================================ */
+
+/* Flexible left column: never narrower than 280px, grows up to 340px on wide
+   screens. box-sizing keeps the 24px padding inside the track so nothing
+   overflows the column. (Template default is a hard 280px.) Scoped to >900px
+   so the template's ≤900px single-column collapse and the ≤760px sheet layout
+   are untouched. */
+@media (min-width: 901px) {
+  .cat-layout {
+    grid-template-columns: clamp(280px, 24vw, 340px) 1fr;
+  }
+}
+.cat-layout > aside.filters {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* --- Filter value: wrap up to 2 lines instead of hard ellipsis -----------
+   `.box` (checkbox) and `.cnt` (count) are fixed-size and never shrink; the
+   value takes the remaining width and may wrap to 2 lines, then clamps with an
+   ellipsis on the 2nd line. Full text is always in the `title` tooltip. */
+.f-row {
+  align-items: flex-start;
+}
+.f-row .box {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+.f-row .cnt {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 8px;
+  margin-top: 1px;
+}
+.f-val {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.3;
+}
+
+/* Facet list: cap height generously (the "Показать ещё" toggle now controls
+   length, so this is only a safety net for very long expanded lists). */
+.f-list {
+  display: grid;
+  gap: 2px;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+/* "Показать ещё (N)" / "Свернуть" toggle. */
+.f-more {
+  align-self: start;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-2);
+  cursor: pointer;
+}
+.f-more:hover {
+  text-decoration: underline;
+}
+
+.f-sublabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-soft);
+  margin-bottom: 6px;
+}
+
+/* --- Accordion -----------------------------------------------------------
+   Each filter group is a collapsible section. Replaces the f-section top
+   border with the accordion's own divider. */
+.f-acc {
+  border-top: 1px solid rgba(33, 52, 108, 0.08);
+}
+.f-acc:first-of-type {
+  border-top: 0;
+}
+.f-acc-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+}
+.f-acc-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.f-acc-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.f-acc-chev {
+  flex: 0 0 auto;
+  color: var(--text-soft);
+  transition: transform 0.18s ease;
+}
+.f-acc.open .f-acc-chev {
+  transform: rotate(180deg);
+}
+.f-acc-body {
+  padding-bottom: 14px;
+}
+
+/* --- Quick-pick chips ("Быстрые подборки") -------------------------------
+   The curated spec presets as prominent 1-click toggles at the top. */
+.f-quickpicks h4 {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.quickpick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quickpick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(33, 52, 108, 0.16);
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.quickpick:hover {
+  border-color: rgba(66, 109, 255, 0.45);
+}
+.quickpick.on {
+  background: linear-gradient(135deg, #75a2ff, #426dff);
+  border-color: transparent;
+  color: #fff;
+}
+.quickpick-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.quickpick-cnt {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+/* --- Active filter chips (above the listing) ----------------------------- */
+.active-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.active-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 10px 6px 12px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(33, 52, 108, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-2);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.active-chip:hover {
+  border-color: rgba(66, 109, 255, 0.5);
+  background: #fff;
+}
+.active-chip-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.active-chip-x {
+  flex: 0 0 auto;
+  color: var(--text-soft);
+}
+.active-chip-reset {
+  color: var(--accent-2);
+  border-style: dashed;
+}
+
+/* --- Mobile sheet: same language ----------------------------------------
+   The sheet renders FiltersPanelFields, so it inherits accordions, wrapping
+   values, quick-picks and "Показать ещё" for free. Iter-32 right-aligned /
+   enlarged checkboxes are kept (rule above). Tune chip/value sizes for touch
+   and align the accordion chevron to the wider sheet rows. */
+.filter-sheet .f-acc-head {
+  padding: 15px 2px;
+}
+.filter-sheet .f-acc-title {
+  font-size: 16px;
+}
+.filter-sheet .quickpick {
+  padding: 9px 14px;
+  font-size: 14px;
+}
+/* On the sheet the value can use the full row height comfortably. */
+.filter-sheet .f-val {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+/* The Iter-32 rule moves .box to order:3 (right) and .cnt to order:2; with
+   flex-start alignment from above, nudge them back to center for the taller
+   touch rows. */
+.filter-sheet .f-row {
+  align-items: center;
+}
+.filter-sheet .f-row .box,
+.filter-sheet .f-row .cnt {
+  margin-top: 0;
 }

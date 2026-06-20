@@ -38,14 +38,14 @@ export const catalogAttributeDefinitions = [
   { key: "tank_volume", label: "Объем бака", valueType: "number", control: "range", unit: "л", families: ["climate"] },
   { key: "load_capacity", label: "Загрузка", valueType: "number", control: "range", unit: "кг", families: ["laundry"] },
   { key: "drying_type", label: "Тип сушки", valueType: "enum", control: "checkbox", families: ["laundry"] },
-  { key: "installation_type", label: "Установка", valueType: "enum", control: "checkbox", families: ["laundry", "refrigeration"] },
+  { key: "installation_type", label: "Установка", valueType: "enum", control: "checkbox", families: ["laundry", "refrigeration", "appliance"] },
   { key: "inverter_motor", label: "Инверторный двигатель", valueType: "boolean", control: "checkbox", families: ["laundry", "refrigeration"] },
   { key: "program_count", label: "Количество программ", valueType: "number", control: "range", unit: "программ", families: ["laundry"] },
   { key: "spin_speed", label: "Скорость отжима", valueType: "number", control: "range", unit: "об/мин", families: ["laundry"] },
-  { key: "width_cm", label: "Ширина", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration"] },
-  { key: "height_cm", label: "Высота", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration"] },
-  { key: "depth_cm", label: "Глубина", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration"] },
-  { key: "energy_class", label: "Класс энергопотребления", valueType: "enum", control: "checkbox", families: ["laundry", "refrigeration"] },
+  { key: "width_cm", label: "Ширина", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration", "appliance"] },
+  { key: "height_cm", label: "Высота", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration", "appliance"] },
+  { key: "depth_cm", label: "Глубина", valueType: "number", control: "range", unit: "см", families: ["laundry", "refrigeration", "appliance"] },
+  { key: "energy_class", label: "Класс энергопотребления", valueType: "enum", control: "checkbox", families: ["laundry", "refrigeration", "appliance"] },
   { key: "fridge_no_frost", label: "No Frost", valueType: "boolean", control: "checkbox", families: ["refrigeration"] },
   { key: "total_volume_l", label: "Общий объем", valueType: "number", control: "range", unit: "л", families: ["refrigeration"] },
   { key: "freezer_volume_l", label: "Объем морозильной камеры", valueType: "number", control: "range", unit: "л", families: ["refrigeration"] },
@@ -77,6 +77,10 @@ export const catalogAttributeDefinitions = [
   { key: "rim_diameter", label: "Диаметр диска", valueType: "number", control: "range", unit: "R", families: ["auto"] },
   { key: "tire_season", label: "Сезон", valueType: "enum", control: "checkbox", families: ["auto"] },
   { key: "volume_l", label: "Объем", valueType: "number", control: "range", unit: "л", families: ["dishes", "climate", "refrigeration", "appliance", "cleaning"] },
+  { key: "oven_type", label: "Тип духовки", valueType: "enum", control: "checkbox", families: ["appliance"] },
+  { key: "oven_volume_l", label: "Объем духовки", valueType: "number", control: "range", unit: "л", families: ["appliance"] },
+  { key: "cooktop_type", label: "Тип варочной панели", valueType: "enum", control: "checkbox", families: ["appliance"] },
+  { key: "burner_count", label: "Количество конфорок", valueType: "number", control: "range", unit: "конф.", families: ["appliance"] },
   { key: "diameter_cm", label: "Диаметр", valueType: "number", control: "range", unit: "см", families: ["dishes"] },
   { key: "pieces_count", label: "Количество предметов", valueType: "number", control: "range", unit: "шт.", families: ["dishes"] },
   { key: "material", label: "Материал", valueType: "enum", control: "checkbox", families: ["dishes", "furniture", "apparel"] },
@@ -115,14 +119,28 @@ export function getCatalogAttributeFamilyForCategory({
   if (!text.trim()) return null;
 
   if (/сушильн|стиральн|sushil|stiral|washer|washing|dryer|laundry/.test(text)) return "laundry";
-  if (/холодильн|морозильн|holodil|morozil|refrigerator|fridge|freezer/.test(text)) return "refrigeration";
+  if (/холодильн|морозильн|холодильно-морозильн|винн.*шкаф|holodil|morozil|refrigerator|fridge|freezer/.test(text)) return "refrigeration";
   if (/телевиз|televiz/.test(text) || /(^|[^a-zа-я0-9])tv([^a-zа-я0-9]|$)/.test(text)) return "tv";
   if (/компьютер|ноутбук|планшет|монитор|процессор|kompyut|noutbuk|planshet|laptop|computer|notebook|monitor/.test(text)) return "computer";
-  if (/пылесос|пылеудален|уборк|pylesos|pyleudal|ubork|vacuum|cleaning/.test(text)) return "cleaning";
-  if (/мелк.*техник|бытов.*техник|кухонн.*техник|melkaya.*tehnika|bytovaya.*tehnika|kuhonn.*tehnika|appliance/.test(text)) return "appliance";
+  if (/пылесос|пылеудален|уборк|пароочистител|полотер|pylesos|pyleudal|ubork|paroochist|vacuum|cleaning/.test(text)) return "cleaning";
+  // Built-in / kitchen appliances must match BEFORE the "посуд" (tableware) and
+  // generic electrical checks: a dishwasher ("посудомоечная") contains "посуд"
+  // but is an appliance, not tableware; a microwave ("микроволнов") and hob
+  // ("варочная панель") would otherwise fall through.
+  if (
+    /посудомо|dishwasher|posudomo/.test(text) ||
+    /духов|oven|duhov/.test(text) ||
+    /варочн|cooktop|\bhob\b|varochn/.test(text) ||
+    /вытяжк|vytyazhk|hood/.test(text) ||
+    /микровол|свч|microwave|mikrovol/.test(text) ||
+    /кофемашин|кофеварк|кофейн|kofemashin|kofevark|coffee/.test(text) ||
+    /встраиваем|встройк|встроенн.*техник|vstraivaem|built-?in/.test(text) ||
+    /мелк.*техник|бытов.*техник|кухонн.*техник|melkaya.*tehnika|bytovaya.*tehnika|kuhonn.*tehnika|appliance/.test(text)
+  )
+    return "appliance";
   if (/кабел|провод|электр|розетк|выключател|светильник|ламп|щит|kabel|provod|elektr|rozetk|vykl|svetil|cable|wire|electric/.test(text)) return "electrical";
   if (/сад|огород|снегоубор|газон|мотоблок|триммер|культиватор|sad|ogorod|snegoub|gazon|motoblok|trimmer|kultivator|dacha|garden/.test(text)) return "garden";
-  if (/кондиционер|сплит|осушител|увлажнител|очистител|климат|kondits|split|osush|uvlazhn|ochist|climat|conditioner|humidifier|dehumidifier/.test(text)) return "climate";
+  if (/кондиционер|сплит|осушител|увлажнител|очистител|климат|вентилятор|обогревател|kondits|split|osush|uvlazhn|ochist|climat|conditioner|humidifier|dehumidifier/.test(text)) return "climate";
   if (/камер|фотоаппарат|объектив|kamer|fotoapparat|obektiv|camera|video/.test(text)) return "camera";
   if (/бумаг|картон|канцеляр|bumag|karton|kantcel|paper|cardboard/.test(text)) return "paper";
   if (/шин|покрыш|автошин|колес|диск|shin|pokrysh|avtoshin|koles|tire|tyre/.test(text)) return "auto";
@@ -131,6 +149,70 @@ export function getCatalogAttributeFamilyForCategory({
   if (/одежд|обув|кроссов|ботин|куртк|плать|брюк|odezhd|obuv|krossov|botin|kurtk|plat|bryuk|apparel|shoe|sneaker/.test(text)) return "apparel";
 
   return null;
+}
+
+// Маркетинговый порядок параметров по важности для покупателя внутри семейства
+// (B4). Ключи, перечисленные здесь, идут первыми в этом порядке; остальные
+// релевантные ключи семейства — после них в порядке объявления в реестре.
+// Используется catalog-view/панелью фильтров для сортировки секций.
+const familyMarketingOrder: Partial<Record<CatalogAttributeFamily, string[]>> = {
+  refrigeration: [
+    "total_volume_l",
+    "fridge_no_frost",
+    "energy_class",
+    "freezer_position",
+    "freezer_volume_l",
+    "installation_type",
+    "inverter_motor",
+    "width_cm",
+    "height_cm",
+    "depth_cm",
+  ],
+  laundry: [
+    "load_capacity",
+    "spin_speed",
+    "width_cm",
+    "depth_cm",
+    "inverter_motor",
+    "drying_type",
+    "program_count",
+    "energy_class",
+    "installation_type",
+    "height_cm",
+  ],
+  tv: ["screen_diagonal", "resolution", "smart_tv"],
+  appliance: [
+    "oven_type",
+    "cooktop_type",
+    "burner_count",
+    "oven_volume_l",
+    "volume_l",
+    "power_w",
+    "energy_class",
+    "installation_type",
+    "width_cm",
+    "height_cm",
+    "depth_cm",
+  ],
+  climate: ["power_w", "daily_capacity", "tank_volume", "volume_l", "voltage"],
+  cleaning: ["vacuum_type", "suction_power_w", "dust_collector", "cleaning_type", "filter_type", "power_w"],
+};
+
+/**
+ * Маркетинговый ранг ключа атрибута внутри семейства категории.
+ * Чем меньше число — тем выше параметр в списке. Ключи без явного порядка
+ * получают большой ранг (идут после приоритетных). Универсальные ключи (color)
+ * не приоритизируются и уходят в хвост.
+ */
+export function getCatalogAttributeMarketingRank(
+  key: string,
+  family: CatalogAttributeFamily | null,
+): number {
+  if (!family) return 1000;
+  const order = familyMarketingOrder[family];
+  if (!order) return 1000;
+  const index = order.indexOf(key);
+  return index === -1 ? 1000 : index;
 }
 
 export function getCatalogAttributeKeysForCategory({
@@ -143,10 +225,20 @@ export function getCatalogAttributeKeysForCategory({
   const family = getCatalogAttributeFamilyForCategory({ categoryName, categorySlug });
   if (!family) return catalogAttributeFacetKeys;
 
-  return catalogAttributeDefinitions
-    .filter((definition) => {
-      const families: readonly CatalogAttributeFamily[] = definition.families ?? ["universal"];
-      return families.includes("universal") || families.includes(family);
+  const relevant = catalogAttributeDefinitions.filter((definition) => {
+    const families: readonly CatalogAttributeFamily[] = definition.families ?? ["universal"];
+    return families.includes("universal") || families.includes(family);
+  });
+
+  // Маркетинговый порядок (B4): приоритетные ключи семейства — первыми, в
+  // заданном порядке; остальные — в порядке объявления в реестре.
+  return relevant
+    .map((definition, index) => ({ key: definition.key, index }))
+    .sort((left, right) => {
+      const leftRank = getCatalogAttributeMarketingRank(left.key, family);
+      const rightRank = getCatalogAttributeMarketingRank(right.key, family);
+      if (leftRank !== rightRank) return leftRank - rightRank;
+      return left.index - right.index;
     })
-    .map((definition) => definition.key);
+    .map((item) => item.key);
 }

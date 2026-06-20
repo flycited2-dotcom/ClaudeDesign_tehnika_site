@@ -160,6 +160,31 @@ describe("catalog attribute filters", () => {
     ]);
   });
 
+  it("orders facet groups by marketing rank when a family is provided (B4)", () => {
+    const rows = [
+      { key: "width_cm", label: "Ширина", value: "60 см", normalizedValue: "60", numericValue: 60, unit: "см", count: 9 },
+      { key: "total_volume_l", label: "Общий объем", value: "300 л", normalizedValue: "300", numericValue: 300, unit: "л", count: 9 },
+      { key: "fridge_no_frost", label: "No Frost", value: "Да", normalizedValue: "yes", numericValue: null, unit: null, count: 9 },
+      { key: "energy_class", label: "Класс энергопотребления", value: "A++", normalizedValue: "a_pp", numericValue: null, unit: null, count: 9 },
+    ];
+    const groups = buildCatalogAttributeFilterGroups(rows, [], undefined, "refrigeration");
+    expect(groups.map((group) => group.key)).toEqual(["total_volume_l", "fridge_no_frost", "energy_class", "width_cm"]);
+
+    // Without a family, the original registry (keyRank/declaration) order is preserved.
+    const fallback = buildCatalogAttributeFilterGroups(rows);
+    expect(fallback.map((group) => group.key)).toEqual(["width_cm", "energy_class", "fridge_no_frost", "total_volume_l"]);
+  });
+
+  it("orders range groups by marketing rank when a family is provided (B4)", () => {
+    const rows = [
+      { key: "width_cm", label: "Ширина", min: 45, max: 90, unit: "см", count: 12 },
+      { key: "total_volume_l", label: "Общий объем", min: 150, max: 500, unit: "л", count: 12 },
+      { key: "freezer_volume_l", label: "Объем морозильной камеры", min: 40, max: 120, unit: "л", count: 12 },
+    ];
+    const groups = buildCatalogAttributeRangeGroups(rows, undefined, "refrigeration");
+    expect(groups.map((group) => group.key)).toEqual(["total_volume_l", "freezer_volume_l", "width_cm"]);
+  });
+
   it("drops checkbox facet groups that are not allowed for the current category family", () => {
     expect(
       buildCatalogAttributeFilterGroups(

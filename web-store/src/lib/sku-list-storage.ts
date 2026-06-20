@@ -16,7 +16,14 @@ function readList(key: string): number[] {
 }
 
 function writeList(key: string, eventName: string, items: number[]) {
-  window.localStorage.setItem(key, JSON.stringify(items));
+  // localStorage.setItem can throw (private mode / quota exceeded). Don't let a
+  // storage failure swallow the toggle silently and leave the UI inconsistent —
+  // log it, but still dispatch so subscribers re-read whatever did persist.
+  try {
+    window.localStorage.setItem(key, JSON.stringify(items));
+  } catch (error) {
+    console.warn(`[sku-list-storage] failed to persist "${key}"`, error);
+  }
   window.dispatchEvent(new Event(eventName));
 }
 

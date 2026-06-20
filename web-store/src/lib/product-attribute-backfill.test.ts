@@ -133,6 +133,38 @@ describe("buildProductAttributeRows", () => {
     ]);
   });
 
+  it("extracts oven width from supplier name when public name is missing", () => {
+    expect(
+      buildProductAttributeRows({
+        productId: "oven-1",
+        name: null,
+        supplierName: "Духовой шкаф Electrolux EOF5C70X электрическая, встраиваемая, 72 л, ширина 60 см, класс A",
+      }).map((row) => [row.key, row.normalizedValue]),
+    ).toEqual([
+      ["installation_type", "built_in"],
+      ["oven_volume_l", "72"],
+      ["oven_type", "electric"],
+      ["width_cm", "60"],
+      ["energy_class", "a"],
+      ["power_source", "electric"],
+    ]);
+  });
+
+  it("extracts slim washer depth and spin speed from supplier name", () => {
+    expect(
+      buildProductAttributeRows({
+        productId: "washer-1",
+        name: null,
+        supplierName: "Стиральная машина Candy CS34 1052D белый, 5 кг, 1000 об/мин, узкая, глубина 34 см",
+      }).map((row) => [row.key, row.normalizedValue]),
+    ).toEqual([
+      ["load_capacity", "5"],
+      ["spin_speed", "1000"],
+      ["depth_cm", "34"],
+      ["color", "white"],
+    ]);
+  });
+
   it("extracts vacuum-specific parameters without electrical fallback noise", () => {
     expect(
       buildProductAttributeRows({

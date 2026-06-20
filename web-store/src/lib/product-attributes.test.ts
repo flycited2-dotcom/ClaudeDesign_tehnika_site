@@ -313,4 +313,76 @@ describe("extractProductNameAttributes", () => {
       { key: "color", value: "Белый", normalizedValue: "white", numericValue: null },
     ]);
   });
+
+  it("extracts spin speed and narrow depth for a slim washing machine", () => {
+    const attributes = extractProductNameAttributes(
+      "Стиральная машина Bosch WHA122W1OE белый, 7 кг, 1200 об/мин, узкая, глубина 45 см",
+    );
+    const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
+    expect(byKey.load_capacity).toMatchObject({ normalizedValue: "7", numericValue: 7 });
+    expect(byKey.spin_speed).toMatchObject({ value: "1200 об/мин", normalizedValue: "1200", numericValue: 1200 });
+    expect(byKey.depth_cm).toMatchObject({ normalizedValue: "45", numericValue: 45 });
+  });
+
+  it("extracts explicit width for a washing machine without full dimension string", () => {
+    const attributes = extractProductNameAttributes(
+      "Стиральная машина Indesit IWUB 4085 серебристый, 4 кг, ширина 60 см, 800 об/мин",
+    );
+    const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
+    expect(byKey.width_cm).toMatchObject({ normalizedValue: "60", numericValue: 60 });
+    expect(byKey.spin_speed).toMatchObject({ normalizedValue: "800", numericValue: 800 });
+  });
+
+  it("does not read load capacity in kg as a spin speed value", () => {
+    const keys = extractProductNameAttributes("Стиральная машина LG F2J3NS0W 6.5 кг").map((attribute) => attribute.key);
+    expect(keys).not.toContain("spin_speed");
+  });
+
+  it("extracts width for a built-in oven so size filters fill", () => {
+    const attributes = extractProductNameAttributes(
+      "Духовой шкаф Bosch HBG675BS1 электрическая, встраиваемая, 71 л, ширина 60 см, класс A",
+    );
+    const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
+    expect(byKey.installation_type).toMatchObject({ normalizedValue: "built_in" });
+    expect(byKey.oven_volume_l).toMatchObject({ normalizedValue: "71", numericValue: 71 });
+    expect(byKey.width_cm).toMatchObject({ normalizedValue: "60", numericValue: 60 });
+    expect(byKey.oven_type).toMatchObject({ normalizedValue: "electric" });
+  });
+
+  it("does not stamp smart_tv onto non-TV products that mention smart features", () => {
+    const guards = [
+      "Смартфон Samsung Galaxy A55 256 ГБ",
+      'Посудомоечная машина Bosch с функцией Smart, 60 см, 14 комплектов',
+      "Умные смарт-весы кухонные",
+    ];
+    for (const name of guards) {
+      const keys = extractProductNameAttributes(name).map((attribute) => attribute.key);
+      expect(keys).not.toContain("smart_tv");
+    }
+  });
+
+  it("tags smart_tv only for an actual television", () => {
+    const keys = extractProductNameAttributes('Телевизор LG OLED55C3 55" 4K Смарт ТВ').map((attribute) => attribute.key);
+    expect(keys).toContain("smart_tv");
+    expect(keys).toContain("screen_diagonal");
+    expect(keys).toContain("resolution");
+  });
+
+  it("extracts vacuum cordless type and suction power without unit confusion", () => {
+    const attributes = extractProductNameAttributes(
+      "Робот-пылесос Xiaomi аккумуляторный, контейнер, мощность всасывания 4000 Па недоступна, мощность всасывания 250 Вт, HEPA",
+    );
+    const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
+    expect(byKey.vacuum_type).toMatchObject({ normalizedValue: "robot" });
+    expect(byKey.dust_collector).toMatchObject({ normalizedValue: "container" });
+    expect(byKey.suction_power_w).toMatchObject({ normalizedValue: "250", numericValue: 250 });
+    expect(byKey.power_source).toMatchObject({ normalizedValue: "battery" });
+    expect(byKey.filter_type).toMatchObject({ normalizedValue: "hepa" });
+  });
+
+  it("does not invent attributes when the name has no recognizable pattern", () => {
+    expect(extractProductNameAttributes("Подарочный набор Космос")).toEqual([]);
+    expect(extractProductNameAttributes("   ")).toEqual([]);
+    expect(extractProductNameAttributes(null)).toEqual([]);
+  });
 });

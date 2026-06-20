@@ -161,9 +161,21 @@ function extractDimensionsCm(text: string, attributes: ExtractedProductAttribute
     return;
   }
 
-  const depth = text.match(/глубин[аы]?\s*(\d+(?:[.,]\d+)?)\s*см/i);
+  const depth = text.match(/глубин[аы]?\s*[:-]?\s*(\d+(?:[.,]\d+)?)\s*см/i);
   if (depth) {
     addNumberAttribute(attributes, "depth_cm", "Глубина", depth[1], "см");
+  }
+}
+
+// Pull an explicit "ширина N см" only — used for appliances where the bare
+// dimensions string (WxHxD) is often absent but the labelled width is present.
+// Skip if a width was already derived (e.g. from the WxHxD triple) to avoid two
+// conflicting width values on one product.
+function extractLabelledWidthCm(text: string, attributes: ExtractedProductAttribute[]) {
+  if (attributes.some((attribute) => attribute.key === "width_cm")) return;
+  const width = text.match(/ширин[аы]?\s*[:-]?\s*(\d+(?:[.,]\d+)?)\s*см/i);
+  if (width) {
+    addNumberAttribute(attributes, "width_cm", "Ширина", width[1], "см");
   }
 }
 
@@ -285,12 +297,15 @@ function extractLaundryAttributes(text: string, attributes: ExtractedProductAttr
     addNumberAttribute(attributes, "program_count", "Количество программ", programs[1], "программ");
   }
 
-  const spinSpeed = text.match(/(\d{3,4})\s*(?:об\s*\/\s*мин|об\.?\s*мин)/i);
+  const spinSpeed = text.match(/(\d{3,4})\s*(?:об\s*\/\s*мин|об\.?\s*мин|rpm)/i);
   if (spinSpeed) {
     addNumberAttribute(attributes, "spin_speed", "Скорость отжима", spinSpeed[1], "об/мин");
   }
 
   extractDimensionsCm(text, attributes);
+  // Slim/narrow washers usually state only a labelled width/depth, not the full
+  // WxHxD string, so fill width when the dimensions parser found nothing for it.
+  extractLabelledWidthCm(text, attributes);
 
   extractEnergyClass(text, attributes);
 }
@@ -712,7 +727,9 @@ function extractMicrowaveAttributes(text: string, attributes: ExtractedProductAt
 }
 
 function extractOvenAttributes(text: string, attributes: ExtractedProductAttribute[]) {
-  if (!/духов\w*\s*шкаф|духовк|\boven\b/i.test(text)) return;
+  // \w does not cover Cyrillic, so "духовой шкаф" must be matched with an
+  // explicit Cyrillic gap, not \w*.
+  if (!/духов[а-яё]*\s+шкаф|духовк|\boven\b/i.test(text)) return;
   extractInstallationType(text, attributes);
 
   const volume = Array.from(text.matchAll(/(\d{2,3})\s*л(?!\s*\/)/gi)).find((match) => {
@@ -729,6 +746,7 @@ function extractOvenAttributes(text: string, attributes: ExtractedProductAttribu
     addAttribute(attributes, { key: "oven_type", label: "Тип", value: "Электрическая", normalizedValue: "electric", numericValue: null, unit: null });
   }
 
+  extractLabelledWidthCm(text, attributes);
   extractEnergyClass(text, attributes);
 }
 

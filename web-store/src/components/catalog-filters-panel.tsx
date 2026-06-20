@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FilterAccordion } from "@/components/filter-accordion";
 import { SearchableCheckboxList } from "@/components/searchable-checkbox-list";
 import {
   catalogAttributeFilterParam,
@@ -30,9 +31,62 @@ export type FiltersPanelProps = {
 };
 
 /**
+ * "Быстрые подборки" — the curated `spec` presets shown as prominent
+ * one-click toggle chips at the top of the panel (marketing shortcuts like
+ * "No Frost", "4K", "Узкие"). Same `spec` URL param / contract as before:
+ * each chip is a label-wrapped checkbox so it serialises with the native GET
+ * form. Selected chips that aren't in the current category's option list are
+ * preserved via hidden inputs so applying the form keeps them.
+ */
+function QuickPickChips({
+  options,
+  selectedValues,
+}: {
+  options: CatalogSpecFilterOption[];
+  selectedValues: string[];
+}) {
+  const visibleValues = new Set<string>(options.map((option) => option.key));
+  return (
+    <div className="f-section f-quickpicks">
+      <h4>Быстрые подборки</h4>
+      {selectedValues
+        .filter((value) => !visibleValues.has(value))
+        .map((value) => (
+          <input key={value} type="hidden" name="spec" value={value} />
+        ))}
+      <div className="quickpick-row">
+        {options.map((option) => {
+          const checked = selectedValues.includes(option.key);
+          return (
+            <label key={option.key} className={"quickpick" + (checked ? " on" : "")} title={option.label}>
+              <input
+                type="checkbox"
+                name="spec"
+                value={option.key}
+                defaultChecked={checked}
+                style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+              />
+              <span className="quickpick-label">{option.label}</span>
+              {typeof option.count === "number" ? (
+                <span className="quickpick-cnt">{option.count.toLocaleString("ru-RU")}</span>
+              ) : null}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
  * Just the filter input fields (no <form>, no Apply button). The desktop
  * sidebar uses this via `FiltersPanel`; the mobile bottom-sheet wraps it
  * in its own form with a sticky footer.
+ *
+ * Layout: quick-pick chips up top, then each group in a collapsible
+ * accordion. Default-open: Price, Availability, and the first 1–2 attribute
+ * groups (the most-used facets); everything else is collapsed to avoid the
+ * long "простыня".
  */
 export function FiltersPanelFields({
   basePath,
@@ -63,18 +117,14 @@ export function FiltersPanelFields({
       currentAttributeFilters.length ||
       currentAttributeRangeFilters.length,
   );
-  const specFilterGroups = specFilterOptions.reduce<Array<{ label: string; options: CatalogSpecFilterOption[] }>>(
-    (groups, option) => {
-      const group = groups.find((item) => item.label === option.groupLabel);
-      if (group) {
-        group.options.push(option);
-      } else {
-        groups.push({ label: option.groupLabel, options: [option] });
-      }
-      return groups;
-    },
-    [],
-  );
+
+  const currentAttributeFilterParams = currentAttributeFilters.map(catalogAttributeFilterParam);
+  const selectedAttributeParams = new Set(currentAttributeFilterParams);
+
+  // Count selections per attribute group so a collapsed accordion still shows
+  // its active badge.
+  const attributeGroupSelectedCount = (group: CatalogAttributeFilterGroup) =>
+    group.options.reduce((sum, option) => sum + (selectedAttributeParams.has(option.value) ? 1 : 0), 0);
 
   return (
     <>
@@ -96,20 +146,11 @@ export function FiltersPanelFields({
       {currentQuery ? <input type="hidden" name="q" value={currentQuery} /> : null}
       {sort !== "popular" ? <input type="hidden" name="sort" value={sort} /> : null}
 
-      {brands.length > 0 && (
-        <div className="f-section">
-          <h4>Бренд</h4>
-          <SearchableCheckboxList
-            name="brand"
-            options={brands.map((brand) => ({ value: brand.value, label: brand.value, count: brand.count }))}
-            selectedValues={currentBrands}
-            searchPlaceholder="Найти бренд"
-          />
-        </div>
+      {specFilterOptions.length > 0 && (
+        <QuickPickChips options={specFilterOptions} selectedValues={currentSpecFilters} />
       )}
 
-      <div className="f-section">
-        <h4>Цена, ₽</h4>
+      <FilterAccordion title="Цена, ₽" defaultOpen>
         <div className="range-row">
           <input
             className="input"
@@ -126,10 +167,9 @@ export function FiltersPanelFields({
             placeholder="до любая"
           />
         </div>
-      </div>
+      </FilterAccordion>
 
-      <div className="f-section">
-        <h4>Наличие</h4>
+      <FilterAccordion title="Наличие" defaultOpen badge={(onlyAvailable ? 1 : 0) + (withPhoto ? 1 : 0)}>
         <label className="f-row" style={{ cursor: "pointer" }}>
           <input
             type="checkbox"
@@ -139,7 +179,7 @@ export function FiltersPanelFields({
             style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
           />
           <span className="box" />
-          <span style={{ flex: 1 }}>Доступно к заказу</span>
+          <span className="f-val">Доступно к заказу</span>
         </label>
         <label className="f-row" style={{ cursor: "pointer" }}>
           <input
@@ -150,89 +190,46 @@ export function FiltersPanelFields({
             style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
           />
           <span className="box" />
-          <span style={{ flex: 1 }}>Только с фото</span>
+          <span className="f-val">Только с фото</span>
         </label>
-      </div>
+      </FilterAccordion>
 
-      {specFilterOptions.length > 0 && (
-        <div className="f-section">
-          <h4>Характеристики</h4>
-          <div style={{ display: "grid", gap: 16 }}>
-            {specFilterGroups.map((group) => (
-              <div key={group.label}>
-                <p
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                    color: "var(--text-soft)",
-                    marginBottom: 8,
-                  }}
-                >
-                  {group.label}
-                </p>
-                <SearchableCheckboxList
-                  name="spec"
-                  options={group.options.map((option) => ({ value: option.key, label: option.label, count: option.count }))}
-                  selectedValues={currentSpecFilters}
-                  searchPlaceholder="Найти характеристику"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {attributeFilterGroups.map((group, index) => (
+        <FilterAccordion
+          key={group.key}
+          title={group.label}
+          defaultOpen={index < 2}
+          badge={attributeGroupSelectedCount(group)}
+        >
+          <SearchableCheckboxList
+            name="attr"
+            options={group.options}
+            selectedValues={currentAttributeFilterParams}
+            searchPlaceholder="Найти значение"
+          />
+        </FilterAccordion>
+      ))}
 
-      {attributeFilterGroups.length > 0 && (
-        <div className="f-section">
-          <h4>Параметры товаров</h4>
-          <div style={{ display: "grid", gap: 16 }}>
-            {attributeFilterGroups.map((group) => (
-              <div key={group.key}>
-                <p
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: 0.5,
-                    color: "var(--text-soft)",
-                    marginBottom: 8,
-                  }}
-                >
-                  {group.label}
-                </p>
-                <SearchableCheckboxList
-                  name="attr"
-                  options={group.options}
-                  selectedValues={currentAttributeFilters.map(catalogAttributeFilterParam)}
-                  searchPlaceholder="Найти значение"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
+      {brands.length > 0 && (
+        <FilterAccordion title="Бренд" badge={currentBrands.length}>
+          <SearchableCheckboxList
+            name="brand"
+            options={brands.map((brand) => ({ value: brand.value, label: brand.value, count: brand.count }))}
+            selectedValues={currentBrands}
+            searchPlaceholder="Найти бренд"
+          />
+        </FilterAccordion>
       )}
 
       {attributeRangeGroups.length > 0 && (
-        <div className="f-section">
-          <h4>Диапазоны</h4>
+        <FilterAccordion title="Диапазоны">
           <div style={{ display: "grid", gap: 12 }}>
             {attributeRangeGroups.map((group) => {
               const current = currentAttributeRangeFilters.find((filter) => filter.key === group.key);
               const unit = group.unit ? `, ${group.unit}` : "";
               return (
                 <div key={group.key}>
-                  <p
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      color: "var(--text-soft)",
-                      marginBottom: 6,
-                    }}
-                  >
+                  <p className="f-sublabel">
                     {group.label}
                     {unit}
                   </p>
@@ -256,7 +253,7 @@ export function FiltersPanelFields({
               );
             })}
           </div>
-        </div>
+        </FilterAccordion>
       )}
     </>
   );

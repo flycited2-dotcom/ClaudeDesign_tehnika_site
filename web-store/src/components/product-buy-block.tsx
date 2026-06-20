@@ -53,7 +53,9 @@ export function ProductBuyBlock({
       >
         {isGovQuote ? "Цена по запросу" : price ? formatRub(price) : "Цена уточняется"}
       </div>
-      {!isGovQuote && rrp ? (
+      {/* Only show RRP when it is ABOVE the current price — otherwise it reads as
+          a fake "discount" (РРЦ below price). Matches GlassProductCard's guard. */}
+      {!isGovQuote && rrp && rrp > price ? (
         <div style={{ marginTop: 6, fontSize: 13, color: "var(--text-mute)" }}>
           РРЦ: {formatRub(rrp)}
         </div>

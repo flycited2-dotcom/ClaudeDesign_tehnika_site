@@ -1,9 +1,10 @@
 import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
-import { Check, Search, X } from "lucide-react";
+import { Check, Search } from "lucide-react";
 import Link from "next/link";
 import { CatalogPager } from "@/components/catalog-pager";
 import { CatalogSortSelect } from "@/components/catalog-sort-select";
 import { FiltersPanel } from "@/components/catalog-filters-panel";
+import { ActiveFilterChips as ActiveFilterChipsView } from "@/components/active-filter-chips";
 import { GlassProductCard } from "@/components/glass-product-card";
 import { MobileCatalogHub } from "@/components/mobile-catalog-hub";
 import { MobileFilterSheet } from "@/components/mobile-filter-sheet";
@@ -290,22 +291,10 @@ function ActiveFilterChips({
   if (!chips.length) return null;
 
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 16px" }}>
-      {chips.map((chip) => (
-        <Link
-          key={chip.label}
-          href={chip.href}
-          className="btn btn-soft btn-sm"
-          style={{ paddingRight: 12, gap: 6 }}
-        >
-          {chip.label}
-          <X size={12} aria-hidden />
-        </Link>
-      ))}
-      <Link href={basePath} className="btn btn-ghost btn-sm">
-        Сбросить всё
-      </Link>
-    </div>
+    <ActiveFilterChipsView
+      chips={chips.map((chip) => ({ label: chip.label, removeHref: chip.href }))}
+      basePath={basePath}
+    />
   );
 }
 

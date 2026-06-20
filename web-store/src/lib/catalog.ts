@@ -7,12 +7,20 @@ import {
   buildCatalogAttributeRangeFilterWhere,
   buildCatalogAttributeRangeGroups,
   catalogAttributeFacetKeys,
+  catalogAttributeFilterParam,
   type CatalogAttributeFilter,
   type CatalogAttributeFilterGroup,
   type CatalogAttributeRangeFilter,
   type CatalogAttributeRangeGroup,
 } from "@/lib/catalog-attribute-filters";
-import { catalogRangeAttributeKeys, getCatalogAttributeDefinition, getCatalogAttributeKeysForCategory } from "@/lib/catalog-attribute-registry";
+import {
+  catalogRangeAttributeKeys,
+  getCatalogAttributeDefinition,
+  getCatalogAttributeFamilyForCategory,
+  getCatalogAttributeKeysForCategory,
+  type CatalogAttributeFamily,
+} from "@/lib/catalog-attribute-registry";
+import { pruneFacetValues, removeSpecDuplicatedAttributeKeys } from "@/lib/catalog-filter-relevance";
 import { buildCatalogBrandFilterOptions } from "@/lib/catalog-brand-filters";
 import { buildCategoryPath, buildCategoryTree, collectDescendantCategoryIds, type CategoryTreeItem, type FlatCategory } from "@/lib/catalog-tree";
 import { interleaveByTopCategory } from "@/lib/catalog-interleave";
@@ -367,6 +375,7 @@ async function getCatalogAttributeFilterGroups(
   baseWhere: Prisma.ProductWhereInput,
   activeFilters: CatalogAttributeFilter[] = [],
   allowedKeys: string[] = catalogAttributeFacetKeys,
+  family: CatalogAttributeFamily | null = null,
 ): Promise<CatalogAttributeFilterGroup[]> {
   const rows: CatalogAttributeGroupByRow[] = [];
   const allowedFacetKeys = catalogAttributeFacetKeys.filter((key) => allowedKeys.includes(key));
@@ -419,10 +428,11 @@ async function getCatalogAttributeFilterGroups(
     })),
     activeFilters,
     allowedKeys,
+    family,
   );
 }
 
-async function getCatalogAttributeRangeGroups(baseWhere: Prisma.ProductWhereInput, allowedKeys: string[] = catalogAttributeFacetKeys): Promise<CatalogAttributeRangeGroup[]> {
+async function getCatalogAttributeRangeGroups(baseWhere: Prisma.ProductWhereInput, allowedKeys: string[] = catalogAttributeFacetKeys, family: CatalogAttributeFamily | null = null): Promise<CatalogAttributeRangeGroup[]> {
   const rows: CatalogAttributeRangeGroup[] = [];
 
   for (const key of catalogRangeAttributeKeys.filter((item) => allowedKeys.includes(item))) {
@@ -462,7 +472,7 @@ async function getCatalogAttributeRangeGroups(baseWhere: Prisma.ProductWhereInpu
     }
   }
 
-  return buildCatalogAttributeRangeGroups(rows, allowedKeys);
+  return buildCatalogAttributeRangeGroups(rows, allowedKeys, family);
 }
 
 const getCachedCatalogProducts = unstable_cache(
@@ -544,10 +554,19 @@ export async function getCatalogPage(query: CatalogQuery) {
     };
   }
 
-  const allowedAttributeKeys = getCatalogAttributeKeysForCategory({
+  const attributeFamily = getCatalogAttributeFamilyForCategory({
     categoryName: category?.name,
     categorySlug: category?.slug,
   });
+  // Drop attr-keys that duplicate a boolean "quick pick" spec preset (No Frost,
+  // Smart TV, инвертор) — that criterion lives in the Быстрые подборки, not as a
+  // second structural facet (B1, dedup).
+  const allowedAttributeKeys = removeSpecDuplicatedAttributeKeys(
+    getCatalogAttributeKeysForCategory({
+      categoryName: category?.name,
+      categorySlug: category?.slug,
+    }),
+  );
   const shouldBuildFacetPanels = hasCatalogFacetContext(query);
   const visibleAttributeKeys = shouldBuildFacetPanels ? allowedAttributeKeys : [];
   const allowedAttributeKeySet = new Set(allowedAttributeKeys);
@@ -687,11 +706,21 @@ export async function getCatalogPage(query: CatalogQuery) {
     ? await getCachedSpecFilterCounts(specFilterOptions, specCountBaseWhere)
     : {};
   const specFilterCounts = new Map(Object.entries(specFilterCountsRecord)) as Map<CatalogSpecFilterValue, number>;
-  const attributeFilterGroups = visibleAttributeKeys.length
-    ? await getCachedAttributeFilterGroups(attributeFacetBaseWhere, activeAttributeFilters, visibleAttributeKeys)
-    : [];
+  // Drop facet values below the count threshold and obvious junk (B3), keeping
+  // any value the user already selected. Then drop groups left empty.
+  const activeAttributeFilterValues = activeAttributeFilters.map(catalogAttributeFilterParam);
+  const attributeFilterGroups = (
+    visibleAttributeKeys.length
+      ? await getCachedAttributeFilterGroups(attributeFacetBaseWhere, activeAttributeFilters, visibleAttributeKeys, attributeFamily)
+      : []
+  )
+    .map((group) => ({
+      ...group,
+      options: pruneFacetValues(group.options, { minCount: 3, activeValues: activeAttributeFilterValues }),
+    }))
+    .filter((group) => group.options.length > 0);
   const attributeRangeGroups = visibleAttributeKeys.length
-    ? await getCachedAttributeRangeGroups(attributeRangeFacetBaseWhere, visibleAttributeKeys)
+    ? await getCachedAttributeRangeGroups(attributeRangeFacetBaseWhere, visibleAttributeKeys, attributeFamily)
     : [];
 
   return {

@@ -3,7 +3,9 @@ import {
   catalogAttributeFacetKeys,
   catalogRangeAttributeKeys,
   getCatalogAttributeDefinition,
+  getCatalogAttributeFamilyForCategory,
   getCatalogAttributeKeysForCategory,
+  getCatalogAttributeMarketingRank,
 } from "@/lib/catalog-attribute-registry";
 
 describe("catalog attribute registry", () => {
@@ -85,5 +87,119 @@ describe("catalog attribute registry", () => {
     expect(getCatalogAttributeKeysForCategory({ categoryName: "Автомобильные шины", categorySlug: "avtomobilnye-shiny" })).toEqual(
       expect.arrayContaining(["tire_width", "tire_profile", "rim_diameter", "tire_season"]),
     );
+  });
+
+  describe("B2 — first-wave category → family mapping", () => {
+    const cases: Array<{ family: string; categories: Array<{ name?: string; slug?: string }> }> = [
+      {
+        family: "refrigeration",
+        categories: [
+          { name: "Холодильники и морозильники", slug: "holodilniki-i-morozilniki" },
+          { name: "Морозильные камеры", slug: "morozilnye-kamery-12345" },
+          { name: "Холодильно-морозильные шкафы", slug: "holodilno-morozilnye-shkafy" },
+        ],
+      },
+      {
+        family: "laundry",
+        categories: [
+          { name: "Стиральные машины", slug: "stiralnye-mashiny-100" },
+          { name: "Сушильные машины", slug: "sushilnye-mashiny-18029" },
+          { name: "Стирально-сушильные машины", slug: "stiralno-sushilnye-mashiny" },
+        ],
+      },
+      {
+        family: "tv",
+        categories: [
+          { name: "Телевизоры", slug: "televizory-9000" },
+          { name: "Телевизоры и аксессуары", slug: "tv-i-aksessuary" },
+          { name: "LED-телевизоры", slug: "led-televizory" },
+        ],
+      },
+      {
+        family: "appliance",
+        categories: [
+          { name: "Посудомоечные машины", slug: "posudomoechnye-mashiny-700" },
+          { name: "Духовые шкафы", slug: "duhovye-shkafy-800" },
+          { name: "Варочные панели", slug: "varochnye-paneli-810" },
+          { name: "Вытяжки кухонные", slug: "vytyazhki-kuhonnye-820" },
+          { name: "Микроволновые печи (СВЧ)", slug: "mikrovolnovye-pechi-svch-830" },
+          { name: "Кофемашины", slug: "kofemashiny-840" },
+          { name: "Встраиваемая техника", slug: "vstraivaemaya-tehnika-850" },
+        ],
+      },
+      {
+        family: "climate",
+        categories: [
+          { name: "Кондиционеры сплит-системы", slug: "kondicionery-split-sistemy" },
+          { name: "Осушители воздуха", slug: "osushiteli-vozduha" },
+          { name: "Увлажнители воздуха", slug: "uvlazhniteli-vozduha" },
+        ],
+      },
+      {
+        family: "cleaning",
+        categories: [
+          { name: "Пылесосы", slug: "pylesosy-15454" },
+          { name: "Роботы-пылесосы", slug: "roboty-pylesosy" },
+          { name: "Пароочистители", slug: "paroochistiteli" },
+        ],
+      },
+    ];
+
+    for (const { family, categories } of cases) {
+      for (const category of categories) {
+        it(`maps ${category.name ?? category.slug} → ${family}`, () => {
+          expect(
+            getCatalogAttributeFamilyForCategory({ categoryName: category.name, categorySlug: category.slug }),
+          ).toBe(family);
+        });
+      }
+    }
+
+    it("routes dishwashers to appliance, not dishes (посуд collision)", () => {
+      expect(getCatalogAttributeFamilyForCategory({ categoryName: "Посудомоечные машины" })).toBe("appliance");
+      // Tableware still maps to dishes.
+      expect(getCatalogAttributeFamilyForCategory({ categoryName: "Посуда и кухонные принадлежности" })).toBe("dishes");
+    });
+
+    it("exposes built-in kitchen attributes for appliance categories", () => {
+      const keys = getCatalogAttributeKeysForCategory({ categoryName: "Духовые шкафы", categorySlug: "duhovye-shkafy" });
+      expect(keys).toEqual(expect.arrayContaining(["oven_type", "oven_volume_l", "energy_class", "installation_type", "width_cm"]));
+      const hobKeys = getCatalogAttributeKeysForCategory({ categoryName: "Варочные панели" });
+      expect(hobKeys).toEqual(expect.arrayContaining(["cooktop_type", "burner_count"]));
+    });
+  });
+
+  describe("B4 — marketing order of attributes inside a family", () => {
+    it("orders refrigerator attributes: volume → No Frost → energy → freezer position → sizes", () => {
+      const keys = getCatalogAttributeKeysForCategory({ categoryName: "Холодильники", categorySlug: "holodilniki" });
+      const indexOf = (key: string) => keys.indexOf(key);
+      expect(indexOf("total_volume_l")).toBeGreaterThanOrEqual(0);
+      expect(indexOf("total_volume_l")).toBeLessThan(indexOf("fridge_no_frost"));
+      expect(indexOf("fridge_no_frost")).toBeLessThan(indexOf("energy_class"));
+      expect(indexOf("energy_class")).toBeLessThan(indexOf("freezer_position"));
+      expect(indexOf("freezer_position")).toBeLessThan(indexOf("width_cm"));
+    });
+
+    it("orders washer attributes: load → spin → narrow(width) → inverter → programs → sizes", () => {
+      const keys = getCatalogAttributeKeysForCategory({ categoryName: "Стиральные машины", categorySlug: "stiralnye-mashiny" });
+      const indexOf = (key: string) => keys.indexOf(key);
+      expect(indexOf("load_capacity")).toBeLessThan(indexOf("spin_speed"));
+      expect(indexOf("spin_speed")).toBeLessThan(indexOf("width_cm"));
+      expect(indexOf("width_cm")).toBeLessThan(indexOf("inverter_motor"));
+      expect(indexOf("inverter_motor")).toBeLessThan(indexOf("program_count"));
+    });
+
+    it("orders TV attributes: diagonal → resolution → Smart", () => {
+      const keys = getCatalogAttributeKeysForCategory({ categoryName: "Телевизоры", categorySlug: "televizory" });
+      const indexOf = (key: string) => keys.indexOf(key);
+      expect(indexOf("screen_diagonal")).toBeLessThan(indexOf("resolution"));
+      expect(indexOf("resolution")).toBeLessThan(indexOf("smart_tv"));
+    });
+
+    it("ranks unknown/unordered keys after prioritized ones and returns 1000 without a family", () => {
+      expect(getCatalogAttributeMarketingRank("total_volume_l", "refrigeration")).toBe(0);
+      expect(getCatalogAttributeMarketingRank("color", "refrigeration")).toBe(1000);
+      expect(getCatalogAttributeMarketingRank("anything", null)).toBe(1000);
+    });
   });
 });
