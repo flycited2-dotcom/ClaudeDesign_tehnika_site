@@ -40,10 +40,24 @@ async function loadHome() {
 
 const RU_NUMBER = new Intl.NumberFormat("ru-RU");
 
+const RECOMMENDED_COUNT = 8;
+
+// getHomeSnapshot returns a wide, category-balanced pool. This page is
+// force-dynamic, so it runs per request — rotate a random window of products
+// out of the pool each time so "Рекомендуемые товары" keeps changing positions
+// and groups on every reload instead of showing the same 8 for months. The
+// pool is already round-robin ordered across top categories, so any contiguous
+// window spans different groups (мелкая/крупная бытовая, инструмент, электроника).
+function pickRecommended<T>(pool: T[], count: number): T[] {
+  if (pool.length <= count) return pool;
+  const start = Math.floor(Math.random() * pool.length);
+  return Array.from({ length: count }, (_, i) => pool[(start + i) % pool.length]);
+}
+
 export default async function Home() {
   const { categories, products } = await loadHome();
   const featuredCategories = categories.slice(0, 6);
-  const popularProducts = products.slice(0, 8);
+  const recommendedProducts = pickRecommended(products, RECOMMENDED_COUNT);
 
   return (
     <>
@@ -257,19 +271,19 @@ export default async function Home() {
         </div>
       </section>
 
-      {popularProducts.length > 0 && (
+      {recommendedProducts.length > 0 && (
         <>
           <div className="section-head">
             <div>
-              <h2>Популярные товары</h2>
-              <div className="meta">Готовы к заказу — доставим по Крыму и новым регионам</div>
+              <h2>Рекомендуемые товары</h2>
+              <div className="meta">Подборка обновляется — доставим по Крыму и новым регионам</div>
             </div>
             <Link className="right" href="/catalog">
               Смотреть каталог <ArrowRight size={16} aria-hidden />
             </Link>
           </div>
           <div className="product-grid">
-            {popularProducts.map((product) => (
+            {recommendedProducts.map((product) => (
               <GlassProductCard key={product.id} product={product} />
             ))}
           </div>

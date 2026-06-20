@@ -32,6 +32,15 @@ const PRODUCTS_PER_PAGE = 24;
 // every category route is always hot for the first user request.
 const STOREFRONT_CACHE_SECONDS = 3600;
 const PRODUCT_QUERY_CACHE_SECONDS = 600;
+// "Рекомендуемые товары" on the homepage: getHomeSnapshot returns a WIDE,
+// category-balanced pool (cached) instead of a frozen list of 8. The page
+// (force-dynamic) rotates a random window of 8 out of this pool on every
+// request, so positions and groups keep changing instead of showing the same
+// products for months. Keep the pool well above the 8 shown so there's room to
+// rotate, and cap per top-category so мелкая/крупная бытовая, инструмент,
+// электроника и т.п. все попадают в пул.
+const RECOMMENDED_POOL_SIZE = 60;
+const RECOMMENDED_POOL_PER_CATEGORY = 8;
 
 export type CatalogQuery = {
   categorySlug?: string;
@@ -184,14 +193,22 @@ export const getHomeSnapshot = unstable_cache(async () => {
       },
     },
     orderBy: [{ hasImage: "desc" }, { updatedAt: "desc" }],
-    // Fetch a wider pool so we can rebalance across top-categories. Without
-    // this the largest category (Компьютерная техника) would crowd out the
-    // page and the storefront would look like a laptop shop.
-    take: 80,
+    // Fetch a wide pool so we can rebalance across top-categories AND have
+    // enough spare products for the homepage to rotate a random window out of.
+    // Without rebalancing the largest category (Компьютерная техника) would
+    // crowd out the page and the storefront would look like a laptop shop.
+    take: 200,
   });
 
-  const balanced = interleaveByTopCategory(products, allCategories, 8, 2);
-  return { categories, products: balanced };
+  // Return a wide, category-balanced POOL (not the final 8). The page rotates a
+  // random window of 8 out of this on every request so the block isn't frozen.
+  const pool = interleaveByTopCategory(
+    products,
+    allCategories,
+    RECOMMENDED_POOL_SIZE,
+    RECOMMENDED_POOL_PER_CATEGORY,
+  );
+  return { categories, products: pool };
 }, ["home-snapshot"], { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] });
 
 const getCatalogBrands = unstable_cache(async (where: Prisma.ProductWhereInput) => {
