@@ -24,6 +24,19 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-21 — Iter 61: переработка фильтрации каталога (рой 4 потоков) + мобильные правки кабинета ✅
+
+- **Commit:** `c3015bb` · **Backup:** `…source-backup-20260621004022.tar.gz` · **Deploy:** ~00:40 UTC.
+- **Контекст:** владелец — фильтрация нелогична и обрезается в левой колонке, нужны «правильные» фильтры (дизайн+логика+данные). Переработка роем 4 потоков (3 параллельных исполнителя по непересекающимся файлам → интеграция координатором). ТЗ: `docs/superpowers/specs/2026-06-20-catalog-filters-redesign.md`. Охват 1-й волны: топ-категории техники (refrigeration/laundry/tv/appliance/climate/cleaning).
+- **Поток 1 (дизайн):** `catalog-filters-panel.tsx`, `searchable-checkbox-list.tsx`, новые `filter-accordion.tsx`/`active-filter-chips.tsx`, `globals.css`. Гибкая колонка `clamp(280–340px)` (≤900px collapse не тронут), перенос значений вместо ellipsis + `title`, аккордеоны (`.f-acc`, по умолч. открыты Цена/Наличие/первые 2 группы), «Показать ещё» для >8 значений, «Быстрые подборки» (spec) вынесены чипами вверху, единые активные чипы над листингом. `mobile-filter-sheet` наследует через `FiltersPanelFields`.
+- **Поток 2 (логика):** `catalog-attribute-registry.ts`, `catalog-attribute-filters.ts`, новый `catalog-filter-relevance.ts`. Дедуп spec/attr (`removeSpecDuplicatedAttributeKeys` — булев дубль No Frost/Smart TV/инвертор только в подборках; `isSpecShortcutDuplicate`), маппинг категория→семейство доведён (кухонная→`appliance` ДО `dishes`/`электр`), маркетинговый порядок (`getCatalogAttributeMarketingRank`, `family`-арг в билдерах), пороги `pruneFacetValues` (count<3 и blacklist скрыты, кроме активных), +4 ключа реестра (oven_type/oven_volume_l/cooktop_type/burner_count).
+- **Поток 3 (данные):** `product-attributes.ts`. **Фикс бага:** `духов\w*` не матчил «Духовой шкаф» (`\w` в JS не ловит кириллицу) → духовки оставались без атрибутов; +ширина узких стиралок/духовок; guard-тесты (smart_tv не на «смартфон»/«весы», Па≠Вт).
+- **Поток 4 (интеграция, координатор):** `catalog.ts` (вычисление `family` + `removeSpecDuplicatedAttributeKeys` + `pruneFacetValues` в `getCatalogPage`; `family` прокинут через cached-обёртки в билдеры), `catalog-view.tsx` (инлайн-чипы → компонент потока 1 через алиас, `href→removeHref`). Поймал и исправил **2 ошибки типов** (`Set<string>` в потоках 1 и 2), которые они пропустили — не запускали build.
+- **Кабинет (мобайл, из того же дня, тот же коммит):** overflow кнопок fav/compare на /product (`min-width:0` + stack ≤400px), контент корзины из-под нав-бара (`padding-bottom` + safe-area), RRP-guard `rrp>price` в `product-buy-block.tsx`, контраст `.input`, tap-target иконок 36→44px, try/catch `localStorage` в `sku-list-storage.ts`.
+- **Backfill:** `npm run sync:attributes` на VPS (`deleteMany source:name` + пересоздание из парсера). Завершён — **372 396 атрибутов** `source=name`. Прод 200 после.
+- **Проверки:** lint чисто, **245 тестов** (было 194), build зелёный. Прод-смоук: `/`,`/catalog`,`/cart`,`/favorites`,`/compare`,`/b2b`,`/gov` = 200; панель фильтров рендерится (`f-acc`/`f-val`/`active-chip`/«Сбросить всё»); urlencoded-кириллица /search 200 (некодированная кириллица в `curl` даёт 400 — артефакт инструмента).
+- **Известные ограничения:** визуальная приёмка панели фильтров — за владельцем/живым тестом (телефон был офлайн в сессии). Кабинет: toggle избранного/сравнения на мобиле — **ждёт проверки в инкогнито** (реальный баг vs кэш браузера). Мелкий долг: tsc-вольности в нескольких тест-файлах (не блокируют build/`vitest`; как пре-существующие в проекте).
+
 ### 2026-06-20 — Iter 60: «Рекомендуемые товары» — ротация + фильтр дисконт/уценка ✅
 
 - **Commit:** `4fe4bd7` · **Backup:** `…source-backup-20260620181140.tar.gz` · **Deploy:** ~18:11 UTC. Live BUILD_ID `_tGXTV3GCma8SlPe-pX4i`.
