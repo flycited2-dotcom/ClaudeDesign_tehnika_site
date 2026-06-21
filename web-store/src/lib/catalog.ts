@@ -587,12 +587,14 @@ export async function getCatalogPage(query: CatalogQuery) {
       // AND of (OR across fields) for each token — finds products that
       // contain every word, in any order, across name/supplierName/vendor/etc.
       // Example: "indesit стиральная" matches "Стиральная машина Indesit IWSB...".
-      // Also hide degraded items (поврежденный товар / уценка / б/у) from
-      // search results — same rule as homepage Популярные товары.
-      const degradedClause = normalRetailNameWhere();
+      // ВАЖНО: degraded-исключение (уценка/б/у/поврежденный) НЕ здесь, а в
+      // in-memory пост-фильтре ниже. normalRetailNameWhere = 9 терминов × NOT LIKE
+      // по supplierName+name = 18 негаций, которые рушат trigram и превращают
+      // каждый search-запрос (findMany/count/brand) из ~1с в ~5с (Seq Scan) →
+      // ~13с cold для частых слов. Негация по тексту в search WHERE — та же
+      // ловушка, что и аксессуарный NOT LIKE.
       filteredWhere.AND = [
         ...toProductWhereArray(filteredWhere.AND),
-        ...(degradedClause.AND ? toProductWhereArray(degradedClause.AND) : []),
         ...tokens.map((token) => productSearchTokenOr(token)),
       ];
     }
@@ -708,14 +710,18 @@ export async function getCatalogPage(query: CatalogQuery) {
         Number.POSITIVE_INFINITY,
       ).slice((page - 1) * PRODUCTS_PER_PAGE, page * PRODUCTS_PER_PAGE)
     : rawProducts;
-  // B (Iter 64): при поиске основного типа (не аксессуара) убираем со страницы
-  // аксессуары/запчасти «X для <тип>» (подсветка/салфетки/кронштейн/…). Пост-
-  // фильтр in-memory — НЕ в SQL WHERE (там 16 NOT LIKE рушат trigram-индекс
-  // поиска → 90с cold-start).
-  const products =
-    query.query && !isAccessorySearchQuery(query.query)
-      ? productsBase.filter((product) => !isAccessoryProductName(product.name, product.supplierName))
-      : productsBase;
+  // Поиск: in-memory пост-фильтр (НЕ в SQL WHERE — там NOT LIKE рушат trigram и
+  // дают ~13с cold). Убираем degraded (уценка/б/у/поврежденный) всегда; аксессуары
+  // «X для <тип>» — только когда ищут основной тип, а не сам аксессуар.
+  const filterAccessories = Boolean(query.query) && !isAccessorySearchQuery(query.query);
+  const products = query.query
+    ? productsBase.filter(
+        (product) =>
+          !isDegradedRetailName(product.supplierName) &&
+          !isDegradedRetailName(product.name) &&
+          !(filterAccessories && isAccessoryProductName(product.name, product.supplierName)),
+      )
+    : productsBase;
   const categories = await getCatalogCategoryTree(allCategories);
   const brands = await getCatalogBrands(brandWhere);
   const specFilterCountsRecord = specFilterOptions.length
