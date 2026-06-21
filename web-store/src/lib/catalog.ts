@@ -33,7 +33,7 @@ import {
   type CatalogSpecFilterValue,
 } from "@/lib/catalog-spec-filters";
 import { prisma } from "@/lib/db";
-import { isDegradedRetailName, normalRetailNameWhere, searchAccessoryExclusionWhere } from "@/lib/retail-products";
+import { isAccessoryProductName, isAccessorySearchQuery, isDegradedRetailName, normalRetailNameWhere } from "@/lib/retail-products";
 
 const PRODUCTS_PER_PAGE = 24;
 // 1 hour. Pair with cron cache warmer (scripts/warm_all.sh) every 30 min so
@@ -583,14 +583,9 @@ export async function getCatalogPage(query: CatalogQuery) {
       // Also hide degraded items (поврежденный товар / уценка / б/у) from
       // search results — same rule as homepage Популярные товары.
       const degradedClause = normalRetailNameWhere();
-      // B (Iter 64): если ищут основной тип (не аксессуар), вырезаем
-      // аксессуары/запчасти «X для <тип>» (подсветка/салфетки/кронштейн/…),
-      // чтобы дешёвый хлам не вытеснял реальные товары в выдаче.
-      const accessoryExclusion = searchAccessoryExclusionWhere(query.query);
       filteredWhere.AND = [
         ...toProductWhereArray(filteredWhere.AND),
         ...(degradedClause.AND ? toProductWhereArray(degradedClause.AND) : []),
-        ...(accessoryExclusion?.AND ? toProductWhereArray(accessoryExclusion.AND) : []),
         ...tokens.map((token) => productSearchTokenOr(token)),
       ];
     }
@@ -697,7 +692,7 @@ export async function getCatalogPage(query: CatalogQuery) {
   const fetchSkip = usePool ? 0 : (page - 1) * PRODUCTS_PER_PAGE;
 
   const { rawProducts, total } = await getCachedCatalogProducts(filteredWhere, query.sort, fetchSkip, fetchTake);
-  const products = usePool
+  const productsBase = usePool
     ? interleaveByTopCategory(
         rawProducts,
         allCategories,
@@ -705,6 +700,14 @@ export async function getCatalogPage(query: CatalogQuery) {
         Number.POSITIVE_INFINITY,
       ).slice((page - 1) * PRODUCTS_PER_PAGE, page * PRODUCTS_PER_PAGE)
     : rawProducts;
+  // B (Iter 64): при поиске основного типа (не аксессуара) убираем со страницы
+  // аксессуары/запчасти «X для <тип>» (подсветка/салфетки/кронштейн/…). Пост-
+  // фильтр in-memory — НЕ в SQL WHERE (там 16 NOT LIKE рушат trigram-индекс
+  // поиска → 90с cold-start).
+  const products =
+    query.query && !isAccessorySearchQuery(query.query)
+      ? productsBase.filter((product) => !isAccessoryProductName(product.name, product.supplierName))
+      : productsBase;
   const categories = await getCatalogCategoryTree(allCategories);
   const brands = await getCatalogBrands(brandWhere);
   const specFilterCountsRecord = specFilterOptions.length

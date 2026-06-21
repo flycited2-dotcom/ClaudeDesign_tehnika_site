@@ -54,24 +54,24 @@ export const searchAccessoryMarkers = [
 ];
 
 /**
- * Если пользователь ищет ОСНОВНОЙ тип товара (запрос не содержит маркер
- * аксессуара), вырезаем из выдачи товары-аксессуары/запчасти, чтобы они не
- * вытесняли реальные товары. Если же запрос сам про аксессуар («салфетки»,
- * «кронштейн») — возвращаем null (ничего не фильтруем).
+ * Ищет ли пользователь сам аксессуар (запрос содержит маркер) — тогда вырезать
+ * аксессуары НЕ нужно.
  */
-export function searchAccessoryExclusionWhere(query: string | null | undefined): Prisma.ProductWhereInput | null {
+export function isAccessorySearchQuery(query: string | null | undefined): boolean {
   const q = (query ?? "").toLocaleLowerCase("ru-RU");
-  if (!q.trim()) return null;
-  if (searchAccessoryMarkers.some((marker) => q.includes(marker))) return null;
+  return searchAccessoryMarkers.some((marker) => q.includes(marker));
+}
 
-  return {
-    AND: searchAccessoryMarkers.map((term) => ({
-      AND: [
-        { NOT: { supplierName: { contains: term, mode: "insensitive" } } },
-        {
-          OR: [{ name: null }, { NOT: { name: { contains: term, mode: "insensitive" } } }],
-        },
-      ],
-    })),
-  };
+/**
+ * Является ли товар аксессуаром/запчастью по названию (маркер в name или
+ * supplierName).
+ *
+ * ВАЖНО: применяется ПОСТ-фильтром в приложении, НЕ в SQL WHERE. `NOT LIKE` по
+ * 16 маркерам сводит на нет trigram-индекс поиска (негация → Seq Scan) и
+ * возвращает 90с cold-start; in-memory фильтр на странице результатов дёшев и
+ * сохраняет быстрый поиск.
+ */
+export function isAccessoryProductName(name: string | null | undefined, supplierName: string | null | undefined): boolean {
+  const text = `${name ?? ""} ${supplierName ?? ""}`.toLocaleLowerCase("ru-RU");
+  return searchAccessoryMarkers.some((marker) => text.includes(marker));
 }
