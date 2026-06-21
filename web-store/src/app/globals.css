@@ -228,15 +228,38 @@ body.app {
 }
 .p-card .p-name {
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 40px;
-  max-height: 80px;
+  min-height: 34px;
+  max-height: 38px;
   word-break: break-word;
   color: var(--text-2);
   font-weight: 600;
+  font-size: 13px;
+  line-height: 1.3;
+}
+/* D (Iter 64): иерархия карточки как на Ozon — бренд считывается ПЕРВЫМ.
+   Был 11px text-soft (полупрозрачный, почти не виден); делаем крупнее и
+   контрастнее. Модель (.p-model) синяя — рядом. Описание-имя компактное (2
+   строки выше), чтобы не доминировало и всё влезало. */
+.p-card .p-meta {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+/* A (Iter 64): подсказки поиска обрезали длинное название товара в одну строку
+   (white-space:nowrap + ellipsis) — «не весь текст лазит» в окошке поиска.
+   Разрешаем перенос в 2 строки (desktop + мобиль). */
+.hdr-suggest .sg-item-name {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.25;
 }
 .p-card .p-price-row {
   margin-top: 14px;

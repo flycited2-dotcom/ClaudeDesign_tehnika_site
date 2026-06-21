@@ -33,7 +33,7 @@ import {
   type CatalogSpecFilterValue,
 } from "@/lib/catalog-spec-filters";
 import { prisma } from "@/lib/db";
-import { isDegradedRetailName, normalRetailNameWhere } from "@/lib/retail-products";
+import { isDegradedRetailName, normalRetailNameWhere, searchAccessoryExclusionWhere } from "@/lib/retail-products";
 
 const PRODUCTS_PER_PAGE = 24;
 // 1 hour. Pair with cron cache warmer (scripts/warm_all.sh) every 30 min so
@@ -583,9 +583,14 @@ export async function getCatalogPage(query: CatalogQuery) {
       // Also hide degraded items (поврежденный товар / уценка / б/у) from
       // search results — same rule as homepage Популярные товары.
       const degradedClause = normalRetailNameWhere();
+      // B (Iter 64): если ищут основной тип (не аксессуар), вырезаем
+      // аксессуары/запчасти «X для <тип>» (подсветка/салфетки/кронштейн/…),
+      // чтобы дешёвый хлам не вытеснял реальные товары в выдаче.
+      const accessoryExclusion = searchAccessoryExclusionWhere(query.query);
       filteredWhere.AND = [
         ...toProductWhereArray(filteredWhere.AND),
         ...(degradedClause.AND ? toProductWhereArray(degradedClause.AND) : []),
+        ...(accessoryExclusion?.AND ? toProductWhereArray(accessoryExclusion.AND) : []),
         ...tokens.map((token) => productSearchTokenOr(token)),
       ];
     }
@@ -765,6 +770,14 @@ export async function getRelatedProducts({
       isAvailable: true,
       retailPrice: {
         not: null,
+      },
+      // Recommended/related products must have a REAL image — a card without a
+      // photo is useless here (owner: "выбрал iPhone и 4 рекомендованных тоже
+      // без фото"). hasImage flag lies on ~3%, so require an actual Image row.
+      images: {
+        some: {
+          deleted: false,
+        },
       },
       ...normalRetailNameWhere(),
     },
