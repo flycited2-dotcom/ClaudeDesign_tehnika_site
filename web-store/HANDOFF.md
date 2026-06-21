@@ -24,6 +24,22 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-21 — fast-search-vocabulary: словарь синонимов поиска + прогрев (PR #1, Codex) ✅
+
+- **Commits:** `74465e8`..`77de2a2` (Codex; мердж PR #1 в main `7b1770d..77de2a2`) + `7a900a8` (.gitattributes LF). Backup `…170352`.
+- **Контекст:** реализацию сделал другой агент (Codex) на ветке `codex/fast-search-vocabulary`, draft PR #1. Я отревьюил (критично — не сломать trigram/perf Iter 63-64), проверил, смержил PR в main (FF), задеплоил, настроил прогрев.
+- **Сделано (Codex):**
+  - `src/lib/search-vocabulary.ts`: ~11 синонимов (телик/тв→телевизор, стиралка→стиральная машина, ноут→ноутбук, айфон→iphone, кондер→кондиционер, болгарка→ушм, посудомойка→посудомоечная машина…) + 18 seed-запросов. `normalizeSearchQuery` (clean + lowercase + alias-map по словам).
+  - `/search` (`page.tsx`) и `/api/search/suggest` приводят запрос к канонической форме → варианты слов делят общий кэш. **Безопасно:** канонизация = ЗАМЕНА строки запроса (`getCatalogPage({query: catalogQuery})`), не WHERE-условие → trigram не ломается, `isTextSearch`-perf (Iter 64) сохранён.
+  - Suggest кэшируется 5 мин (`unstable_cache` revalidate:300, по канонической форме).
+  - Шапка: реальные популярные запросы из аналитики + fallback seed (`buildHeaderSearchQueries`, дедуп по canonical).
+  - `scripts/warm-search.ts` + `warm_search.sh` (flock): прогрев `/search` + `/api/search/suggest` для 18 seed.
+- **Проверки (мной):** lint, **258 тестов**, build зелёные. На проде: suggest `q=телик`/`q=тв` → те же телевизоры, что `q=телевизор` (канонизация работает); прогретый seed (холодильник) 0.30с.
+- **⚠️ Операционно на VPS (warm-скрипты вне `deploy_vps.py` — он тарит только `src/`):**
+  - `scripts/warm-search.ts` + `warm_search.sh` залиты `scp`, `chmod +x`.
+  - **CRLF-ловушка:** scp с Windows дал CRLF → shebang `bash\r` падал (`/usr/bin/env: 'bash\r'`). Лечение: `sed -i 's/\r$//' scripts/warm_search.sh`. Добавлен `.gitattributes *.sh text eol=lf` (для чистого clone; на Windows локально autocrlf всё ещё может дать CRLF — при будущих scp `.sh` проверять/sed). 
+  - cron: `*/8 * * * * /var/www/climat-simf.ru/scripts/warm_search.sh >> /var/log/climat-simf-warm-search.log` (рядом с warm_all/warm_cache). flock от наложений. Лог пуст = успех (warmSearchQueries молчит, throw только на !ok).
+
 ### 2026-06-21 — Iter 64: 4 UX-правки (поиск/карточка/рекомендуемые) + перф текстового поиска ✅
 
 - **Commits:** `1c10133` (A/B/C/D) → `d3ac1bf` (B→пост-фильтр, фикс регрессии) → `56b29ce` (перф поиска). Backups `…151327`/`…152125`/`…153014`.
