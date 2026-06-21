@@ -24,6 +24,25 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-21 — Iter 63: ФИКС ЗАВИСАНИЯ поиска/фильтрации (P0, жалоба владельца) ✅
+
+- **Commit:** `cbafcc0` (код) + **операционные trigram-индексы на VPS** (НЕ в репо — как nginx-кэш/pool).
+- **Жалоба:** нажимаешь поиск/фильтрацию — всё зависает намертво (десятки секунд). «Если не решим — строку поиска удалять».
+- **Замеры ДО:** `/search?q=холодильник` = **99с**; категория аэрогрилей >120с.
+- **Два корня (оба устранены):**
+  1. **Фасеты на `family=null`:** `/search` (и любая категория без семейства) → `getCatalogAttributeKeysForCategory` возвращал ВСЕ ~58 ключей → `getCatalogAttributeRangeGroups` гонял 40+ `aggregate` ПОСЛЕДОВАТЕЛЬНО по `ProductAttribute` (372k). **Фикс (код, `catalog-attribute-registry.ts`):** `family=null` → только universal-фасеты (Цвет); параметрические фасеты строятся лишь для однородной категории. 248 тестов, build зелёный.
+  2. **Текстовый поиск без trigram:** `productSearchTokenOr` ищет в 5 полях (`name`/`supplierName`/`vendor`/`part`/`barcodes`) через OR — без trigram это `Parallel Seq Scan` по 54k (917ms × ~9 запросов на сборку страницы = десятки секунд под нагрузкой). **Фикс (БД, операционно):** `CREATE EXTENSION pg_trgm` + `CREATE INDEX CONCURRENTLY ... USING gin (<col> gin_trgm_ops)` на всех 5 полях. EXPLAIN: Seq Scan **917ms → BitmapOr 13ms** (70×).
+- **Замеры ПОСЛЕ:** `/search` новое слово **1.4–2.5с** (было 99с); warm 1.2с; категория/фильтр 1.2с. **Зависание устранено.**
+- **⚠️ Операционная правка (повторить на новом сервере вручную, как nginx-кэш/Prisma pool):** 5 trigram-индексов + `pg_trgm` живут только в БД на VPS, НЕ в `schema.prisma` (Prisma Gin-trigram требует preview-фичу + рискует уронить `db push`). При переезде:
+  ```sql
+  CREATE EXTENSION IF NOT EXISTS pg_trgm;
+  CREATE INDEX CONCURRENTLY idx_product_name_trgm        ON "Product" USING gin (name gin_trgm_ops);
+  CREATE INDEX CONCURRENTLY idx_product_suppliername_trgm ON "Product" USING gin ("supplierName" gin_trgm_ops);
+  CREATE INDEX CONCURRENTLY idx_product_vendor_trgm       ON "Product" USING gin (vendor gin_trgm_ops);
+  CREATE INDEX CONCURRENTLY idx_product_part_trgm         ON "Product" USING gin (part gin_trgm_ops);
+  CREATE INDEX CONCURRENTLY idx_product_barcodes_trgm     ON "Product" USING gin (barcodes gin_trgm_ops);
+  ```
+
 ### 2026-06-21 — Iter 62: фикс релевантности фильтров — power_hp не ловит «N л, &lt;слово&gt;» (аэрогрили) ✅
 
 - **Commit:** `e053c57` · **Backup:** `…source-backup-20260621125308.tar.gz` · **Deploy:** ~12:53 UTC + backfill.
