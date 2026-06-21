@@ -13,3 +13,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Image metadata sync is intentionally separate and can be enabled after catalog validation.
 45 4 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:images >> /var/log/climat-simf-sync.log 2>&1
+
+# Re-sync Product.hasImage with real photos after syncs (sync sets hasImage=true on
+# ~16k products that have no actual image; they would sort first as placeholders).
+20 5,11,17,23 * * * /var/www/climat-simf.ru/scripts/fix-has-image.sh >> /var/log/climat-simf-hasimage.log 2>&1
