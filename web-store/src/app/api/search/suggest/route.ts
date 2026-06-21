@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { NextResponse } from "next/server";
 import {
   buildProductSearchTokens,
@@ -7,6 +8,7 @@ import {
 import { prisma } from "@/lib/db";
 import { productImageSrc } from "@/lib/product-images";
 import { normalRetailNameWhere } from "@/lib/retail-products";
+import { normalizeSuggestionQuery } from "@/lib/search-suggestions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,33 +23,17 @@ type SuggestProduct = {
   image: string | null;
 };
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const rawQuery = searchParams.get("q")?.trim() ?? "";
-  if (rawQuery.length < 2) {
-    return NextResponse.json({ products: [] satisfies SuggestProduct[] });
-  }
+const getCachedSuggestions = unstable_cache(
+  async (query: string): Promise<SuggestProduct[]> => {
+    const tokens = buildProductSearchTokens(query);
+    if (tokens.length === 0) {
+      return [];
+    }
 
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json({ products: [] satisfies SuggestProduct[] });
-  }
-
-  // Token-based search: every word in any of the searchable fields. Lets
-  // "indesit стиральная" match "Стиральная машина Indesit IWSB..." regardless
-  // of word order. Shared with /search and /catalog?q=... via @/lib/catalog.
-  const tokens = buildProductSearchTokens(rawQuery);
-  if (tokens.length === 0) {
-    return NextResponse.json({ products: [] satisfies SuggestProduct[] });
-  }
-
-  try {
     const products = await prisma.product.findMany({
       where: {
         isActive: true,
         isVisible: true,
-        // AND combines: per-token field match + degraded-name exclusion.
-        // (Don't spread {AND:[]} from normalRetailNameWhere directly — its
-        //  AND key would collide with the tokens AND below.)
         AND: [
           ...tokens.map((token) => productSearchTokenOr(token)),
           normalRetailNameWhere(),
@@ -71,7 +57,7 @@ export async function GET(request: Request) {
       take: MAX_SUGGEST,
     });
 
-    const payload: SuggestProduct[] = products.map((product) => ({
+    return products.map((product) => ({
       id: product.id,
       slug: product.slug,
       name: product.name ?? product.supplierName,
@@ -79,8 +65,21 @@ export async function GET(request: Request) {
       price: decimalToNumber(product.retailPrice),
       image: productImageSrc(product.images[0]),
     }));
+  },
+  ["search-suggest"],
+  { revalidate: 300, tags: ["products"] },
+);
 
-    return NextResponse.json({ products: payload });
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const rawQuery = searchParams.get("q")?.trim() ?? "";
+  const query = normalizeSuggestionQuery(rawQuery);
+  if (!query || !process.env.DATABASE_URL) {
+    return NextResponse.json({ products: [] satisfies SuggestProduct[] });
+  }
+
+  try {
+    return NextResponse.json({ products: await getCachedSuggestions(query) });
   } catch (error) {
     console.error("[search/suggest]", error);
     return NextResponse.json({ products: [] satisfies SuggestProduct[] }, { status: 200 });

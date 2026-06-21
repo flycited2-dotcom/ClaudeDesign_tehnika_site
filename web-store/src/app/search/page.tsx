@@ -3,6 +3,7 @@ import { CatalogView } from "@/app/catalog/catalog-view";
 import { getCatalogPage } from "@/lib/catalog";
 import { parseCatalogSearchParams } from "@/lib/catalog-query";
 import { recordSearchTerm } from "@/lib/search-analytics";
+import { normalizeSuggestionQuery } from "@/lib/search-suggestions";
 
 export const dynamic = "force-dynamic";
 
@@ -22,12 +23,13 @@ type Props = {
 export default async function SearchPage({ searchParams }: Props) {
   const filters = parseCatalogSearchParams(await searchParams);
   const query = filters.query ?? "";
+  const catalogQuery = normalizeSuggestionQuery(query) ?? "";
   const shouldRecordSearch = filters.page === 1 && query.trim().length > 0;
   let data;
   try {
     [data] = await Promise.all([
       getCatalogPage({
-        query,
+        query: catalogQuery,
         brands: filters.brands,
         available: filters.onlyAvailable,
         withPhoto: filters.withPhoto,
