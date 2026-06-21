@@ -276,6 +276,19 @@ body.app {
   color: var(--text-soft);
   text-decoration: line-through;
 }
+/* Бейдж скидки «−N%» рядом с зачёркнутой ценой — визуальный «крючок» выгоды
+   (как у Ozon). Показывается только когда RRP > текущей цены. */
+.p-card .p-disc {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6a3d, #e8431f);
+  padding: 2px 7px;
+  border-radius: 7px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
 
 /* === Compare table === */
 .compare-wrap {
@@ -1924,4 +1937,65 @@ body.app {
 .filter-sheet .f-row .box,
 .filter-sheet .f-row .cnt {
   margin-top: 0;
+}
+
+/* ============================================================
+   Ozon-стиль листинга на мобиле (≤760px). По просьбе владельца: наш текст/
+   цена/кнопка были слишком крупными, фото маленьким, между карточками широкая
+   полоса. Делаем плотно: ФОТО доминирует, текст компактно читается, цена и
+   кнопка умеренные, карточки ближе друг к другу.
+   ============================================================ */
+@media (max-width: 760px) {
+  .product-grid {
+    gap: 10px;
+  }
+  /* Фото — главный элемент карточки */
+  .p-card .p-art {
+    height: 200px;
+  }
+  /* Плотный текстовый блок (был padding 18px, name/price крупные) */
+  .p-card .p-body {
+    padding: 9px 10px 2px;
+  }
+  .p-card .p-meta {
+    font-size: 11.5px;
+    letter-spacing: 0.01em;
+  }
+  .p-card .p-model {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .p-card .p-name {
+    font-size: 12.5px;
+    line-height: 1.25;
+    min-height: 31px;
+    max-height: 33px;
+    margin-top: 3px;
+  }
+  .p-card .p-stock {
+    font-size: 11px;
+    margin-top: 6px;
+  }
+  /* Цена заметная, но не гигантская (было 22px/900) */
+  .p-card .p-price-row {
+    margin-top: 8px;
+    padding-top: 8px;
+    font-size: 17px;
+  }
+  .p-card .p-price-row .old {
+    font-size: 12.5px;
+  }
+  /* Компактные действия: кнопка ниже, вторичные иконки меньше */
+  .p-card .p-card-actions {
+    padding: 8px 10px 10px;
+    gap: 6px;
+  }
+  .p-card .p-card-buy {
+    min-height: 38px;
+    font-size: 13px;
+    padding: 0 12px;
+  }
+  .p-card .p-card-icon {
+    height: 32px;
+  }
 }

@@ -123,9 +123,12 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
                 : "Цена уточняется"}
             </span>
             {role === "b2c" && product.rrp != null && Number(product.rrp) > price && (
-              <span className="old" style={{ marginLeft: 10 }}>
-                {formatRub(Number(product.rrp))}
-              </span>
+              <>
+                <span className="old" style={{ marginLeft: 10 }}>
+                  {formatRub(Number(product.rrp))}
+                </span>
+                <span className="p-disc">−{Math.round((1 - price / Number(product.rrp)) * 100)}%</span>
+              </>
             )}
           </div>
         </div>
