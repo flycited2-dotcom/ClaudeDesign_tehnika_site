@@ -42,9 +42,6 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
   });
   const canOrder = fulfillment.canOrder && Boolean(price);
   const quantity = Math.max(product.multiplicity || 1, 1);
-  // The model code (part) is the single most important thing a buyer scans for.
-  // Show it on its own line so it is never lost to the name's line-clamp.
-  const modelCode = partTrim;
   const inStock = product.isAvailable && Boolean(price);
   const href = `/product/${product.slug}`;
 
@@ -98,7 +95,6 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
         </div>
         <div className="p-body">
           <div className="p-meta">{product.vendor ?? "Товар"}</div>
-          {modelCode && <div className="p-model">{modelCode}</div>}
           <div className="p-name" title={fullName}>
             {name}
           </div>
