@@ -1,0 +1,5 @@
+# Shell scripts MUST keep LF line endings. On Windows checkout (autocrlf) they
+# become CRLF; scp'ing such a file to the Linux VPS breaks the shebang:
+#   /usr/bin/env: 'bash\r': No such file or directory
+# Caught on scripts/warm_search.sh (Iter: fast-search-vocabulary deploy).
+*.sh text eol=lf
