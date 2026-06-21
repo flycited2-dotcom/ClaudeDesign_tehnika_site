@@ -226,7 +226,20 @@ export function getCatalogAttributeKeysForCategory({
   categorySlug?: string | null;
 }): string[] {
   const family = getCatalogAttributeFamilyForCategory({ categoryName, categorySlug });
-  if (!family) return catalogAttributeFacetKeys;
+  if (!family) {
+    // Unknown / mixed category — text search across heterogeneous results, or a
+    // category not mapped to a family. Do NOT build per-attribute facets for all
+    // ~58 keys: that fires 40+ range aggregates over the 372k ProductAttribute
+    // table and hangs /search for ~90s. Параметрические фасеты осмысленны только
+    // для однородной категории. Only universal facets (Цвет) remain here;
+    // brand/price/availability are separate and always shown.
+    return catalogAttributeDefinitions
+      .filter((definition) => {
+        const families: readonly CatalogAttributeFamily[] = definition.families ?? ["universal"];
+        return families.includes("universal");
+      })
+      .map((definition) => definition.key);
+  }
 
   const relevant = catalogAttributeDefinitions.filter((definition) => {
     const families: readonly CatalogAttributeFamily[] = definition.families ?? ["universal"];
