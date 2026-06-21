@@ -24,6 +24,17 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-21 — perf(search): убран degraded NOT LIKE из search WHERE (cold 13с → 3.5с) ✅
+
+- **Commit:** `27a553d` · **Backup:** `…source-backup-20260621172727.tar.gz`.
+- **Контекст:** оставался долг — cold-start частых поисковых слов ~13с (после Iter 64 facet-gating). Профилирование на VPS (tsx + Prisma напрямую) показало: DB-операции ~3с, но страница 13с → ~10с overhead «не в базе».
+- **Корень (нашёл профилированием с ПОЛНЫМ where):** `normalRetailNameWhere()` (degraded-исключение: 9 терминов × `NOT LIKE` по `supplierName`+`name` = **18 негаций**) добавлялся в search WHERE. Негация по тексту рушит trigram → Seq Scan гонит 18 условий на строку → каждый search-запрос из ~1с в ~5с: `findMany` 1174→**4964ms**, `count` 964→**4658ms** (и brand так же). Три такие операции и давали ~13с.
+- **Фикс:** degraded-исключение убрано из SQL WHERE поиска → перенесено в **in-memory пост-фильтр** (`isDegradedRetailName` по name+supplierName, рядом с аксессуарным — тот же паттерн Iter 64-B). Запросы поиска снова ~1с.
+- **Замеры:** свежие частые слова cold **13с → 3.5с** (холодильник/пылесос/телевизор/стиральная ~3.5с); warm/seed <1с/0.3с. degraded по-прежнему скрыты (уценка/б/у/поврежд = 0 в выдаче). **Прогресс поиска за сессию: 76-99с → 3.5с cold.**
+- **Нюанс:** `count`/`brand` теперь без degraded → `total` чуть завышен (degraded-фракция мала); пост-фильтр может дать <24 на странице при многих degraded (приемлемо).
+- **Остаток (долг):** ~2с queries (Seq Scan для частых слов, оптимизатор не берёт trigram при многих совпадениях) + ~1.5с RSC. Для sub-1с нужен PostgreSQL full-text (tsvector + ts_rank) — заодно даст relevance-ранжирование. Отдельная задача, не срочно.
+- **⚠️ ЗАКРЕПЛЁННОЕ ПРАВИЛО:** НЕ класть `NOT LIKE`/негацию по тексту в search WHERE (рушит trigram). Degraded и аксессуары фильтруются in-memory пост-фильтром в `getCatalogPage`.
+
 ### 2026-06-21 — fast-search-vocabulary: словарь синонимов поиска + прогрев (PR #1, Codex) ✅
 
 - **Commits:** `74465e8`..`77de2a2` (Codex; мердж PR #1 в main `7b1770d..77de2a2`) + `7a900a8` (.gitattributes LF). Backup `…170352`.
