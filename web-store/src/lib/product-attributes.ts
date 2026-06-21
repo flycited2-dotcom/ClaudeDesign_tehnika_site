@@ -48,6 +48,12 @@ function looksLikeEngineProduct(text: string): boolean {
   return /двигател|снегоубор|мотоблок|газонокос|генератор|культиватор|триммер|бензопил|мотопомп/i.test(text);
 }
 
+// Countertop kitchen appliances whose capacity is given in litres ("10 л") —
+// аэрогрили/мультиварки/пароварки и т.п. Their "N л" is volume, NOT engine power.
+function looksLikeKitchenCapacityAppliance(text: string): boolean {
+  return /аэрогриль|мультиварк|пароварк|фритюрниц|су-?вид|медленноварк|йогуртниц|ростер|электрогриль|морожениц/i.test(text);
+}
+
 function looksLikeRefrigerationProduct(text: string): boolean {
   return /холодильн|морозильн|морозильник|морозильная\s+камера|refrigerator|fridge|freezer/i.test(text);
 }
@@ -940,11 +946,24 @@ export function extractProductNameAttributes(name: string | null | undefined): E
 
   addPowerWAttribute(text, attributes);
 
+  // "л.с." (лошадиные силы). Must NOT swallow "N л, сенсор" / "N л сенсор"
+  // (литры + слово начинающееся на «с», напр. у аэрогрилей «10 л, сенсор»):
+  // require the «с» to be a standalone unit — negative lookahead for a letter
+  // right after it. Real "6.5 л.с." (мотоблоки/генераторы) still matches.
   const powerHp =
-    text.match(/(\d+(?:[.,]\d+)?)\s*(?:л\.?\s*с\.?|л[,;]\s*с\.?)/i) ??
+    text.match(/(\d+(?:[.,]\d+)?)\s*л[.,]?\s*с\.?(?![а-яёa-z])/i) ??
     (looksLikeEngineProduct(text) ? text.match(/(\d+(?:[.,]\d+)?)\s*(?:hp\b|h\.?\s*p\.?\b)/i) : null);
   if (powerHp) {
     addNumberAttribute(attributes, "power_hp", "Мощность двигателя", powerHp[1], "л.с.");
+  }
+
+  // Countertop kitchen appliances state capacity in litres ("10 л, сенсор").
+  // Capture it as volume (the greedy power_hp above no longer steals it).
+  if (looksLikeKitchenCapacityAppliance(text)) {
+    const litres = text.match(/(\d+(?:[.,]\d+)?)\s*л(?![а-яёa-z])/i);
+    if (litres) {
+      addNumberAttribute(attributes, "volume_l", "Объем", litres[1], "л");
+    }
   }
 
   const looksLikeBatteryProduct = /аккумулятор|акб|battery|cordless|батаре/i.test(text) || /(\d+(?:[.,]\d+)?)\s*(?:а\s*ч|а·ч|ah)/i.test(text);

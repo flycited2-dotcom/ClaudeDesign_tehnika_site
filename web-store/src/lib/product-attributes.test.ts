@@ -385,4 +385,35 @@ describe("extractProductNameAttributes", () => {
     expect(extractProductNameAttributes("   ")).toEqual([]);
     expect(extractProductNameAttributes(null)).toEqual([]);
   });
+
+  it("reads '10 л, сенсор' on аэрогриль as volume, not as л.с. (power_hp)", () => {
+    const byKey = Object.fromEntries(
+      extractProductNameAttributes("Аэрогриль Brayer 2048BR черный, 2500 Вт, 10 л, сенсор, 10 программ").map(
+        (attribute) => [attribute.key, attribute],
+      ),
+    );
+    expect(byKey.power_hp).toBeUndefined();
+    expect(byKey.volume_l).toMatchObject({ numericValue: 10, unit: "л" });
+    expect(byKey.power_w).toMatchObject({ numericValue: 2500 });
+  });
+
+  it("does not read litres before an 's'-word as л.с. on other kitchen appliances", () => {
+    const byKey = Object.fromEntries(
+      extractProductNameAttributes("Мультиварка Redmond RMC-M90 черная, 5 л, скороварка, 45 программ").map(
+        (attribute) => [attribute.key, attribute],
+      ),
+    );
+    expect(byKey.power_hp).toBeUndefined();
+    expect(byKey.volume_l).toMatchObject({ numericValue: 5, unit: "л" });
+  });
+
+  it("still extracts real л.с. on engine products", () => {
+    const byKey = Object.fromEntries(
+      extractProductNameAttributes("Мотоблок Patriot Победа 7 л.с. бензиновый").map((attribute) => [
+        attribute.key,
+        attribute,
+      ]),
+    );
+    expect(byKey.power_hp).toMatchObject({ numericValue: 7, unit: "л.с." });
+  });
 });

@@ -135,6 +135,9 @@ export function getCatalogAttributeFamilyForCategory({
     /микровол|свч|microwave|mikrovol/.test(text) ||
     /кофемашин|кофеварк|кофейн|kofemashin|kofevark|coffee/.test(text) ||
     /встраиваем|встройк|встроенн.*техник|vstraivaem|built-?in/.test(text) ||
+    // Small countertop kitchen appliances — must match BEFORE garden (which owns
+    // power_hp/л.с.) so аэрогрили/мультиварки don't get engine-power facets.
+    /аэрогриль|электрогриль|мультиварк|пароварк|фритюрниц|су-?вид|медленноварк|йогуртниц|ростер|морожениц|тостер|блендер|миксер|кофемолк|соковыжим|мясорубк|вафельниц|сэндвичниц|aerogril|multivark|blender|mikser|toster/.test(text) ||
     /мелк.*техник|бытов.*техник|кухонн.*техник|melkaya.*tehnika|bytovaya.*tehnika|kuhonn.*tehnika|appliance/.test(text)
   )
     return "appliance";
