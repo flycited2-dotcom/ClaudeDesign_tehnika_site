@@ -1985,17 +1985,33 @@ body.app {
   .p-card .p-price-row .old {
     font-size: 12.5px;
   }
-  /* Компактные действия: кнопка ниже, вторичные иконки меньше */
+  /* Кнопка «Купить» и иконки ♥/⇆ в ОДНОМ ряду (были в два) — карточка ниже,
+     плотнее, как у Ozon. */
   .p-card .p-card-actions {
     padding: 8px 10px 10px;
+    display: flex;
+    align-items: stretch;
     gap: 6px;
   }
   .p-card .p-card-buy {
-    min-height: 38px;
+    flex: 1;
+    min-width: 0;
+    min-height: 36px;
     font-size: 13px;
-    padding: 0 12px;
+    padding: 0 8px;
+    gap: 4px;
+  }
+  /* В узкой кнопке убираем иконку корзины, чтобы «Купить» влезало рядом с ♥/⇆. */
+  .p-card .p-card-buy svg {
+    display: none;
+  }
+  .p-card .p-card-secondary {
+    flex: 0 0 auto;
+    gap: 6px;
   }
   .p-card .p-card-icon {
-    height: 32px;
+    flex: 0 0 auto;
+    width: 34px;
+    height: 36px;
   }
 }
