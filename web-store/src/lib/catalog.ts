@@ -568,7 +568,14 @@ export async function getCatalogPage(query: CatalogQuery) {
     }),
   );
   const shouldBuildFacetPanels = hasCatalogFacetContext(query);
-  const visibleAttributeKeys = shouldBuildFacetPanels ? allowedAttributeKeys : [];
+  // Текстовый поиск (/search?q=) даёт разнородную выдачу (телевизоры + запчасти +
+  // аксессуары) → параметрические фасеты и spec-подборки по ней бессмысленны, а
+  // считаются дорого: Seq Scan по 54k для частых слов × N запросов (фасеты + 6
+  // spec-counts) = 60-90с cold-start. Для текстового поиска фасеты по атрибутам и
+  // spec-подборки НЕ строим — остаются бренд/цена/наличие. Категории (без q)
+  // строят фасеты как раньше.
+  const isTextSearch = Boolean(query.query && query.query.trim());
+  const visibleAttributeKeys = shouldBuildFacetPanels && !isTextSearch ? allowedAttributeKeys : [];
   const allowedAttributeKeySet = new Set(allowedAttributeKeys);
   const activeAttributeFilters = (query.attributeFilters ?? []).filter((filter) => allowedAttributeKeySet.has(filter.key));
   const activeAttributeRangeFilters = (query.attributeRangeFilters ?? []).filter((filter) => allowedAttributeKeySet.has(filter.key));
@@ -634,12 +641,13 @@ export async function getCatalogPage(query: CatalogQuery) {
     filteredWhere.images = { some: { deleted: false } };
   }
 
-  const specFilterOptions = shouldBuildFacetPanels
-    ? getCatalogSpecFilterOptions({
-        categoryName: category?.name,
-        activeFilters: query.specFilters,
-      })
-    : [];
+  const specFilterOptions =
+    shouldBuildFacetPanels && !isTextSearch
+      ? getCatalogSpecFilterOptions({
+          categoryName: category?.name,
+          activeFilters: query.specFilters,
+        })
+      : [];
 
   const specWhere = buildCatalogSpecFilterWhere(query.specFilters ?? []);
   const specAnd = toProductWhereArray(specWhere.AND);
