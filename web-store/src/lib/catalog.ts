@@ -189,7 +189,7 @@ export const getHomeSnapshot = unstable_cache(async () => {
         orderBy: {
           priority: "asc",
         },
-        take: 1,
+        take: 6,
       },
       attributes: {
         where: {
@@ -485,7 +485,7 @@ const getCachedCatalogProducts = unstable_cache(
           images: {
             where: { deleted: false },
             orderBy: { priority: "asc" },
-            take: 1,
+            take: 6,
           },
           attributes: {
             where: { source: { in: ["manual", "name"] } },
@@ -806,7 +806,7 @@ export async function getRelatedProducts({
         orderBy: {
           priority: "asc",
         },
-        take: 1,
+        take: 6,
       },
       attributes: {
         where: {

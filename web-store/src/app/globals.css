@@ -290,6 +290,29 @@ body.app {
   letter-spacing: 0.01em;
   white-space: nowrap;
 }
+/* Точки-индикаторы карусели фото в карточке листинга (свайп фото, как Ozon). */
+.p-card .p-art-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+.p-card .p-art-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+  transition: width 0.15s, height 0.15s, background 0.15s;
+}
+.p-card .p-art-dot.on {
+  width: 6px;
+  height: 6px;
+  background: #fff;
+}
 
 /* === Compare table === */
 .compare-wrap {
@@ -1986,33 +2009,18 @@ body.app {
   .p-card .p-price-row .old {
     font-size: 12.5px;
   }
-  /* Кнопка «Купить» и иконки ♥/⇆ в ОДНОМ ряду (были в два) — карточка ниже,
-     плотнее, как у Ozon. */
+  /* ♥/⇆ убраны из карточки листинга (теперь только внутри страницы товара).
+     «Купить» одна — слим-кнопка, высотой примерно с текст. */
   .p-card .p-card-actions {
-    padding: 8px 10px 10px;
-    display: flex;
-    align-items: stretch;
-    gap: 6px;
+    padding: 6px 10px 10px;
   }
   .p-card .p-card-buy {
-    flex: 1;
-    min-width: 0;
-    min-height: 34px;
+    width: 100%;
+    min-height: 30px;
+    height: 30px;
     font-size: 12.5px;
-    padding: 0 8px;
-    gap: 4px;
-  }
-  /* В узкой кнопке убираем иконку корзины, чтобы «Купить» влезало рядом с ♥/⇆. */
-  .p-card .p-card-buy svg {
-    display: none;
-  }
-  .p-card .p-card-secondary {
-    flex: 0 0 auto;
-    gap: 6px;
-  }
-  .p-card .p-card-icon {
-    flex: 0 0 auto;
-    width: 34px;
-    height: 36px;
+    padding: 0 10px;
+    gap: 5px;
+    border-radius: 9px;
   }
 }

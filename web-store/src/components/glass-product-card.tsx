@@ -1,9 +1,9 @@
 "use client";
 
 import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
-import { ArrowLeftRight, Heart, ImageOff, ShoppingCart } from "lucide-react";
+import { ImageOff, ShoppingCart } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { addCartItem } from "@/lib/cart-storage";
 import { decimalToNumber } from "@/lib/catalog";
 import { publicFulfillmentText } from "@/lib/fulfillment";
@@ -11,12 +11,6 @@ import { formatRub } from "@/lib/format";
 import { productShortTitle } from "@/lib/product-display";
 import { productImageSrc } from "@/lib/product-images";
 import { computeB2BPrice, getRolePricingConfig } from "@/lib/role-pricing";
-import {
-  toggleCompare as toggleCompareStorage,
-  toggleFavorite as toggleFavoriteStorage,
-  useCompare,
-  useFavorites,
-} from "@/lib/sku-list-storage";
 import { useStorefrontRole } from "@/lib/use-role";
 
 type GlassProductCardProduct = Product & {
@@ -35,7 +29,9 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
   const partInName = partTrim.length > 0 && baseName.toLowerCase().includes(partTrim.toLowerCase());
   const enrichedName = partTrim && !partInName ? `${baseName} ${partTrim}`.trim() : baseName;
   const name = productShortTitle(enrichedName, product.vendor, product.part, 120);
-  const image = productImageSrc(product.images?.[0]);
+  const images = (product.images ?? [])
+    .map((img) => productImageSrc(img))
+    .filter((src): src is string => Boolean(src));
   const price = decimalToNumber(product.retailPrice);
   const fulfillment = publicFulfillmentText({
     isAvailable: product.isAvailable && Boolean(price),
@@ -45,15 +41,40 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
   const inStock = product.isAvailable && Boolean(price);
   const href = `/product/${product.slug}`;
 
-  const favorites = useFavorites();
-  const compare = useCompare();
   const role = useStorefrontRole();
-  const isFavorite = favorites.includes(product.sku);
-  const isInCompare = compare.includes(product.sku);
-  const [compareError, setCompareError] = useState<string | null>(null);
   // Only retail (b2c) orders directly; b2b/gov request a price (КП) instead.
   const canBuy = canOrder && role === "b2c";
   const isQuoteOnly = role === "b2b" || (role === "gov" && pricing.govEnabled);
+
+  // Свайп-карусель фото прямо в карточке листинга (как Ozon): грузится только
+  // текущее фото, свайп листает, точки показывают количество. Свайп НЕ открывает
+  // карточку (гасим клик-навигацию после свайпа).
+  const [imgIndex, setImgIndex] = useState(0);
+  const touchStartX = useRef(0);
+  const swiped = useRef(false);
+  const index = images.length ? Math.min(imgIndex, images.length - 1) : 0;
+
+  function onTouchStart(event: React.TouchEvent) {
+    touchStartX.current = event.touches[0]?.clientX ?? 0;
+    swiped.current = false;
+  }
+  function onTouchMove(event: React.TouchEvent) {
+    const x = event.touches[0]?.clientX ?? touchStartX.current;
+    if (Math.abs(x - touchStartX.current) > 8) swiped.current = true;
+  }
+  function onTouchEnd(event: React.TouchEvent) {
+    if (images.length < 2) return;
+    const dx = (event.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
+    if (dx <= -40) setImgIndex(Math.min(index + 1, images.length - 1));
+    else if (dx >= 40) setImgIndex(Math.max(index - 1, 0));
+  }
+  function onArtClick(event: React.MouseEvent) {
+    if (swiped.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      swiped.current = false;
+    }
+  }
 
   function handleAddToCart(event: React.MouseEvent) {
     event.preventDefault();
@@ -61,30 +82,20 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
     if (canBuy) addCartItem(product.sku, quantity);
   }
 
-  function handleToggleFav(event: React.MouseEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    toggleFavoriteStorage(product.sku);
-  }
-
-  function handleToggleCompare(event: React.MouseEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    const result = toggleCompareStorage(product.sku);
-    if (!result.ok && result.message) {
-      setCompareError(result.message);
-      window.setTimeout(() => setCompareError(null), 2400);
-    }
-  }
-
   return (
     <article className="p-card">
       <Link href={href} className="p-card-link" aria-label={fullName}>
-        <div className="p-art">
+        <div
+          className="p-art"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onClick={onArtClick}
+        >
           <div className="p-art-img">
-            {image ? (
+            {images.length ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={image} alt={fullName} loading="lazy" />
+              <img src={images[index]} alt={fullName} loading="lazy" />
             ) : (
               <div className="p-art-placeholder">
                 <ImageOff size={28} aria-hidden />
@@ -92,6 +103,13 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
               </div>
             )}
           </div>
+          {images.length > 1 && (
+            <div className="p-art-dots" aria-hidden>
+              {images.map((src, i) => (
+                <span key={`${src}-${i}`} className={"p-art-dot" + (i === index ? " on" : "")} />
+              ))}
+            </div>
+          )}
         </div>
         <div className="p-body">
           <div className="p-meta">{product.vendor ?? "Товар"}</div>
@@ -143,34 +161,11 @@ export function GlassProductCard({ product }: { product: GlassProductCardProduct
             onClick={handleAddToCart}
             aria-label="В корзину"
           >
-            <ShoppingCart size={16} aria-hidden />
+            <ShoppingCart size={15} aria-hidden />
             Купить
           </button>
         )}
-        <div className="p-card-secondary">
-          <button
-            type="button"
-            className={"p-card-icon" + (isFavorite ? " on" : "")}
-            onClick={handleToggleFav}
-            aria-label={isFavorite ? "Убрать из избранного" : "В избранное"}
-            aria-pressed={isFavorite}
-            title={isFavorite ? "Убрать из избранного" : "В избранное"}
-          >
-            <Heart size={16} aria-hidden fill={isFavorite ? "currentColor" : "none"} />
-          </button>
-          <button
-            type="button"
-            className={"p-card-icon" + (isInCompare ? " on" : "")}
-            onClick={handleToggleCompare}
-            aria-label={isInCompare ? "Убрать из сравнения" : "К сравнению"}
-            aria-pressed={isInCompare}
-            title={isInCompare ? "Убрать из сравнения" : "К сравнению"}
-          >
-            <ArrowLeftRight size={16} aria-hidden />
-          </button>
-        </div>
       </div>
-      {compareError && <div className="p-card-toast">{compareError}</div>}
     </article>
   );
 }
