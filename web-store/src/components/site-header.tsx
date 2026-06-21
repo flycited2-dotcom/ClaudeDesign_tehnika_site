@@ -40,7 +40,11 @@ type MenuCategory = {
 
 const ROOT_PARENT_KEY = "root";
 
-export function SiteHeader() {
+type SiteHeaderProps = {
+  popularSearchQueries: readonly string[];
+};
+
+export function SiteHeader({ popularSearchQueries }: SiteHeaderProps) {
   const role = useStorefrontRole();
   const { setRole, isAuthenticated } = useStorefrontRoleSetter();
   const identity = useStorefrontIdentity();
@@ -378,7 +382,7 @@ export function SiteHeader() {
           })()}
         </div>
 
-        <HeaderSearchControl />
+        <HeaderSearchControl popularSearchQueries={popularSearchQueries} />
 
         <div className="head-actions">
           <Link href="/favorites" className="icon-btn" title="Избранное" aria-label="Избранное">
@@ -434,7 +438,7 @@ export function SiteHeader() {
       {/* Mobile-only sticky search row: rendered below the header, hidden on
           desktop via CSS. Separate instance from the embedded one — only one
           is visible per viewport, so independent state is fine. */}
-      <HeaderSearchControl variant="mobile-sticky" />
+      <HeaderSearchControl variant="mobile-sticky" popularSearchQueries={popularSearchQueries} />
 
       {mobOpen && (
         <div className="mob-drawer" onClick={() => setMobOpen(false)} role="dialog">

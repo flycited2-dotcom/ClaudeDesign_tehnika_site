@@ -19,4 +19,8 @@ describe("buildHeaderSearchQueries", () => {
       ...searchSeedQueries.filter((term) => term !== "телевизор").slice(0, 3),
     ]);
   });
+
+  it("uses seed queries when there are no recorded searches", () => {
+    expect(buildHeaderSearchQueries([], 3)).toEqual(searchSeedQueries.slice(0, 3));
+  });
 });

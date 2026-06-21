@@ -6,6 +6,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { SiteScreenBar } from "@/components/site-screen-bar";
 import { getRoleContext } from "@/lib/role";
+import { getPopularSearchTerms } from "@/lib/search-analytics";
+import { buildHeaderSearchQueries } from "@/lib/search-vocabulary";
 import "./globals.css";
 
 const inter = Inter({
@@ -53,7 +55,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const roleContext = await getRoleContext();
+  const [roleContext, popularSearches] = await Promise.all([
+    getRoleContext(),
+    getPopularSearchTerms(8).catch(() => []),
+  ]);
+  const headerSearchQueries = buildHeaderSearchQueries(popularSearches, 5);
   return (
     <html lang="ru" className={`${inter.variable} antialiased`}>
       <body className="app">
@@ -65,7 +71,7 @@ export default async function RootLayout({
           email={roleContext.email}
         >
           <ChromeGate>
-            <SiteHeader />
+            <SiteHeader popularSearchQueries={headerSearchQueries} />
           </ChromeGate>
           <main>{children}</main>
           <ChromeGate>

@@ -14,15 +14,14 @@ type Suggestion = {
   image: string | null;
 };
 
-const POPULAR = ["холодильник", "стиральная машина", "Bosch", "до 50 000 ₽", "встраиваемая"];
-
 type Props = {
   /** "embedded" — внутри десктоп-шапки (.header.glass).
    *  "mobile-sticky" — отдельная sticky-полоса под шапкой (только ≤760px). */
   variant?: "embedded" | "mobile-sticky";
+  popularSearchQueries: readonly string[];
 };
 
-export function HeaderSearchControl({ variant = "embedded" }: Props) {
+export function HeaderSearchControl({ variant = "embedded", popularSearchQueries }: Props) {
   const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -137,7 +136,7 @@ export function HeaderSearchControl({ variant = "embedded" }: Props) {
             <>
               <div className="sg-h">Популярные запросы</div>
               <div className="sg-tags">
-                {POPULAR.map((popular) => (
+              {popularSearchQueries.map((popular) => (
                   <button
                     key={popular}
                     type="button"
