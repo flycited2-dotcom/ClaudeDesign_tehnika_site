@@ -8,5 +8,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Prices/stocks can be refreshed several times a day, staying below 10 calls/hour.
 15 8,12,16,20 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:prices >> /var/log/climat-simf-sync.log 2>&1
 
+# Keep common full-search and typeahead results hot without overlapping runs.
+*/8 * * * * /var/www/climat-simf.ru/scripts/warm_search.sh >> /var/log/climat-simf-warm-search.log 2>&1
+
 # Image metadata sync is intentionally separate and can be enabled after catalog validation.
 45 4 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:images >> /var/log/climat-simf-sync.log 2>&1
