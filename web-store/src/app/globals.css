@@ -2024,3 +2024,35 @@ body.app {
     border-radius: 9px;
   }
 }
+
+/* ============================================================
+   Mobile cabinet / overflow fixes — QA 2026-06-23 (real device, 360px)
+   B1 /b2b,/gov clipped right edge · B2 home "Смотреть каталог" · B3 buy bar.
+   Override-only; glass-template.css untouched.
+   ============================================================ */
+@media (max-width: 760px) {
+  /* B2 — .section-head was flex nowrap: the CTA ("Смотреть каталог") and the
+     "Очистить" buttons on /favorites & /compare got pushed past the edge.
+     Let the action button wrap to its own line instead of being clipped. */
+  .section-head { flex-wrap: wrap; gap: 12px; }
+  .section-head > .btn,
+  .section-head a.btn { flex-shrink: 0; }
+
+  /* B1 — /b2b & /gov cabinets clipped ~50px. Root: .b2b-banner (1fr auto +
+     32px padding) never stacked on mobile and .doc-card (flex) could not
+     shrink. Stack the banner, let doc rows wrap, allow acc-* to shrink. */
+  .b2b-banner { grid-template-columns: 1fr; padding: 20px; gap: 14px; }
+  .b2b-banner h2 { font-size: 24px; }
+  .acc-content, .acc-card, .acc-sidebar { min-width: 0; }
+  .doc-card { padding: 14px; flex-wrap: wrap; }
+  .doc-card > div { min-width: 0; }
+}
+
+@media (max-width: 900px) {
+  /* B3 — product sticky buy bar. Root: .mob-buy-bar is display:grid with an
+     implicit `auto` column that grew to the row's max-content (~338px),
+     overflowing the bar's inner width (~308px) and clipping the buy button.
+     Cap the single column to the container width so the row shrinks to fit. */
+  .mob-buy-bar { grid-template-columns: minmax(0, 1fr); }
+  .mob-buy-bar .row { min-width: 0; }
+}

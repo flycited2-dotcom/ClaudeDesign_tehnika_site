@@ -16,6 +16,9 @@
 # visual QA screenshots (scripts/shoot-admin.mjs)
 /shots
 
+# mobile QA audit scratch (CDP walk scripts + screenshots + TZ)
+/qa-cabinet-audit/
+
 # next.js
 /.next/
 /out/
