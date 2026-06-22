@@ -24,6 +24,19 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-23 — Iter 65: мобильный overflow кабинета b2b/gov + главной + бара товара (живой QA на телефоне) ✅
+
+- **Commit:** `c7c180f` · **Backup:** `…source-backup-20260623002305.tar.gz`.
+- **Контекст:** владелец просил пройти флоу личного кабинета (подбор → ♥/⇆ → избранное → сравнение → корзина → кабинеты b2c/b2b/gov) и найти, где кнопки вылазят за край мобильной версии. Прогон — на **реальном телефоне TECNO BG6 (Android 13, Chrome 149, CSS-ширина 360px)** через ADB + `chrome_devtools_remote` + Playwright `connectOverCDP` (DOM-точные тапы вместо слепых пикселей; метод в memory `cdp-mobile-qa-2026-06-23`).
+- **Найдено живым сканом overflow (`getBoundingClientRect().right > 360`):**
+  - **B1 [P1]** `/b2b` +50px, `/gov` +42px — правый край кабинета срезан. Корень: `.b2b-banner{grid-template-columns:1fr auto;padding:32px}` (template:938) без мобильного стека + `.doc-card{display:flex}` (template:752) без `min-width:0`.
+  - **B2 [P2]** главная «Смотреть каталог» +69px и «Очистить» на /favorites,/compare +3px — `.section-head{flex-wrap:nowrap}`.
+  - **B3 [P2]** карточка товара: «Купить» в `.mob-buy-bar` +5px — бар `display:grid` с неявной `auto`-колонкой (computed `grid-template-columns: 338px`) распирал контент.
+- **Фикс (только override в `globals.css`, `glass-template.css` не тронут):** `@media ≤760px` — `.section-head{flex-wrap:wrap}`; `.b2b-banner` стек в 1 колонку + padding 20 + h2 24px; `.doc-card{flex-wrap:wrap}` + `>div{min-width:0}`; `.acc-content/.acc-card/.acc-sidebar{min-width:0}`. `@media ≤900px` — `.mob-buy-bar{grid-template-columns:minmax(0,1fr)}` + `.row{min-width:0}`.
+- **✅ Регресс:** старый P0 «♥/⇆ не срабатывает на /product мобиле» — в проде ОТСУТСТВУЕТ (тоггл работает: localStorage `[]→[sku]` + смена подписи; был артефакт кэша старого бандла). Корзина (строка→/product, степпер по кратности), checkout, /account (залогинен), категории, ролевые цены b2b/gov — чисто (0 overflow).
+- **Проверки:** lint чисто, тесты **258/258**, build зелёный. Живой скан на телефоне ДО фикса `39/29/3/2/1/1`; ПОСЛЕ деплоя (прод, без инъекции) **`0/0/0/0/0/0`** на home/b2b/gov/favorites/compare/product. Curl-смоук: `/ /catalog /b2b /gov /favorites /compare /cart /checkout /product = 200`, `/account = 307` (редирект на /login для неавторизованного — ожидаемо). Скриншоты до/после: `qa-cabinet-audit/shots/` (`04-product`↔`after-product`, `11-b2b`↔`after-b2b`).
+- **Не-баги / ограничения:** `/compare` таблица скроллится по горизонтали внутри `.compare-scroll` (by design — страница не едет); листинг-карточка без ♥/⇆ (намеренно, Ozon-стиль — избранное со страницы товара). QA-скрипты драйва телефона — `qa-cabinet-audit/*.mjs` + ТЗ (gitignored).
+
 ### 2026-06-21 — Карточка листинга в стиле Ozon + фото-первые (по замечаниям владельца) ✅
 
 - **Commits:** `c4680fb` (компакция+бейдж) → `228dc02` (один ряд действий) → `2601aae` (артикул убран, имя 3 строки) + операц. hasImage-UPDATE + cron. Backups `…175133`/`…180644`/`…181227`.
