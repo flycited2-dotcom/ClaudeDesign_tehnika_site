@@ -605,7 +605,11 @@ export async function getCatalogPage(query: CatalogQuery) {
   }
 
   if (query.withPhoto) {
-    filteredWhere.hasImage = true;
+    // Require a REAL non-deleted image, not the supplier `hasImage` flag — the
+    // flag is unreliable (~19k sellable products have hasImage=true with zero
+    // ProductImage rows), so the old filter still leaked "Фото уточняется"
+    // placeholders into the "только с фото" results.
+    filteredWhere.images = { some: { deleted: false } };
   }
 
   if (query.minPrice || query.maxPrice) {
