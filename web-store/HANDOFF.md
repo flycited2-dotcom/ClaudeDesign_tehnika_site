@@ -24,6 +24,16 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-25 — Iter 69: история заказов в личном кабинете ✅
+
+- **Commit:** `2341531` · **Backup:** `…20260625000341`. Миграция применена на деплое (`prisma db push`).
+- **Контекст:** /account обещал «история заказов появится в следующих обновлениях» — реализовано. Заказы не были связаны с юзером (`Order` по `phone`, без `userId`; checkout не читал юзера).
+- **Схема:** `Order.userId String?` (`onDelete: SetNull`) + `@@index([userId, createdAt])` + `User.orders`. Аддитивно (nullable) → `prisma db push` на деплое. Проверено: колонка `userId text YES` + индекс `Order_userId_createdAt_idx`.
+- **Checkout:** `createCheckoutOrder` читает `getCurrentUser()` и проставляет `userId` на заказ. Анонимный checkout работает как прежде (userId=null). `getOrdersForUser(userId)` в `lib/orders`.
+- **/account:** карточка «История заказов» — номер, дата, статус-бейдж (`.status-*`), сумма, кол-во позиций, ссылка на `/order-success/<id>`. Мобайл-safe (flex-wrap, min-width:0). Пустое состояние со ссылкой в каталог.
+- **Проверено:** lint/test **258**/build зелёные. На реальном телефоне `/account` рендерит карточку «История заказов», пустое состояние, **0 ошибок страницы** (миграция+запрос+рендер ок). Populated-вид — кодом/билдом (вставку тест-заказа в прод классификатор заблокировал; владелец увидит при первом реальном заказе залогиненного юзера).
+- **Долг:** b2b/gov КП-история (Lead/заявки в кабинет) — отдельно; checkout не предзаполняет имя/телефон юзера (UX-нич, опц).
+
 ### 2026-06-24 — Iter 68: cold-start длинного хвоста — TTL листингов + прогрев после деплоя ✅
 
 - **Commit:** `bb3eea3` (код). nginx/VPS-скрипты — операционно.
