@@ -87,6 +87,13 @@ def build_remote_deploy_script(
             "  fi",
             "  sleep 5",
             "done",
+            # Warm the cache right after restart so the post-deploy window (the
+            # .next/cache was just cleared) doesn't make the first real users
+            # eat a ~10s cold render. Hot routes synchronously, full category
+            # tail in the background. Non-fatal — never fail a deploy on warming.
+            "echo 'post-deploy cache warm: hot routes (sync) + full category tail (bg)'",
+            "bash scripts/warm_cache.sh >/tmp/climat-simf-warm-deploy.log 2>&1 || true",
+            "nohup bash scripts/warm_all.sh >/var/log/climat-simf-warm-deploy-all.log 2>&1 </dev/null &",
         ]
     )
 

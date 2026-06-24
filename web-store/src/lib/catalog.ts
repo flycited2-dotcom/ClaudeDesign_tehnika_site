@@ -39,7 +39,13 @@ const PRODUCTS_PER_PAGE = 24;
 // 1 hour. Pair with cron cache warmer (scripts/warm_all.sh) every 30 min so
 // every category route is always hot for the first user request.
 const STOREFRONT_CACHE_SECONDS = 3600;
-const PRODUCT_QUERY_CACHE_SECONDS = 600;
+// Pair with the same warmer as STOREFRONT_CACHE_SECONDS. At 600s (10 min) the
+// product-listing data cache expired 20 min before the 30-min warmer refreshed
+// it, so users hit the ~10s cold recompute on big categories in that window.
+// 3600s keeps category listings hot across the warm cycle. Freshness is fine:
+// the catalog is "под заказ" (manager confirms price/stock) and admin edits call
+// revalidatePath("/catalog"), so changes still appear promptly.
+const PRODUCT_QUERY_CACHE_SECONDS = 3600;
 // "Рекомендуемые товары" on the homepage: getHomeSnapshot returns a WIDE,
 // category-balanced pool (cached) instead of a frozen list of 8. The page
 // (force-dynamic) rotates a random window of 8 out of this pool on every
