@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth";
 import { validatePersonalDataConsent } from "@/lib/checkout/validation";
 import { createLocalOrder } from "@/lib/orders";
 
@@ -42,6 +43,10 @@ export async function createCheckoutOrder(_state: CheckoutState, formData: FormD
     return { error: "Корзина пустая или повреждена." };
   }
 
+  // Link the order to the logged-in user (if any) so it shows in their cabinet
+  // order history. Anonymous checkout still works (userId stays null).
+  const user = await getCurrentUser();
+
   let orderId = "";
   try {
     const order = await createLocalOrder({
@@ -50,6 +55,7 @@ export async function createCheckoutOrder(_state: CheckoutState, formData: FormD
       email: parsed.data.email || null,
       comment: parsed.data.comment || null,
       cartItems: parsedCart.data,
+      userId: user?.id ?? null,
     });
     orderId = order.id;
   } catch (error) {

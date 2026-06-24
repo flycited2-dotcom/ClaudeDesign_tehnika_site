@@ -14,6 +14,7 @@ export type CheckoutInput = {
   cartItems: CartInputItem[];
   notificationKind?: "order" | "quick";
   sourceUrl?: string | null;
+  userId?: string | null;
 };
 
 function orderNumber(): string {
@@ -24,6 +25,23 @@ function orderNumber(): string {
 export async function quoteCart(cartItems: CartInputItem[]) {
   const products = await getProductsForQuote(cartItems.map((item) => item.sku));
   return buildOrderQuote({ cartItems, products });
+}
+
+/** Recent orders for a logged-in user's cabinet (newest first). */
+export async function getOrdersForUser(userId: string, limit = 20) {
+  return prisma.order.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      total: true,
+      createdAt: true,
+      items: { select: { id: true, name: true, quantity: true } },
+    },
+  });
 }
 
 export async function createLocalOrder(input: CheckoutInput) {
@@ -44,6 +62,7 @@ export async function createLocalOrder(input: CheckoutInput) {
       phone: input.phone,
       email: input.email,
       comment: input.comment,
+      userId: input.userId ?? null,
       total: new Prisma.Decimal(quote.total),
       items: {
         create: quote.items.map((item) => ({

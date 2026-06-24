@@ -41,6 +41,7 @@ model User {
   updatedAt    DateTime             @updatedAt
   sessions     Session[]
   roleRequests RoleUpgradeRequest[]
+  orders       Order[]
 
   @@index([role])
 }
@@ -210,12 +211,15 @@ model Order {
   total           Decimal     @db.Decimal(12, 2)
   supplierOrderId String?
   supplierStatus  String?
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
   @@index([status, createdAt])
   @@index([phone])
+  @@index([userId, createdAt])
 }
 
 model OrderItem {

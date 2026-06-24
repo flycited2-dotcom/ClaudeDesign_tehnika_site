@@ -1,11 +1,24 @@
 import type { Metadata } from "next";
+import type { OrderStatus } from "@prisma/client";
 import { ArrowLeftRight, ArrowRight, ClipboardList, Heart, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AccountShell } from "@/components/account-shell";
 import { AccountStatValue } from "@/components/account-stat-value";
 import { getCurrentUser, roleToStorefront } from "@/lib/auth";
+import { formatRub } from "@/lib/format";
+import { getOrdersForUser } from "@/lib/orders";
 import { storefront } from "@/lib/storefront";
+
+const ORDER_STATUS: Record<OrderStatus, { label: string; cls: string }> = {
+  NEW: { label: "Новый", cls: "status-new" },
+  PROCESSING: { label: "В обработке", cls: "status-prog" },
+  CONFIRMED: { label: "Подтверждён", cls: "status-prog" },
+  SENT_TO_SUPPLIER: { label: "У поставщика", cls: "status-prog" },
+  SUPPLIER_ERROR: { label: "Требует уточнения", cls: "status-canc" },
+  COMPLETED: { label: "Выполнен", cls: "status-done" },
+  CANCELLED: { label: "Отменён", cls: "status-canc" },
+};
 
 export const metadata: Metadata = {
   title: "Личный кабинет",
@@ -25,6 +38,8 @@ export default async function AccountPage() {
   if (role === "gov") redirect("/gov");
 
   const greeting = user.name?.trim() ? `Здравствуйте, ${user.name.split(/\s+/)[0]}!` : "Здравствуйте!";
+
+  const orders = await getOrdersForUser(user.id);
 
   return (
     <AccountShell
@@ -61,6 +76,54 @@ export default async function AccountPage() {
             <div className="d">{storefront.region}</div>
           </div>
         </div>
+      </div>
+
+      <div className="acc-card">
+        <h3>История заказов</h3>
+        {orders.length === 0 ? (
+          <p style={{ color: "var(--text-mute)", fontSize: 14, lineHeight: 1.5 }}>
+            Здесь будут ваши заказы. Оформите первый — менеджер подтвердит наличие и сроки.{" "}
+            <Link href="/catalog" style={{ fontWeight: 700, color: "var(--accent-2)" }}>
+              Перейти в каталог
+            </Link>
+          </p>
+        ) : (
+          <div style={{ display: "grid", gap: 10 }}>
+            {orders.map((order) => {
+              const s = ORDER_STATUS[order.status];
+              const qty = order.items.reduce((n, item) => n + item.quantity, 0);
+              return (
+                <Link
+                  key={order.id}
+                  href={`/order-success/${order.id}`}
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: 14,
+                    borderRadius: 14,
+                    background: "rgba(255,255,255,0.5)",
+                    border: "1px solid var(--glass-stroke)",
+                    textDecoration: "none",
+                    color: "inherit",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 14, color: "var(--text)" }}>{order.orderNumber}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-mute)", marginTop: 2 }}>
+                      {new Date(order.createdAt).toLocaleDateString("ru-RU")} · {qty} шт
+                    </div>
+                  </div>
+                  <span className={`status-pill ${s.cls}`}>{s.label}</span>
+                  <strong style={{ fontSize: 15, color: "var(--text)", whiteSpace: "nowrap" }}>
+                    {formatRub(Number(order.total))}
+                  </strong>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="acc-card">
