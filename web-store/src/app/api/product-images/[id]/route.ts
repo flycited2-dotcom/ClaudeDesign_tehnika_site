@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { publicBaseUrl } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { isAllowedSupplierImageUrl } from "@/lib/product-images";
@@ -69,12 +70,30 @@ export async function GET(request: Request, { params }: RouteContext) {
     return placeholderImageResponse();
   }
 
-  const headers = new Headers();
-  headers.set("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
-  headers.set("Content-Type", upstream.headers.get("Content-Type") ?? "image/jpeg");
-
-  return new Response(upstream.body, {
-    status: 200,
-    headers,
-  });
+  // Downscale to a sane max and convert to WebP. Supplier images are ~800×800
+  // JPEGs (~160KB); WebP at this size is ~3–5× smaller, which matters a lot on
+  // mobile where a catalog page loads ~24 of them. All modern browsers support
+  // WebP, so we serve it unconditionally. nginx (proxy_cache) caches the result.
+  const input = Buffer.from(await upstream.arrayBuffer());
+  const cacheControl = "public, max-age=86400, stale-while-revalidate=604800";
+  try {
+    const webp = await sharp(input)
+      .rotate() // honor EXIF orientation
+      .resize({ width: 800, height: 800, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: 78 })
+      .toBuffer();
+    return new Response(new Uint8Array(webp), {
+      status: 200,
+      headers: { "Cache-Control": cacheControl, "Content-Type": "image/webp" },
+    });
+  } catch {
+    // Unsupported/corrupt source — serve the original bytes rather than failing.
+    return new Response(new Uint8Array(input), {
+      status: 200,
+      headers: {
+        "Cache-Control": cacheControl,
+        "Content-Type": upstream.headers.get("Content-Type") ?? "image/jpeg",
+      },
+    });
+  }
 }
