@@ -24,6 +24,19 @@
 > исходников в `/var/www/climat-simf.ru.source-backup-<timestamp>.tar.gz` —
 > по нему можно откатиться (`tar -xzf <archive> -C /var/www/climat-simf.ru`).
 
+### 2026-06-24 — Iter 66: скорость — WebP/resize фото (×12.5) + HTTP/2 ✅
+
+- **Commit (код):** `8d96889` · **Backup:** `…source-backup-20260624165540.tar.gz`. **nginx-правки — на VPS, не в git** (см. ниже).
+- **WebP/resize (код):** `src/app/api/product-images/[id]/route.ts` теперь конвертирует исходник поставщика в **WebP** через `sharp` (q78, `fit:inside` ≤800, без апскейла) вместо стрима оригинального JPEG. `sharp` 0.34.5 добавлен в deps явно (уже шёл транзитивно через Next 16, на VPS присутствует → деплой **без** `--install`). Фолбэк на оригинал при ошибке sharp. Замер на реальном фото прода: **45 728 b JPEG → 3 658 b WebP (×12.5, −92%)**. Выигрыш на ВСЕХ `<img>` (`productImageSrc` всегда `/api/product-images/<id>`).
+- **HTTP/2 (nginx, VPS):** `/etc/nginx/sites-available/climat-simf.ru` — `listen 443 ssl;` → `listen 443 ssl http2;` (модуль `--with-http_v2_module` присутствует). Бэкап конфига `…/climat-simf.ru.bak-1782322592`. `nginx -t` OK → `systemctl reload nginx`. Проверено Node `http2.connect` → ALPN **h2**, status 200.
+- **Сброс кэша фото (nginx, VPS):** зона `product_images` (`/var/cache/nginx/product_images`, `proxy_cache_key "$uri"`, `proxy_cache_valid 200 30d`) держала старые JPEG → `find … -type f -delete` (**13 435 файлов**). После — фото пересоздаётся как WebP. Проверено: Kuppersberg-фото теперь `image/webp 3658b` через nginx (было `image/jpeg 45728b`).
+- **Проверки:** lint чисто, тесты **258/258**, build зелёный.
+- **Ловушки / на будущее:**
+  - **Certbot** при renewal может переписать `listen 443 ssl;` и **убрать `http2`**. Если HTTP/2 пропадёт — повторить: `sed -i 's/listen 443 ssl;/listen 443 ssl http2;/' /etc/nginx/sites-available/climat-simf.ru` + `nginx -t && systemctl reload nginx`.
+  - `proxy_cache_key "$uri"` игнорирует query (cache-buster `?v=` НЕ работает) + TTL 30d → при будущей смене формата/качества фото нужен **ручной purge**: `find /var/cache/nginx/product_images -type f -delete && systemctl reload nginx`.
+  - SSH к VPS теперь разрешён узким правилом в `.claude/settings.local.json`: `Bash(ssh -i ~/.ssh/climat_simf_deploy *)`.
+- **Осталось по «скорости»:** cold-start длинного хвоста категорий (ISR / fetch-all warmer) — отдельная задача.
+
 ### 2026-06-23 — Iter 65: мобильный overflow кабинета b2b/gov + главной + бара товара (живой QA на телефоне) ✅
 
 - **Commit:** `c7c180f` · **Backup:** `…source-backup-20260623002305.tar.gz`.
