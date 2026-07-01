@@ -228,4 +228,11 @@ describe("catalog attribute registry", () => {
       expect(getCatalogAttributeMarketingRank("anything", null)).toBe(1000);
     });
   });
+
+  it("exposes camera_type and night_vision for the camera family", () => {
+    expect(getCatalogAttributeDefinition("camera_type")).toMatchObject({ label: "Тип камеры", valueType: "enum", control: "checkbox" });
+    expect(getCatalogAttributeDefinition("night_vision")).toMatchObject({ label: "ИК-подсветка", valueType: "boolean", control: "checkbox" });
+    const keys = getCatalogAttributeKeysForCategory({ categoryName: "Камеры видеонаблюдения" });
+    expect(keys).toEqual(expect.arrayContaining(["camera_type", "night_vision", "camera_lens_mm", "ip_rating"]));
+  });
 });

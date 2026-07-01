@@ -545,9 +545,36 @@ function extractCameraAttributes(text: string, attributes: ExtractedProductAttri
     });
   }
 
-  const lens = text.match(/(?:объектив|фокус\D{0,16})\D{0,8}(\d+(?:[.,]\d+)?)\s*мм/i);
+  const lensKeyword = text.match(/(?:объектив|фокус\D{0,16})\D{0,8}(\d+(?:[.,]\d+)?)\s*мм/i);
+  // CCTV names often give focal length as a bare number ("3.6-3.6мм", "4мм")
+  // with no "объектив"/"фокус" keyword nearby. Bound it to a plausible CCTV lens
+  // range (1-25mm) so it can't mistake a housing dimension ("120х80х60 мм") for it.
+  const lensBare = Array.from(text.matchAll(/(\d{1,2}(?:[.,]\d+)?)\s*мм/gi)).find((match) => {
+    const value = numberValue(match[1]);
+    return value !== null && value >= 1 && value <= 25;
+  });
+  const lens = lensKeyword ?? lensBare;
   if (lens) {
     addNumberAttribute(attributes, "camera_lens_mm", "Фокусное расстояние", lens[1], "мм");
+  }
+
+  if (/купол[а-яё]*|\bdome\b/i.test(text)) {
+    addAttribute(attributes, { key: "camera_type", label: "Тип камеры", value: "Купольная", normalizedValue: "dome", numericValue: null, unit: null });
+  } else if (/цилиндр[а-яё]*|\bbullet\b/i.test(text)) {
+    addAttribute(attributes, { key: "camera_type", label: "Тип камеры", value: "Цилиндрическая", normalizedValue: "bullet", numericValue: null, unit: null });
+  } else if (/поворотн[а-яё]*|\bptz\b/i.test(text)) {
+    addAttribute(attributes, { key: "camera_type", label: "Тип камеры", value: "Поворотная", normalizedValue: "ptz", numericValue: null, unit: null });
+  }
+
+  if (/ик[\s-]*подсветк|инфракрасн[а-яё]*\s*подсветк|night\s*vision/i.test(text)) {
+    addAttribute(attributes, {
+      key: "night_vision",
+      label: "ИК-подсветка",
+      value: "Да",
+      normalizedValue: "yes",
+      numericValue: null,
+      unit: null,
+    });
   }
 
   const ipRating = extractIpRating(text);

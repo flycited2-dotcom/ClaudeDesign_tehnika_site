@@ -71,6 +71,8 @@ export const catalogAttributeDefinitions = [
   { key: "mount_type", label: "Установка", valueType: "enum", control: "checkbox", families: ["electrical"] },
   { key: "gang_count", label: "Количество клавиш/постов", valueType: "number", control: "range", unit: "шт.", families: ["electrical"] },
   { key: "camera_lens_mm", label: "Фокусное расстояние", valueType: "number", control: "range", unit: "мм", families: ["camera"] },
+  { key: "camera_type", label: "Тип камеры", valueType: "enum", control: "checkbox", families: ["camera"] },
+  { key: "night_vision", label: "ИК-подсветка", valueType: "boolean", control: "checkbox", families: ["camera"] },
   { key: "paper_format", label: "Формат", valueType: "enum", control: "checkbox", families: ["paper"] },
   { key: "paper_density", label: "Плотность", valueType: "number", control: "range", unit: "г/м²", families: ["paper"] },
   { key: "paper_whiteness", label: "Белизна", valueType: "number", control: "range", unit: "%", families: ["paper"] },

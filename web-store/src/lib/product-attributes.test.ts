@@ -514,4 +514,27 @@ describe("extractProductNameAttributes", () => {
     const managed = extractProductNameAttributes("Коммутатор Dahua DH-CS4006-4GT-60, 4×1 Гбит/с + 2×1 Гбит/с Combo, управляемый");
     expect(Object.fromEntries(managed.map((a) => [a.key, a])).managed_type).toMatchObject({ value: "Управляемый", normalizedValue: "managed" });
   });
+
+  it("extracts bare lens focal length (no объектив/фокус keyword) for CCTV camera names", () => {
+    const withRange = extractProductNameAttributes("Видеокамера IP Dahua DH-IPC-HFW3249EP-AS-LED-0360B 3.6-3.6мм цветная корп.:белый");
+    expect(Object.fromEntries(withRange.map((a) => [a.key, a])).camera_lens_mm).toMatchObject({ normalizedValue: "3.6", numericValue: 3.6 });
+
+    const bare = extractProductNameAttributes("Купольная IP-камера видеонаблюдения Hikvision DS-2CD1343G0-I 4мм");
+    expect(Object.fromEntries(bare.map((a) => [a.key, a])).camera_lens_mm).toMatchObject({ normalizedValue: "4", numericValue: 4 });
+  });
+
+  it("does not mistake camera housing dimensions for a lens focal length", () => {
+    const attributes = extractProductNameAttributes("Камера видеонаблюдения корпус 120х80х60 мм");
+    expect(Object.fromEntries(attributes.map((a) => [a.key, a])).camera_lens_mm).toBeUndefined();
+  });
+
+  it("extracts camera_type and night_vision for CCTV cameras", () => {
+    const dome = extractProductNameAttributes("Купольная IP-камера видеонаблюдения Hikvision DS-2CD1343G0-I 4мм, ИК-подсветка до 30м");
+    const byKey = Object.fromEntries(dome.map((a) => [a.key, a]));
+    expect(byKey.camera_type).toMatchObject({ value: "Купольная", normalizedValue: "dome" });
+    expect(byKey.night_vision).toMatchObject({ value: "Да" });
+
+    const bullet = extractProductNameAttributes("Цилиндрическая камера видеонаблюдения Dahua DH-IPC-HFW1239");
+    expect(Object.fromEntries(bullet.map((a) => [a.key, a])).camera_type).toMatchObject({ value: "Цилиндрическая", normalizedValue: "bullet" });
+  });
 });
