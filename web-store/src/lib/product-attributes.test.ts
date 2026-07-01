@@ -487,4 +487,18 @@ describe("extractProductNameAttributes", () => {
     const attributes = extractProductNameAttributes("Розетка 2-м СП Glossa с заземл. в сборе бел. SchE GSL000124");
     expect(Object.fromEntries(attributes.map((a) => [a.key, a])).mount_type).toBeUndefined();
   });
+
+  it("recognizes additional finish colors common on electrical accessories (Мокко/Шампань/Слоновая кость/Айвори/Графит)", () => {
+    const cases: Array<[string, string, string]> = [
+      ["Systeme Electric ArtGallery Мокко Выключатель 1-клавишный кнопочный", "Мокко", "mocha"],
+      ["Systeme Electric ArtGallery Шампань Выключатель 4-клавишный сценарный", "Шампань", "champagne"],
+      ["Jasmart G-Classic Слоновая кость Рамка 2-постовая", "Слоновая кость", "ivory"],
+      ["Выключатель двухклавишный с самовозвратом (айвори матовый)", "Айвори", "ivory"],
+      ["Комплект механизма терморегулятора ALFA Графит мягкое касание", "Графит", "graphite"],
+    ];
+    for (const [name, expectedValue, expectedNormalized] of cases) {
+      const byKey = Object.fromEntries(extractProductNameAttributes(name).map((a) => [a.key, a]));
+      expect(byKey.color, `color for "${name}"`).toMatchObject({ value: expectedValue, normalizedValue: expectedNormalized });
+    }
+  });
 });

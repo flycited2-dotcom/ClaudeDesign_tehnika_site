@@ -200,6 +200,11 @@ function extractColor(text: string): { value: string; normalizedValue: string } 
     { pattern: /син(ий|яя|ее|ие)|\bblue\b/i, value: "Синий", normalizedValue: "blue" },
     { pattern: /зел[её]н(ый|ая|ое|ые)|\bgreen\b/i, value: "Зеленый", normalizedValue: "green" },
     { pattern: /бежев(ый|ая|ое|ые)|\bbeige\b/i, value: "Бежевый", normalizedValue: "beige" },
+    { pattern: /мокко/i, value: "Мокко", normalizedValue: "mocha" },
+    { pattern: /шампан[а-яё]*/i, value: "Шампань", normalizedValue: "champagne" },
+    { pattern: /слонов[а-яё]*\s+кост[а-яё]*/i, value: "Слоновая кость", normalizedValue: "ivory" },
+    { pattern: /айвори/i, value: "Айвори", normalizedValue: "ivory" },
+    { pattern: /графит/i, value: "Графит", normalizedValue: "graphite" },
   ];
 
   return colors.find((color) => color.pattern.test(text)) ?? null;
