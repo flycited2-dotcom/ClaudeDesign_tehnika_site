@@ -321,6 +321,14 @@ describe("extractProductNameAttributes", () => {
       ],
       ["Nintendo Switch game console", "Игровая консоль Nintendo Switch OLED 64GB белый"],
       [
+        "Network switch (English 'Switch') is not an on/off Выключатель",
+        "Неуправляемый коммутатор ORIGO Unmanaged Switch 8x1000Base-T, 2x1000Base-X SFP, metal case",
+      ],
+      [
+        "Network switch's battery-backup connector is not a standalone Коннектор",
+        "Коммутатор управляемый SNR 2+, 24 порта 10/100/1000Base-T, 4 порта 1/10G SFP+, встроенный БП ~220V AC, разъем для АКБ 12V с возможностью заряда",
+      ],
+      [
         "Cable channel (кабель-канал) whose W×H dimension is not a core count",
         "Короб перфорированный кабель-канал 40х20мм, 2м, белый",
       ],

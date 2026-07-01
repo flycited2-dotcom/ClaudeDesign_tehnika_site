@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeftRight, Check, Heart, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatRub } from "@/lib/format";
 import { QuoteRequestButton } from "@/components/quote-request-button";
 import { computeB2BPrice, getRolePricingConfig } from "@/lib/role-pricing";
@@ -15,6 +15,13 @@ import { useStorefrontRole } from "@/lib/use-role";
 
 function ShareButton({ productName, productHref }: { productName: string; productHref: string }) {
   const [justCopied, setJustCopied] = useState(false);
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+    };
+  }, []);
 
   const handleShare = async () => {
     const url = `${window.location.origin}${productHref}`;
@@ -31,7 +38,8 @@ function ShareButton({ productName, productHref }: { productName: string; produc
     try {
       await navigator.clipboard.writeText(url);
       setJustCopied(true);
-      setTimeout(() => setJustCopied(false), 2000);
+      if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
+      resetTimeoutRef.current = setTimeout(() => setJustCopied(false), 2000);
     } catch {
       // Clipboard API unavailable/denied — no fallback left to try.
     }

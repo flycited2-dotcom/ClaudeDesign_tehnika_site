@@ -140,8 +140,10 @@ function extractElectricalProductType(text: string): { value: string; normalized
   if (/переключател[а-яё]*\s*(?:проходн|перекр[её]стн|клавиш)/i.test(text)) {
     return { value: "Переключатель", normalizedValue: "changeover_switch" };
   }
-  // "Nintendo Switch" is a game console brand name, not an on/off switch.
-  if (/выключател|\bswitch\b/i.test(text) && !/nintendo\s+switch/i.test(text)) {
+  // English "Switch" also means a network switch (коммутатор) — a very common
+  // collision in this catalog — and "Nintendo Switch" is a game console brand
+  // name. Neither is an on/off wall switch.
+  if (/выключател|\bswitch\b/i.test(text) && !/nintendo\s+switch/i.test(text) && !looksLikeNetworkProduct(text)) {
     return { value: "Выключатель", normalizedValue: "switch" };
   }
   if (/дифавтомат|автоматическ\D{0,12}выключател|узо|\bbreaker\b/i.test(text)) {
@@ -152,7 +154,13 @@ function extractElectricalProductType(text: string): { value: string; normalized
   }
   // Same port-count trap as "Кабель" above: "разъемы 2x HDMI" on a TV/laptop
   // describes THAT device's ports, not that the product itself is a connector.
-  if (/разъ[её]м|коннектор|клемм|\bconnector\b/i.test(text) && !looksLikeInterfacePortSpec(text)) {
+  // Network switches also commonly mention a battery-backup connector
+  // ("разъем для АКБ") as one spec among many — still not a standalone connector product.
+  if (
+    /разъ[её]м|коннектор|клемм|\bconnector\b/i.test(text) &&
+    !looksLikeInterfacePortSpec(text) &&
+    !looksLikeNetworkProduct(text)
+  ) {
     return { value: "Коннектор", normalizedValue: "connector" };
   }
   if (/терморегулятор|термостат/i.test(text)) {
