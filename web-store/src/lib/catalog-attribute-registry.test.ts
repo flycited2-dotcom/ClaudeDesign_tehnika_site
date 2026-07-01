@@ -235,4 +235,10 @@ describe("catalog attribute registry", () => {
     const keys = getCatalogAttributeKeysForCategory({ categoryName: "Камеры видеонаблюдения" });
     expect(keys).toEqual(expect.arrayContaining(["camera_type", "night_vision", "camera_lens_mm", "ip_rating"]));
   });
+
+  it("exposes PC cooling filters (fan_size_mm, noise_db, rpm, has_argb) under the computer family", () => {
+    expect(getCatalogAttributeDefinition("fan_size_mm")).toMatchObject({ label: "Размер вентилятора", valueType: "number", control: "range", unit: "мм" });
+    const keys = getCatalogAttributeKeysForCategory({ categoryName: "Кулеры и системы охлаждения для компьютеров" });
+    expect(keys).toEqual(expect.arrayContaining(["fan_size_mm", "noise_db", "rpm", "has_argb"]));
+  });
 });

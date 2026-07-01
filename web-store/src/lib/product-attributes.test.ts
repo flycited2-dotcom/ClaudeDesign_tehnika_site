@@ -537,4 +537,22 @@ describe("extractProductNameAttributes", () => {
     const bullet = extractProductNameAttributes("Цилиндрическая камера видеонаблюдения Dahua DH-IPC-HFW1239");
     expect(Object.fromEntries(bullet.map((a) => [a.key, a])).camera_type).toMatchObject({ value: "Цилиндрическая", normalizedValue: "bullet" });
   });
+
+  it("extracts fan_size_mm, noise_db, rpm and has_argb for PC cooling products", () => {
+    const aio = extractProductNameAttributes(
+      "Водяное охлаждение для процессора Thermalright Frozen Notte 240 черный ARGB V2 (240мм, Black, ARGB/ Fans: 2x120мм, 72.37CFM, 27.7dBA, 2000RPM)",
+    );
+    const aioByKey = Object.fromEntries(aio.map((a) => [a.key, a]));
+    expect(aioByKey.fan_size_mm).toMatchObject({ normalizedValue: "240", numericValue: 240 });
+    expect(aioByKey.noise_db).toMatchObject({ normalizedValue: "27.7", numericValue: 27.7 });
+    expect(aioByKey.rpm).toMatchObject({ normalizedValue: "2000", numericValue: 2000 });
+    expect(aioByKey.has_argb).toMatchObject({ value: "Да" });
+
+    const caseFan = extractProductNameAttributes("Вентилятор корпусной Noctua NF-A12x25 PWM, 120 мм, 450-2000 об/мин, 22.6 дБ, 4-pin PWM, без подсветки");
+    const caseFanByKey = Object.fromEntries(caseFan.map((a) => [a.key, a]));
+    expect(caseFanByKey.fan_size_mm).toMatchObject({ normalizedValue: "120", numericValue: 120 });
+    expect(caseFanByKey.noise_db).toMatchObject({ normalizedValue: "22.6", numericValue: 22.6 });
+    expect(caseFanByKey.rpm).toMatchObject({ normalizedValue: "2000", numericValue: 2000 });
+    expect(caseFanByKey.has_argb).toBeUndefined();
+  });
 });

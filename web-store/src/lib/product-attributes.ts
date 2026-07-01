@@ -830,6 +830,40 @@ function extractNetworkAttributes(text: string, attributes: ExtractedProductAttr
   }
 }
 
+function looksLikeCoolingProduct(text: string): boolean {
+  return /куллер|кулер|охлажден[а-яё]*\s+(?:для\s+)?(?:процессор|пк|computer)|вентилятор\s+корпусн|система\s+охлажден/i.test(text);
+}
+
+function extractCoolingAttributes(text: string, attributes: ExtractedProductAttribute[]) {
+  if (!looksLikeCoolingProduct(text)) return;
+
+  const fanSize = text.match(/(\d{2,3})\s*мм/i);
+  if (fanSize) {
+    addNumberAttribute(attributes, "fan_size_mm", "Размер вентилятора", fanSize[1], "мм");
+  }
+
+  const noise = text.match(/(\d+(?:[.,]\d+)?)\s*(?:дБ[а]?|db[a]?)/i);
+  if (noise) {
+    addNumberAttribute(attributes, "noise_db", "Уровень шума", noise[1], "дБ");
+  }
+
+  const rpm = text.match(/(\d+)(?:\s*-\s*(\d+))?\s*(?:об\.?\/?\s?мин|rpm)/i);
+  if (rpm) {
+    addNumberAttribute(attributes, "rpm", "Скорость вращения", rpm[2] ?? rpm[1], "об/мин");
+  }
+
+  if (/\bargb\b|\brgb\b/i.test(text)) {
+    addAttribute(attributes, {
+      key: "has_argb",
+      label: "Подсветка ARGB/RGB",
+      value: "Да",
+      normalizedValue: "yes",
+      numericValue: null,
+      unit: null,
+    });
+  }
+}
+
 function looksLikeTvProduct(text: string): boolean {
   return /телевизор|smart\s*tv|\bтв\b|qled|oled|\bled\b\s*т[ \-]?в|плазменн/i.test(text);
 }
@@ -1023,6 +1057,7 @@ export function extractProductNameAttributes(name: string | null | undefined): E
   extractDishAndApparelAttributes(text, attributes);
   extractVacuumAttributes(text, attributes);
   extractNetworkAttributes(text, attributes);
+  extractCoolingAttributes(text, attributes);
 
   const electricalProductType = extractElectricalProductType(text);
   if (electricalProductType) {
