@@ -7,6 +7,8 @@ import { ProductAsideActions } from "@/components/product-aside-actions";
 import { ProductBuyBlock } from "@/components/product-buy-block";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductMobBuyBar } from "@/components/product-mob-buy-bar";
+import { RecentlyViewedStrip } from "@/components/recently-viewed-strip";
+import { RecordProductView } from "@/components/record-product-view";
 import { StockBadge } from "@/components/stock-badge";
 import { decimalToNumber, getCategoryPathById, getProductBySlug, getRelatedProducts } from "@/lib/catalog";
 import { buildCatalogBreadcrumbItems, truncateBreadcrumbLabel } from "@/lib/catalog-breadcrumbs";
@@ -125,6 +127,7 @@ export default async function ProductPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbJsonLd) }} />
+      <RecordProductView sku={product.sku} />
 
       <div className="bread">
         <Link href={backHref} className="btn btn-ghost btn-sm" style={{ marginRight: 8 }}>
@@ -383,6 +386,10 @@ export default async function ProductPage({ params }: Props) {
           </div>
         )}
       </section>
+
+      <div style={{ marginTop: 24 }}>
+        <RecentlyViewedStrip excludeSku={product.sku} />
+      </div>
 
       <section
         className="glass-strong"

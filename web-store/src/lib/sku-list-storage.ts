@@ -59,11 +59,16 @@ export const FAV_EVENT = "favorites:changed";
 export const COMPARE_KEY = "techno_market_compare_v1";
 export const COMPARE_EVENT = "compare:changed";
 export const COMPARE_MAX = 4;
+export const RECENT_KEY = "techno_market_recent_v1";
+export const RECENT_EVENT = "recent:changed";
+export const RECENT_MAX = 12;
 
 const subscribeFav = subscribeFactory(FAV_EVENT);
 const subscribeCompare = subscribeFactory(COMPARE_EVENT);
+const subscribeRecent = subscribeFactory(RECENT_EVENT);
 const snapshotFav = snapshotFactory(FAV_KEY);
 const snapshotCompare = snapshotFactory(COMPARE_KEY);
+const snapshotRecent = snapshotFactory(RECENT_KEY);
 
 export function useFavorites() {
   return useSyncExternalStore(subscribeFav, snapshotFav, getServerSnapshot);
@@ -71,6 +76,10 @@ export function useFavorites() {
 
 export function useCompare() {
   return useSyncExternalStore(subscribeCompare, snapshotCompare, getServerSnapshot);
+}
+
+export function useRecentlyViewed() {
+  return useSyncExternalStore(subscribeRecent, snapshotRecent, getServerSnapshot);
 }
 
 export function toggleFavorite(sku: number) {
@@ -98,4 +107,15 @@ export function clearFavorites() {
 
 export function clearCompare() {
   writeList(COMPARE_KEY, COMPARE_EVENT, []);
+}
+
+/** Records a product view — most-recent-first, deduped, capped at RECENT_MAX. */
+export function recordRecentlyViewed(sku: number) {
+  const current = readList(RECENT_KEY);
+  const next = [sku, ...current.filter((value) => value !== sku)].slice(0, RECENT_MAX);
+  writeList(RECENT_KEY, RECENT_EVENT, next);
+}
+
+export function clearRecentlyViewed() {
+  writeList(RECENT_KEY, RECENT_EVENT, []);
 }
