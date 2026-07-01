@@ -108,6 +108,12 @@ function extractElectricalProductType(text: string): { value: string; normalized
   return null;
 }
 
+function extractIpRating(text: string): { value: string; normalizedValue: string } | null {
+  const match = text.match(/\bIP\s?(\d{2})\b/i);
+  if (!match) return null;
+  return { value: `IP${match[1]}`, normalizedValue: `ip${match[1]}` };
+}
+
 function extractColor(text: string): { value: string; normalizedValue: string } | null {
   const colors: Array<{ pattern: RegExp; value: string; normalizedValue: string }> = [
     { pattern: /бел(ый|ая|ое|ые)|\bwhite\b/i, value: "Белый", normalizedValue: "white" },
@@ -462,13 +468,13 @@ function extractCameraAttributes(text: string, attributes: ExtractedProductAttri
     addNumberAttribute(attributes, "camera_lens_mm", "Фокусное расстояние", lens[1], "мм");
   }
 
-  const ipRating = text.match(/\bIP\s?(\d{2})\b/i);
+  const ipRating = extractIpRating(text);
   if (ipRating) {
     addAttribute(attributes, {
       key: "ip_rating",
       label: "Степень защиты",
-      value: `IP${ipRating[1]}`,
-      normalizedValue: `ip${ipRating[1]}`,
+      value: ipRating.value,
+      normalizedValue: ipRating.normalizedValue,
       numericValue: null,
       unit: null,
     });
@@ -909,13 +915,13 @@ export function extractProductNameAttributes(name: string | null | undefined): E
 
     addPowerWAttribute(text, attributes);
 
-    const ipRating = text.match(/\bIP\s?(\d{2})\b/i);
+    const ipRating = extractIpRating(text);
     if (ipRating) {
       addAttribute(attributes, {
         key: "ip_rating",
         label: "Степень защиты",
-        value: `IP${ipRating[1]}`,
-        normalizedValue: `ip${ipRating[1]}`,
+        value: ipRating.value,
+        normalizedValue: ipRating.normalizedValue,
         numericValue: null,
         unit: null,
       });

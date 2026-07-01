@@ -430,4 +430,10 @@ describe("extractProductNameAttributes", () => {
     const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
     expect(byKey.cooktop_type).toMatchObject({ value: "Газовая", normalizedValue: "gas" });
   });
+
+  it("extracts IP rating for an electrical accessory (not just cameras)", () => {
+    const attributes = extractProductNameAttributes("Выключатель влагозащищенный IP54 белый");
+    const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
+    expect(byKey.ip_rating).toMatchObject({ value: "IP54", normalizedValue: "ip54" });
+  });
 });
