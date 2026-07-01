@@ -376,7 +376,11 @@ body.app {
 }
 .compare-th-label {
   width: 180px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.92);
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  box-shadow: 4px 0 6px -4px rgba(33, 52, 108, 0.22);
 }
 .compare-th-product {
   background: rgba(255, 255, 255, 0.55);
@@ -484,6 +488,20 @@ body.app {
   color: var(--text-2);
   font-size: 13px;
   width: 180px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 4px 0 6px -4px rgba(33, 52, 108, 0.22);
+}
+.compare-table tbody tr:nth-child(even) .compare-row-label {
+  background: rgba(240, 244, 255, 0.94);
+}
+.compare-table tbody tr.diff .compare-row-label {
+  background: rgba(255, 227, 158, 0.92);
+}
+.compare-table tbody tr.diff:nth-child(even) .compare-row-label {
+  background: rgba(255, 219, 130, 0.94);
 }
 .compare-cell {
   font-weight: 600;

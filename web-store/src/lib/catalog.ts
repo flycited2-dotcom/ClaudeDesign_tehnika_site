@@ -63,6 +63,7 @@ export type CatalogQuery = {
   brands?: string[];
   available?: boolean;
   withPhoto?: boolean;
+  inStock?: boolean;
   minPrice?: number;
   maxPrice?: number;
   page?: number;
@@ -608,6 +609,13 @@ export async function getCatalogPage(query: CatalogQuery) {
 
   if (query.available) {
     filteredWhere.isAvailable = true;
+  }
+
+  if (query.inStock) {
+    // "Доступно к заказу" (isAvailable) only means we CAN order it from the
+    // supplier — stockStatus is the actual physical warehouse quantity code
+    // ("out"/"low"/"available"/"plenty"), a separate, more literal "в наличии".
+    filteredWhere.stockStatus = { not: "out" };
   }
 
   if (query.withPhoto) {

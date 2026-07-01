@@ -70,6 +70,7 @@ export default async function CatalogFilterLandingPage({ params }: Props) {
       currentCategorySlug={data.category?.slug}
       onlyAvailable={landing.query.available}
       withPhoto={landing.query.withPhoto}
+      onlyInStock={landing.query.inStock}
       minPrice={landing.query.minPrice}
       maxPrice={landing.query.maxPrice}
       sort="popular"

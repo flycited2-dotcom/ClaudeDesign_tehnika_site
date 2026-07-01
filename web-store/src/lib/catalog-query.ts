@@ -18,6 +18,7 @@ export type ParsedCatalogSearchParams = {
   brands: string[];
   onlyAvailable: boolean;
   withPhoto: boolean;
+  onlyInStock: boolean;
   minPrice?: number;
   maxPrice?: number;
   page: number;
@@ -111,6 +112,7 @@ export function parseCatalogSearchParams(params: CatalogSearchParams): ParsedCat
     brands,
     onlyAvailable: firstParam(params.available) === "1",
     withPhoto: firstParam(params.photo) === "1",
+    onlyInStock: firstParam(params.stock) === "1",
     minPrice: parsePositiveNumberParam(params.minPrice),
     maxPrice: parsePositiveNumberParam(params.maxPrice),
     page,

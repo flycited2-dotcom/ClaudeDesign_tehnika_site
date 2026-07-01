@@ -19,6 +19,7 @@ export type FiltersPanelProps = {
   currentQuery?: string;
   onlyAvailable?: boolean;
   withPhoto?: boolean;
+  onlyInStock?: boolean;
   minPrice?: number;
   maxPrice?: number;
   sort: CatalogSort;
@@ -95,6 +96,7 @@ export function FiltersPanelFields({
   currentQuery,
   onlyAvailable,
   withPhoto,
+  onlyInStock,
   minPrice,
   maxPrice,
   sort,
@@ -110,6 +112,7 @@ export function FiltersPanelFields({
       currentQuery ||
       onlyAvailable ||
       withPhoto ||
+      onlyInStock ||
       minPrice ||
       maxPrice ||
       sort !== "popular" ||
@@ -169,7 +172,22 @@ export function FiltersPanelFields({
         </div>
       </FilterAccordion>
 
-      <FilterAccordion title="Наличие" defaultOpen badge={(onlyAvailable ? 1 : 0) + (withPhoto ? 1 : 0)}>
+      <FilterAccordion
+        title="Наличие"
+        defaultOpen
+        badge={(onlyAvailable ? 1 : 0) + (withPhoto ? 1 : 0) + (onlyInStock ? 1 : 0)}
+      >
+        <label className="f-row" style={{ cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            name="stock"
+            value="1"
+            defaultChecked={onlyInStock}
+            style={{ position: "absolute", opacity: 0, pointerEvents: "none" }}
+          />
+          <span className="box" />
+          <span className="f-val">В наличии на складе</span>
+        </label>
         <label className="f-row" style={{ cursor: "pointer" }}>
           <input
             type="checkbox"

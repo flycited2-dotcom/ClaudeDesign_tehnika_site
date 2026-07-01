@@ -8,6 +8,7 @@ export type CatalogUiFilterState = {
   brands?: string[];
   onlyAvailable?: boolean;
   withPhoto?: boolean;
+  onlyInStock?: boolean;
   minPrice?: number;
   maxPrice?: number;
   sort: CatalogSort;
@@ -24,6 +25,7 @@ export function countActiveCatalogFilters(state: CatalogUiFilterState): number {
   count += brandCount;
   if (state.onlyAvailable) count += 1;
   if (state.withPhoto) count += 1;
+  if (state.onlyInStock) count += 1;
   if (state.minPrice || state.maxPrice) count += 1;
   if (state.sort !== "popular") count += 1;
 

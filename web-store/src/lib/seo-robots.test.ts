@@ -17,6 +17,7 @@ describe("catalog robots metadata", () => {
       { page: 1, sort: "popular", specFilters: [], brand: "Samsung" },
       { page: 1, sort: "popular", specFilters: [], query: "ssd" },
       { page: 1, sort: "popular", specFilters: [], onlyAvailable: true },
+      { page: 1, sort: "popular", specFilters: [], onlyInStock: true },
     ] as const;
 
     for (const filters of cases) {

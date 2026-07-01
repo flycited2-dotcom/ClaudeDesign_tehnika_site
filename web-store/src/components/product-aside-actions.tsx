@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowLeftRight, Heart } from "lucide-react";
+import { ArrowLeftRight, Check, Heart, Share2 } from "lucide-react";
+import { useState } from "react";
 import { formatRub } from "@/lib/format";
 import { QuoteRequestButton } from "@/components/quote-request-button";
 import { computeB2BPrice, getRolePricingConfig } from "@/lib/role-pricing";
@@ -11,6 +12,44 @@ import {
   useFavorites,
 } from "@/lib/sku-list-storage";
 import { useStorefrontRole } from "@/lib/use-role";
+
+function ShareButton({ productName, productHref }: { productName: string; productHref: string }) {
+  const [justCopied, setJustCopied] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}${productHref}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: productName, url });
+      } catch {
+        // User dismissed the native share sheet — nothing to do.
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setJustCopied(true);
+      setTimeout(() => setJustCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable/denied — no fallback left to try.
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      className="btn btn-soft"
+      style={{ flexShrink: 0, width: 44, padding: 0, justifyContent: "center" }}
+      title={justCopied ? "Ссылка скопирована" : "Поделиться"}
+      aria-label={justCopied ? "Ссылка скопирована" : "Поделиться товаром"}
+    >
+      {justCopied ? <Check size={16} aria-hidden /> : <Share2 size={16} aria-hidden />}
+    </button>
+  );
+}
 
 export function ProductAsideActions({
   sku,
@@ -106,6 +145,7 @@ export function ProductAsideActions({
           <ArrowLeftRight size={16} aria-hidden />
           {isInCompare ? "В сравнении" : "К сравнению"}
         </button>
+        <ShareButton productName={productName} productHref={productHref} />
       </div>
 
       {(role === "b2b" || role === "gov") && (

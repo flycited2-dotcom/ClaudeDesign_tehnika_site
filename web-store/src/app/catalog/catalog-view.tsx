@@ -33,6 +33,7 @@ type CatalogUrlState = {
   brands?: string[];
   onlyAvailable?: boolean;
   withPhoto?: boolean;
+  onlyInStock?: boolean;
   minPrice?: number;
   maxPrice?: number;
   sort?: CatalogSort;
@@ -48,6 +49,7 @@ function catalogHref(basePath: string, state: CatalogUrlState): string {
   state.brands?.forEach((brand) => params.append("brand", brand));
   if (state.onlyAvailable) params.set("available", "1");
   if (state.withPhoto) params.set("photo", "1");
+  if (state.onlyInStock) params.set("stock", "1");
   if (state.minPrice) params.set("minPrice", String(state.minPrice));
   if (state.maxPrice) params.set("maxPrice", String(state.maxPrice));
   if (state.sort && state.sort !== "popular") params.set("sort", state.sort);
@@ -231,6 +233,9 @@ function ActiveFilterChips({
       label: `Бренд: ${brand}`,
       href: catalogHref(basePath, { ...state, brands: state.brands?.filter((current) => current !== brand), page: 1 }),
     })),
+    state.onlyInStock
+      ? { label: "В наличии на складе", href: catalogHref(basePath, { ...state, onlyInStock: false, page: 1 }) }
+      : null,
     state.onlyAvailable
       ? { label: "Доступно к заказу", href: catalogHref(basePath, { ...state, onlyAvailable: false, page: 1 }) }
       : null,
@@ -313,6 +318,7 @@ export function CatalogView({
   currentBrands = [],
   onlyAvailable,
   withPhoto,
+  onlyInStock,
   minPrice,
   maxPrice,
   sort = "popular",
@@ -339,6 +345,7 @@ export function CatalogView({
   currentBrands?: string[];
   onlyAvailable?: boolean;
   withPhoto?: boolean;
+  onlyInStock?: boolean;
   minPrice?: number;
   maxPrice?: number;
   sort?: CatalogSort;
@@ -357,6 +364,7 @@ export function CatalogView({
     brands: currentBrands,
     onlyAvailable,
     withPhoto,
+    onlyInStock,
     minPrice,
     maxPrice,
     sort,
@@ -378,6 +386,7 @@ export function CatalogView({
     (maxPrice ? 1 : 0) +
     (onlyAvailable ? 1 : 0) +
     (withPhoto ? 1 : 0) +
+    (onlyInStock ? 1 : 0) +
     currentSpecFilters.length +
     currentAttributeFilters.length +
     currentAttributeRangeFilters.reduce(
@@ -444,6 +453,7 @@ export function CatalogView({
             currentQuery={currentQuery}
             onlyAvailable={onlyAvailable}
             withPhoto={withPhoto}
+            onlyInStock={onlyInStock}
             minPrice={minPrice}
             maxPrice={maxPrice}
             sort={sort}
@@ -471,6 +481,7 @@ export function CatalogView({
             currentQuery={currentQuery}
             onlyAvailable={onlyAvailable}
             withPhoto={withPhoto}
+            onlyInStock={onlyInStock}
             minPrice={minPrice}
             maxPrice={maxPrice}
             sort={sort}

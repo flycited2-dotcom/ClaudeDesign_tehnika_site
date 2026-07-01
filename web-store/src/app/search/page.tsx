@@ -33,6 +33,7 @@ export default async function SearchPage({ searchParams }: Props) {
         brands: filters.brands,
         available: filters.onlyAvailable,
         withPhoto: filters.withPhoto,
+        inStock: filters.onlyInStock,
         minPrice: filters.minPrice,
         maxPrice: filters.maxPrice,
         page: filters.page,
@@ -57,6 +58,7 @@ export default async function SearchPage({ searchParams }: Props) {
         currentBrands={filters.brands}
         onlyAvailable={filters.onlyAvailable}
         withPhoto={filters.withPhoto}
+        onlyInStock={filters.onlyInStock}
         minPrice={filters.minPrice}
         maxPrice={filters.maxPrice}
         sort={filters.sort}
@@ -82,6 +84,7 @@ export default async function SearchPage({ searchParams }: Props) {
       currentBrands={filters.brands}
       onlyAvailable={filters.onlyAvailable}
       withPhoto={filters.withPhoto}
+      onlyInStock={filters.onlyInStock}
       minPrice={filters.minPrice}
       maxPrice={filters.maxPrice}
       sort={filters.sort}

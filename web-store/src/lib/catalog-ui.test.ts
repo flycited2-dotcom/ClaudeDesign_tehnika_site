@@ -9,6 +9,7 @@ describe("countActiveCatalogFilters", () => {
         brands: ["Samsung", "LG"],
         onlyAvailable: true,
         withPhoto: true,
+        onlyInStock: true,
         minPrice: 1000,
         maxPrice: 5000,
         sort: "price_asc",
@@ -16,7 +17,7 @@ describe("countActiveCatalogFilters", () => {
         attributeFilters: [{ key: "storage_type", normalizedValue: "ssd" }],
         attributeRangeFilters: [{ key: "ram", min: 16, max: 64 }],
       }),
-    ).toBe(11);
+    ).toBe(12);
   });
 
   it("does not count the default sort or empty values", () => {

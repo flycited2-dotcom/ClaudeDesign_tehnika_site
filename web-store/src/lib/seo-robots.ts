@@ -8,6 +8,7 @@ export type CatalogRobotsFilters = {
   brand?: string;
   onlyAvailable?: boolean;
   withPhoto?: boolean;
+  onlyInStock?: boolean;
   minPrice?: number;
   maxPrice?: number;
   page: number;
@@ -23,6 +24,7 @@ export function isIndexableCatalogFilters(filters: CatalogRobotsFilters): boolea
     filters.brand ||
     filters.onlyAvailable ||
     filters.withPhoto ||
+    filters.onlyInStock ||
     filters.minPrice ||
     filters.maxPrice ||
     filters.page > 1 ||
