@@ -123,10 +123,19 @@ function looksLikeElectricalAccessoryCategory(categoryName: string): boolean {
 }
 
 function extractElectricalProductType(text: string): { value: string; normalizedValue: string } | null {
+  // Network switches/routers are a whole separate, already-handled product
+  // family (extractNetworkAttributes) that just happens to routinely mention
+  // "провод"/"switch"/"разъём"/"box" as part of its OWN specs (2-conductor
+  // wiring, the English brand-agnostic word for a switch, a battery-backup
+  // connector, an enclosure model suffix) — never a reason to also tag it as
+  // a generic electrical accessory.
+  const isNetworkProduct = looksLikeNetworkProduct(text);
+
   if (
     /кабел|провод|шнур|\bcable\b|\bwire\b|\bcord\b/i.test(text) &&
     !looksLikeInterfacePortSpec(text) &&
-    !looksLikeCableAccessoryProduct(text)
+    !looksLikeCableAccessoryProduct(text) &&
+    !isNetworkProduct
   ) {
     return { value: "Кабель", normalizedValue: "cable" };
   }
@@ -143,7 +152,7 @@ function extractElectricalProductType(text: string): { value: string; normalized
   // English "Switch" also means a network switch (коммутатор) — a very common
   // collision in this catalog — and "Nintendo Switch" is a game console brand
   // name. Neither is an on/off wall switch.
-  if (/выключател|\bswitch\b/i.test(text) && !/nintendo\s+switch/i.test(text) && !looksLikeNetworkProduct(text)) {
+  if (/выключател|\bswitch\b/i.test(text) && !/nintendo\s+switch/i.test(text) && !isNetworkProduct) {
     return { value: "Выключатель", normalizedValue: "switch" };
   }
   if (/дифавтомат|автоматическ\D{0,12}выключател|узо|\bbreaker\b/i.test(text)) {
@@ -159,7 +168,7 @@ function extractElectricalProductType(text: string): { value: string; normalized
   if (
     /разъ[её]м|коннектор|клемм|\bconnector\b/i.test(text) &&
     !looksLikeInterfacePortSpec(text) &&
-    !looksLikeNetworkProduct(text)
+    !isNetworkProduct
   ) {
     return { value: "Коннектор", normalizedValue: "connector" };
   }
@@ -174,7 +183,7 @@ function extractElectricalProductType(text: string): { value: string; normalized
   }
   if (
     /коробк|бокс|(^|[^а-яё])щит(ок)?(?=$|[^а-яё])/i.test(text) ||
-    (/\bbox\b/i.test(text) && !looksLikePackagingBoxMention(text))
+    (/\bbox\b/i.test(text) && !looksLikePackagingBoxMention(text) && !isNetworkProduct)
   ) {
     return { value: "Коробка/щит", normalizedValue: "box" };
   }

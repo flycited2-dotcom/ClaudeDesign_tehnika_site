@@ -329,6 +329,14 @@ describe("extractProductNameAttributes", () => {
         "Коммутатор управляемый SNR 2+, 24 порта 10/100/1000Base-T, 4 порта 1/10G SFP+, встроенный БП ~220V AC, разъем для АКБ 12V с возможностью заряда",
       ],
       [
+        "Network switch model code ending in '-Box' is not a Коробка/щит",
+        "Уличный гигабитный управляемый 4 портовый PoE-коммутатор TFortis PSW-1G4F-Box ; 802.3af; 1х1000Base-X SFP, 1x10/100/1000Base-Т, 4х10/100Base-Tx RJ-45 с РоЕ по 15.4 Вт",
+      ],
+      [
+        "Network switch described as '2-проводной' is not a Кабель",
+        "Коммутатор Fanvil PN24, 24×100 Мбит/с (2-проводной), неуправляемый",
+      ],
+      [
         "Cable channel (кабель-канал) whose W×H dimension is not a core count",
         "Короб перфорированный кабель-канал 40х20мм, 2м, белый",
       ],
