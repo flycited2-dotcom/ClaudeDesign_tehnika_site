@@ -1084,6 +1084,18 @@ export function extractProductNameAttributes(
     });
   }
 
+  const resolutionByWxH: Record<string, { value: string; normalizedValue: string }> = {
+    "7680x4320": { value: "8K", normalizedValue: "8k" },
+    "3840x2160": { value: "4K UHD", normalizedValue: "4k_uhd" },
+    "2560x1440": { value: "QHD", normalizedValue: "qhd" },
+    "1920x1080": { value: "Full HD", normalizedValue: "full_hd" },
+    "1366x768": { value: "HD Ready", normalizedValue: "hd_ready" },
+    "1280x720": { value: "HD Ready", normalizedValue: "hd_ready" },
+  };
+  const wxhMatch = text.match(/(\d{3,4})\s*[xх]\s*(\d{3,4})/i);
+  const wxhResolution =
+    looksLikeTvProduct(text) && wxhMatch ? resolutionByWxH[`${wxhMatch[1]}x${wxhMatch[2]}`] : undefined;
+
   if (/\b4\s*k\b/i.test(text)) {
     addAttribute(attributes, {
       key: "resolution",
@@ -1093,12 +1105,51 @@ export function extractProductNameAttributes(
       numericValue: null,
       unit: null,
     });
+  } else if (/\b8\s*k\b/i.test(text)) {
+    addAttribute(attributes, {
+      key: "resolution",
+      label: "Разрешение",
+      value: "8K",
+      normalizedValue: "8k",
+      numericValue: null,
+      unit: null,
+    });
   } else if (/full\s*hd/i.test(text)) {
     addAttribute(attributes, {
       key: "resolution",
       label: "Разрешение",
       value: "Full HD",
       normalizedValue: "full_hd",
+      numericValue: null,
+      unit: null,
+    });
+  } else if (/hd\s*ready/i.test(text)) {
+    addAttribute(attributes, {
+      key: "resolution",
+      label: "Разрешение",
+      value: "HD Ready",
+      normalizedValue: "hd_ready",
+      numericValue: null,
+      unit: null,
+    });
+  } else if (/\buhd\b/i.test(text)) {
+    addAttribute(attributes, {
+      key: "resolution",
+      label: "Разрешение",
+      value: "UHD",
+      normalizedValue: "uhd",
+      numericValue: null,
+      unit: null,
+    });
+  } else if (wxhResolution) {
+    // Bare "1920x1080"-style resolution, no marketing term spelled out —
+    // only trusted for products already known to be TVs (looksLikeTvProduct),
+    // so a WxH-shaped number elsewhere (fridge dimensions, etc.) is never misread.
+    addAttribute(attributes, {
+      key: "resolution",
+      label: "Разрешение",
+      value: wxhResolution.value,
+      normalizedValue: wxhResolution.normalizedValue,
       numericValue: null,
       unit: null,
     });

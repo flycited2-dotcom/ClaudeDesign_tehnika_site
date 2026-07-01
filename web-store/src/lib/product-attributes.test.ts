@@ -68,6 +68,49 @@ describe("extractProductNameAttributes", () => {
     ]);
   });
 
+  it("recognizes 8K, HD Ready and bare UHD resolution claims", () => {
+    const byKey = (name: string) =>
+      Object.fromEntries(extractProductNameAttributes(name).map((attribute) => [attribute.key, attribute]));
+
+    expect(byKey('Телевизор Samsung QN800C 65" 8K Smart TV').resolution).toMatchObject({
+      value: "8K",
+      normalizedValue: "8k",
+    });
+    expect(byKey('Телевизор BBK 32LEM-1046 32" HD Ready').resolution).toMatchObject({
+      value: "HD Ready",
+      normalizedValue: "hd_ready",
+    });
+    expect(byKey('Телевизор Hisense 50A6K 50" UHD Smart TV').resolution).toMatchObject({
+      value: "UHD",
+      normalizedValue: "uhd",
+    });
+  });
+
+  it("reads a numeric WxH resolution on a TV when no marketing term is spelled out", () => {
+    const byKey = (name: string) =>
+      Object.fromEntries(extractProductNameAttributes(name).map((attribute) => [attribute.key, attribute]));
+
+    expect(byKey('Телевизор Витязь 43LEX-406 43" 1920x1080').resolution).toMatchObject({
+      value: "Full HD",
+      normalizedValue: "full_hd",
+    });
+    expect(byKey('Телевизор Fusion FLTV-32C120T 32" 1366x768').resolution).toMatchObject({
+      value: "HD Ready",
+      normalizedValue: "hd_ready",
+    });
+    expect(byKey('Телевизор Samsung QN900 75" 7680x4320').resolution).toMatchObject({
+      value: "8K",
+      normalizedValue: "8k",
+    });
+  });
+
+  it("does not read an unrelated product's dimensions as a TV resolution", () => {
+    const keys = extractProductNameAttributes(
+      "Холодильник ATLANT No Frost белый, 60x185x63 см, общий объем 320 л",
+    ).map((attribute) => attribute.key);
+    expect(keys).not.toContain("resolution");
+  });
+
   it("extracts computer memory and storage attributes", () => {
     expect(extractProductNameAttributes("Ноутбук Lenovo IdeaPad 15, 16 ГБ RAM, SSD 512 ГБ")).toEqual([
       {
