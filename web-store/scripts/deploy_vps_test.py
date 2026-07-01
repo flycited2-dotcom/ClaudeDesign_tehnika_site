@@ -157,6 +157,29 @@ class DeployVpsTests(unittest.TestCase):
         self.assertIn("rm -rf .next\n", script)
         self.assertNotIn("rm -rf .next/cache", script)
 
+    def test_full_clean_stops_pm2_before_wiping_next_to_avoid_write_race(self):
+        script = build_remote_deploy_script(
+            remote_root="/var/www/climat-simf.ru",
+            process_name="climat-simf-store",
+            build_log="/tmp/climat-build.log",
+            run_install=False,
+            full_clean=True,
+        )
+
+        stop_index = script.index("pm2 stop climat-simf-store")
+        clean_index = script.index("rm -rf .next\n")
+        self.assertLess(stop_index, clean_index)
+
+    def test_default_clean_does_not_stop_pm2(self):
+        script = build_remote_deploy_script(
+            remote_root="/var/www/climat-simf.ru",
+            process_name="climat-simf-store",
+            build_log="/tmp/climat-build.log",
+            run_install=False,
+        )
+
+        self.assertNotIn("pm2 stop", script)
+
     def test_connect_kwargs_support_key_auth_without_password(self):
         kwargs = build_connect_kwargs(
             host="212.116.115.150",

@@ -85,6 +85,19 @@ def build_remote_deploy_script(
         install.rstrip(),
         "npx prisma generate",
         "npx prisma db push --skip-generate",
+    ]
+
+    if full_clean:
+        # rm -rf .next while pm2 is still live and actively writing into
+        # .next/cache/fetch-cache races the deletion — observed in practice as
+        # a reproducible "rm: cannot remove '.next/cache/fetch-cache':
+        # Directory not empty" failure. Stop the process first so nothing is
+        # concurrently touching the tree being wiped; this does mean a real
+        # (if brief) downtime window during a --full-clean build, unlike the
+        # default path below which can safely leave pm2 serving the old build.
+        steps.append(f"pm2 stop {quoted_process} || true")
+
+    steps += [
         clean_step,
         f"npm run build 2>&1 | tee {quoted_log}",
         "test -f .next/prerender-manifest.json",
