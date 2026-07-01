@@ -11,11 +11,13 @@ async function main() {
   let written = 0;
 
   try {
+    console.log("product attributes backfill: deleting existing source=name rows...");
     await prisma.productAttribute.deleteMany({
       where: {
         source: "name",
       },
     });
+    console.log("product attributes backfill: deleted, scanning products...");
 
     for (;;) {
       const products = await prisma.product.findMany({
@@ -57,6 +59,9 @@ async function main() {
 
       scanned += products.length;
       cursor = products[products.length - 1]?.id;
+      if (scanned % (BATCH_SIZE * 20) === 0) {
+        console.log(`product attributes backfill progress: scanned=${scanned} written=${written}`);
+      }
     }
 
     await finishSyncLog(log.id, {

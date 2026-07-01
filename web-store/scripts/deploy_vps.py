@@ -283,6 +283,13 @@ def main() -> int:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(**build_connect_kwargs(host=args.host, user=args.user, key_path=args.key_path, password=password))
+    # --sync-attributes/--run-audit can run silently (no stdout) for minutes at a
+    # time (a single bulk DELETE + a 250k-product scan) — without a keepalive an
+    # idle NAT/firewall/sshd timeout can drop the connection mid-command with no
+    # useful error, which is what an unmodified socket saw in practice.
+    transport = client.get_transport()
+    if transport is not None:
+        transport.set_keepalive(30)
 
     try:
         sftp = client.open_sftp()
