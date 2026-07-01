@@ -67,6 +67,8 @@ export const catalogAttributeDefinitions = [
   { key: "current_amp", label: "Ток", valueType: "number", control: "range", unit: "А", families: ["electrical"] },
   { key: "power_w", label: "Мощность", valueType: "number", control: "range", unit: "Вт", families: ["electrical", "garden", "climate", "appliance", "cleaning"] },
   { key: "ip_rating", label: "Степень защиты", valueType: "enum", control: "checkbox", families: ["electrical", "garden", "camera"] },
+  { key: "mount_type", label: "Установка", valueType: "enum", control: "checkbox", families: ["electrical"] },
+  { key: "gang_count", label: "Количество клавиш/постов", valueType: "number", control: "range", unit: "шт.", families: ["electrical"] },
   { key: "camera_lens_mm", label: "Фокусное расстояние", valueType: "number", control: "range", unit: "мм", families: ["camera"] },
   { key: "paper_format", label: "Формат", valueType: "enum", control: "checkbox", families: ["paper"] },
   { key: "paper_density", label: "Плотность", valueType: "number", control: "range", unit: "г/м²", families: ["paper"] },

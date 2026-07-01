@@ -47,6 +47,18 @@ describe("catalog attribute registry", () => {
     expect(keys).not.toContain("drying_type");
   });
 
+  it("exposes mount_type and gang_count as electrical-only filters", () => {
+    expect(getCatalogAttributeDefinition("mount_type")).toMatchObject({ label: "Установка", valueType: "enum", control: "checkbox" });
+    expect(getCatalogAttributeDefinition("gang_count")).toMatchObject({ label: "Количество клавиш/постов", valueType: "number", control: "range", unit: "шт." });
+
+    const electricalKeys = getCatalogAttributeKeysForCategory({ categoryName: "Розетки, выключатели и рамки" });
+    expect(electricalKeys).toEqual(expect.arrayContaining(["mount_type", "gang_count", "electrical_product_type", "ip_rating"]));
+
+    const laundryKeys = getCatalogAttributeKeysForCategory({ categoryName: "Стиральные машины" });
+    expect(laundryKeys).not.toContain("mount_type");
+    expect(laundryKeys).not.toContain("gang_count");
+  });
+
   it("detects category families from transliterated slugs without short-token collisions", () => {
     const cableKeys = getCatalogAttributeKeysForCategory({
       categorySlug: "kabeli-i-provoda-dlya-stroitelstva-i-remonta-10560",
