@@ -416,4 +416,18 @@ describe("extractProductNameAttributes", () => {
     );
     expect(byKey.power_hp).toMatchObject({ numericValue: 7, unit: "л.с." });
   });
+
+  it("extracts cooktop type and burner count for a built-in induction hob (варочная панель)", () => {
+    const attributes = extractProductNameAttributes("Индукционная варочная панель Gefest PVI 4234 15718000, черный, 4 конфорки, 60 см");
+    const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
+    expect(byKey.cooktop_type).toMatchObject({ value: "Индукционная", normalizedValue: "induction" });
+    expect(byKey.burner_count).toMatchObject({ normalizedValue: "4", numericValue: 4 });
+    expect(byKey.width_cm).toMatchObject({ normalizedValue: "60", numericValue: 60 });
+  });
+
+  it("extracts gas cooktop type for a варочная поверхность (gate must match Cyrillic endings)", () => {
+    const attributes = extractProductNameAttributes("Газовая варочная поверхность Beko HDCG 32220 FX, нержавеющая сталь");
+    const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
+    expect(byKey.cooktop_type).toMatchObject({ value: "Газовая", normalizedValue: "gas" });
+  });
 });

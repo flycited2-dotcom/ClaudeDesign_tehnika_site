@@ -757,7 +757,9 @@ function extractOvenAttributes(text: string, attributes: ExtractedProductAttribu
 }
 
 function extractCooktopAttributes(text: string, attributes: ExtractedProductAttribute[]) {
-  if (!/варочн\w*\s*(?:панел|поверхн)|cooktop|\bhob\b/i.test(text)) return;
+  // \w does not cover Cyrillic, so "варочная панель" must be matched with an
+  // explicit Cyrillic gap, not \w* (same bug class already fixed for "духовой шкаф").
+  if (!/варочн[а-яё]*\s*(?:панел|поверхн)|cooktop|\bhob\b/i.test(text)) return;
 
   if (/индукцион/i.test(text)) {
     addAttribute(attributes, { key: "cooktop_type", label: "Тип", value: "Индукционная", normalizedValue: "induction", numericValue: null, unit: null });
