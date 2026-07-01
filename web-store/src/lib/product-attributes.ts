@@ -82,8 +82,22 @@ function looksLikeVacuumProduct(text: string): boolean {
   return /пылесос|пылеудален|vacuum/i.test(text);
 }
 
+// "Кабель 1×RJ-45" etc. in a camera/network device name describes a PORT COUNT
+// on that device (how many cable interfaces it has), not that the product
+// itself is a cable — real cable/patch-cord products aren't named this way.
+function looksLikeInterfacePortSpec(text: string): boolean {
+  return /\d+\s*[xх×]\s*(?:rj[\s-]?(?:11|45)|bnc|usb\b|hdmi\b|vga\b|type[\s-]?c\b)/i.test(text);
+}
+
+// "Color Box" / "Retail Box" are packaging notes appended to the product
+// name (common on imported electronics/PC parts), not a description of the
+// product itself being a box/enclosure.
+function looksLikePackagingBoxMention(text: string): boolean {
+  return /\b(?:color|retail|gift|plain|brown|oem|no[\s-]?name|nobrand)\s+box\b/i.test(text);
+}
+
 function extractElectricalProductType(text: string): { value: string; normalizedValue: string } | null {
-  if (/кабел|провод|шнур|\bcable\b|\bwire\b|\bcord\b/i.test(text)) {
+  if (/кабел|провод|шнур|\bcable\b|\bwire\b|\bcord\b/i.test(text) && !looksLikeInterfacePortSpec(text)) {
     return { value: "Кабель", normalizedValue: "cable" };
   }
   if (/розетк|\bsocket\b|\boutlet\b/i.test(text)) {
@@ -96,7 +110,8 @@ function extractElectricalProductType(text: string): { value: string; normalized
   if (/переключател[а-яё]*\s*(?:проходн|перекр[её]стн|клавиш)/i.test(text)) {
     return { value: "Переключатель", normalizedValue: "changeover_switch" };
   }
-  if (/выключател|\bswitch\b/i.test(text)) {
+  // "Nintendo Switch" is a game console brand name, not an on/off switch.
+  if (/выключател|\bswitch\b/i.test(text) && !/nintendo\s+switch/i.test(text)) {
     return { value: "Выключатель", normalizedValue: "switch" };
   }
   if (/дифавтомат|автоматическ\D{0,12}выключател|узо|\bbreaker\b/i.test(text)) {
@@ -105,7 +120,9 @@ function extractElectricalProductType(text: string): { value: string; normalized
   if (/светильник|ламп|\blamp\b/i.test(text)) {
     return { value: "Светильник", normalizedValue: "lamp" };
   }
-  if (/разъ[её]м|коннектор|клемм|\bconnector\b/i.test(text)) {
+  // Same port-count trap as "Кабель" above: "разъемы 2x HDMI" on a TV/laptop
+  // describes THAT device's ports, not that the product itself is a connector.
+  if (/разъ[её]м|коннектор|клемм|\bconnector\b/i.test(text) && !looksLikeInterfacePortSpec(text)) {
     return { value: "Коннектор", normalizedValue: "connector" };
   }
   if (/терморегулятор|термостат/i.test(text)) {
@@ -117,7 +134,10 @@ function extractElectricalProductType(text: string): { value: string; normalized
   if (/рамк/i.test(text) && /\d+[\s-]*(?:м\b|пост)/i.test(text)) {
     return { value: "Рамка", normalizedValue: "frame" };
   }
-  if (/коробк|бокс|\bbox\b|(^|[^а-яё])щит(ок)?(?=$|[^а-яё])/i.test(text)) {
+  if (
+    /коробк|бокс|(^|[^а-яё])щит(ок)?(?=$|[^а-яё])/i.test(text) ||
+    (/\bbox\b/i.test(text) && !looksLikePackagingBoxMention(text))
+  ) {
     return { value: "Коробка/щит", normalizedValue: "box" };
   }
 
@@ -977,9 +997,14 @@ function extractCooktopAttributes(text: string, attributes: ExtractedProductAttr
   }
 }
 
-export function extractProductNameAttributes(name: string | null | undefined): ExtractedProductAttribute[] {
+export function extractProductNameAttributes(
+  name: string | null | undefined,
+  categoryName?: string | null,
+): ExtractedProductAttribute[] {
   const text = name?.trim();
   if (!text) return [];
+
+  const category = categoryName?.trim() ?? "";
 
   const attributes: ExtractedProductAttribute[] = [];
 
@@ -1059,7 +1084,14 @@ export function extractProductNameAttributes(name: string | null | undefined): E
   extractNetworkAttributes(text, attributes);
   extractCoolingAttributes(text, attributes);
 
-  const electricalProductType = extractElectricalProductType(text);
+  // The real DB category is a stronger signal than name text alone — a bare
+  // model-code camera/cooler name (no Russian "камера"/"кулер" keyword at all)
+  // would otherwise still fall through to the generic electrical classifier.
+  // Category names are plural/generic ("Камеры видеонаблюдения", "Кулеры для
+  // процессора"), so match on the word stem rather than reusing
+  // looksLikeCameraProduct/looksLikeCoolingProduct (tuned for singular product-name wording).
+  const isKnownNonElectricalCategory = /камер|кулер|куллер|охлажден/i.test(category);
+  const electricalProductType = isKnownNonElectricalCategory ? null : extractElectricalProductType(text);
   if (electricalProductType) {
     addAttribute(attributes, {
       key: "electrical_product_type",
@@ -1071,11 +1103,15 @@ export function extractProductNameAttributes(name: string | null | undefined): E
     });
 
     if (electricalProductType.normalizedValue === "cable") {
+      // Bounded to plausible real cable specs — an "NxM"-shaped number pair found
+      // anywhere else in the name (e.g. a supported resolution like "3840x2160"
+      // on an HDMI cable) must not be read as cores/section just because the
+      // product itself genuinely is a cable.
       const cableSize = text.match(/(\d+)\s*[xх]\s*(\d+(?:[.,]\d+)?)/i);
       if (cableSize) {
         const cores = Number(cableSize[1]);
-        const section = compactNumber(cableSize[2]);
-        if (Number.isFinite(cores) && cores > 0) {
+        const section = numberValue(cableSize[2]);
+        if (Number.isFinite(cores) && cores > 0 && cores <= 60) {
           addAttribute(attributes, {
             key: "cable_cores",
             label: "Количество жил",
@@ -1084,8 +1120,10 @@ export function extractProductNameAttributes(name: string | null | undefined): E
             numericValue: cores,
             unit: "жил",
           });
+          if (section !== null && section > 0 && section <= 300) {
+            addNumberAttribute(attributes, "cable_section", "Сечение кабеля", cableSize[2], "мм²");
+          }
         }
-        addNumberAttribute(attributes, "cable_section", "Сечение кабеля", section, "мм²");
       }
 
       const cableLength = text.match(/(\d+(?:[.,]\d+)?)\s*м(?=$|[\s,;.])/i);

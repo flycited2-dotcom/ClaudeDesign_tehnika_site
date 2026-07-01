@@ -27,6 +27,7 @@ async function main() {
           id: true,
           name: true,
           supplierName: true,
+          category: { select: { name: true } },
         },
         orderBy: {
           id: "asc",
@@ -42,6 +43,7 @@ async function main() {
           productId: product.id,
           name: product.name,
           supplierName: product.supplierName,
+          categoryName: product.category?.name,
         });
       });
 

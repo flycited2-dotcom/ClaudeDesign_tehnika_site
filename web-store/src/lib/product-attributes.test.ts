@@ -297,6 +297,60 @@ describe("extractProductNameAttributes", () => {
     }
   });
 
+  // Regression corpus: real (or realistic) product names that were — or plausibly
+  // could be — misread by extractElectricalProductType because a keyword it looks
+  // for shows up describing something else entirely. Add a new row here whenever
+  // prod QA finds another one; no need to write a bespoke test each time.
+  describe("known false-positive product names for electrical_product_type", () => {
+    const cases: Array<[string, string]> = [
+      [
+        "CCTV camera describing its own cable interface (Кабель 1×RJ-45)",
+        "IP-камера видеонаблюдения уличная 5 Мп, объектив 3.6 мм, ИК-подсветка, Кабель 1×RJ-45, 1920х1080, IP66",
+      ],
+      [
+        "PC cooler with a 'Color Box' packaging note",
+        "Кулер для процессора Deepcool AK400 120 мм, 4-pin PWM, Color Box",
+      ],
+      [
+        "PC cooler with a 'Retail Box' packaging note",
+        "Кулер для процессора DeepCool GAMMAXX 400 V2, Retail Box",
+      ],
+      [
+        "TV listing its own HDMI/USB ports as 'разъемы'",
+        "Телевизор Samsung UE55TU7000UXRU, 55 дюймов, разъемы 2x HDMI, 1x USB, Smart TV",
+      ],
+      ["Nintendo Switch game console", "Игровая консоль Nintendo Switch OLED 64GB белый"],
+    ];
+
+    it.each(cases)("%s", (_label, name) => {
+      const keys = extractProductNameAttributes(name).map((attribute) => attribute.key);
+      expect(keys).not.toContain("electrical_product_type");
+    });
+  });
+
+  it("does not read a supported resolution as cable cores/section on a genuine HDMI cable", () => {
+    const attributes = extractProductNameAttributes("Кабель HDMI 2.1, 8K 60Hz, поддержка 3840x2160, длина 2м");
+    const byKey = Object.fromEntries(attributes.map((a) => [a.key, a]));
+    expect(byKey.electrical_product_type).toMatchObject({ value: "Кабель" });
+    expect(byKey.cable_cores).toBeUndefined();
+    expect(byKey.cable_section).toBeUndefined();
+  });
+
+  it("uses the real product category to suppress electrical classification when a bare model-code name gives no textual hint", () => {
+    const keys = extractProductNameAttributes(
+      "DH-IPC-HFW1230SP-0360B-S5, кабель, 1920x1080, ИК 30м",
+      "Камеры видеонаблюдения",
+    ).map((attribute) => attribute.key);
+    expect(keys).not.toContain("electrical_product_type");
+  });
+
+  it("still classifies a genuine cable product when the category is unrelated to camera/cooling", () => {
+    const keys = extractProductNameAttributes("Кабель ВВГнг-LS 3х2,5 ГОСТ, бухта 100 м, белый", "Кабельная продукция").map(
+      (attribute) => attribute.key,
+    );
+    expect(keys).toContain("electrical_product_type");
+  });
+
   it("extracts laundry appliance attributes from washer and dryer names", () => {
     expect(
       extractProductNameAttributes(

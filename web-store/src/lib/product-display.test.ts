@@ -76,6 +76,15 @@ describe("buildProductFacts", () => {
       { label: "Срок поставки", value: "Под заказ 7 дней" },
     ]);
   });
+
+  it("passes the product category into title-spec extraction to suppress a false electrical type on a bare model-code camera name", () => {
+    const facts = buildProductFacts({
+      sku: 123,
+      categoryName: "Камеры видеонаблюдения",
+      title: "DH-IPC-HFW1230SP-0360B-S5, кабель, 1920x1080, ИК 30м",
+    });
+    expect(facts).not.toContainEqual(expect.objectContaining({ label: "Тип электротовара" }));
+  });
 });
 
 describe("buildProductCardHighlights", () => {

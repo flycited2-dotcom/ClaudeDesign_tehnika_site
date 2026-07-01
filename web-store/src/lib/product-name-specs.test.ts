@@ -57,4 +57,9 @@ describe("extractProductNameSpecs", () => {
   it("does not invent specs for generic names", () => {
     expect(extractProductNameSpecs("Стиральная машина")).toEqual([]);
   });
+
+  it("passes the category through to suppress a false electrical type on a bare model-code camera name", () => {
+    const specs = extractProductNameSpecs("DH-IPC-HFW1230SP-0360B-S5, кабель, 1920x1080, ИК 30м", "Камеры видеонаблюдения");
+    expect(specs).not.toContainEqual(expect.objectContaining({ label: "Тип электротовара" }));
+  });
 });

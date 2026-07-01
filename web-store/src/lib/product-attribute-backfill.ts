@@ -4,6 +4,7 @@ export type ProductAttributeBackfillProduct = {
   productId: string;
   name?: string | null;
   supplierName: string;
+  categoryName?: string | null;
 };
 
 export type ProductAttributeBackfillRow = {
@@ -20,7 +21,7 @@ export type ProductAttributeBackfillRow = {
 export function buildProductAttributeRows(product: ProductAttributeBackfillProduct): ProductAttributeBackfillRow[] {
   const title = product.name?.trim() || product.supplierName;
 
-  return extractProductNameAttributes(title).map((attribute) => ({
+  return extractProductNameAttributes(title, product.categoryName).map((attribute) => ({
     productId: product.productId,
     key: attribute.key,
     label: attribute.label,

@@ -183,4 +183,15 @@ describe("buildProductAttributeRows", () => {
       ["battery_voltage", "18"],
     ]);
   });
+
+  it("passes the product category through to suppress a false electrical type on a bare model-code camera name", () => {
+    expect(
+      buildProductAttributeRows({
+        productId: "camera-2",
+        name: "DH-IPC-HFW1230SP-0360B-S5, кабель, 1920x1080, ИК 30м",
+        supplierName: null,
+        categoryName: "Камеры видеонаблюдения",
+      }).map((row) => row.key),
+    ).not.toContain("electrical_product_type");
+  });
 });

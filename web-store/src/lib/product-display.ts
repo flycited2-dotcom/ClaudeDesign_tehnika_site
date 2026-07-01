@@ -180,7 +180,7 @@ export function buildProductFacts(product: ProductFactInput): ProductFact[] {
   // supplier attribute set is sparse, so the name is often the only real source
   // of characteristics. Skip any whose label is already covered by an attribute.
   const usedLabels = new Set(attributeFacts.map((fact) => fact.label));
-  const titleFacts = extractProductNameSpecs(product.title).filter((spec) => !usedLabels.has(spec.label));
+  const titleFacts = extractProductNameSpecs(product.title, product.categoryName).filter((spec) => !usedLabels.has(spec.label));
   for (const spec of [...attributeFacts, ...titleFacts]) {
     pushFact(facts, spec.label, spec.value);
   }

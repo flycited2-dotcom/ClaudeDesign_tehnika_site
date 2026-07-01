@@ -11,9 +11,9 @@ export type ExtractedProductSpec = {
  * is usually the only source of real characteristics — show everything the
  * extractor recognises (deduped), capped so the table stays readable.
  */
-export function extractProductNameSpecs(name: string | null | undefined): ExtractedProductSpec[] {
+export function extractProductNameSpecs(name: string | null | undefined, categoryName?: string | null): ExtractedProductSpec[] {
   const specs: ExtractedProductSpec[] = [];
-  for (const attribute of extractProductNameAttributes(name)) {
+  for (const attribute of extractProductNameAttributes(name, categoryName)) {
     if (specs.some((spec) => spec.label === attribute.label && spec.value === attribute.value)) continue;
     specs.push({ label: attribute.label, value: attribute.value });
   }
