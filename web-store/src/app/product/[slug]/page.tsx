@@ -9,6 +9,7 @@ import { ProductGallery } from "@/components/product-gallery";
 import { ProductMobBuyBar } from "@/components/product-mob-buy-bar";
 import { RecentlyViewedStrip } from "@/components/recently-viewed-strip";
 import { RecordProductView } from "@/components/record-product-view";
+import { StockAlertButton } from "@/components/stock-alert-button";
 import { StockBadge } from "@/components/stock-badge";
 import { decimalToNumber, getCategoryPathById, getProductBySlug, getRelatedProducts } from "@/lib/catalog";
 import { buildCatalogBreadcrumbItems, truncateBreadcrumbLabel } from "@/lib/catalog-breadcrumbs";
@@ -246,6 +247,14 @@ export default async function ProductPage({ params }: Props) {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <StockBadge state={product.stockStatus} label={fulfillment.stockLabel} />
           </div>
+          {product.stockStatus === "out" && (
+            <div style={{ marginTop: 12 }}>
+              <StockAlertButton
+                productContext={`${name} — SKU ${product.sku}`}
+                buttonStyle={{ width: "100%", justifyContent: "center" }}
+              />
+            </div>
+          )}
           <ProductBuyBlock
             sku={product.sku}
             price={price}

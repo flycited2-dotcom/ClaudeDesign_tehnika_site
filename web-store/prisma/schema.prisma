@@ -279,8 +279,9 @@ model Address {
 }
 
 enum LeadType {
-  CALLBACK @map("callback")
-  QUOTE    @map("quote")
+  CALLBACK     @map("callback")
+  QUOTE        @map("quote")
+  STOCK_ALERT  @map("stock_alert")
 }
 
 enum LeadStatus {

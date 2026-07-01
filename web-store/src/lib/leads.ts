@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 export type LeadInput = {
-  type: "CALLBACK" | "QUOTE";
+  type: "CALLBACK" | "QUOTE" | "STOCK_ALERT";
   name: string;
   phone: string;
   email?: string | null;
@@ -17,7 +17,7 @@ export type LeadInput = {
 };
 
 /**
- * Persist a callback/quote lead, then notify the manager on Telegram
+ * Persist a callback/quote/stock-alert lead, then notify the manager on Telegram
  * best-effort. The DB row is the source of truth — if Telegram is down or not
  * configured the lead is still captured (visible in /admin/leads), so a lead is
  * never silently lost (unlike the previous Telegram-only flow). Throws only if

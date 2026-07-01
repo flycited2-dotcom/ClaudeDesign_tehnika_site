@@ -11,11 +11,13 @@ export const dynamic = "force-dynamic";
 const TYPE_LABEL = {
   CALLBACK: "Обратный звонок",
   QUOTE: "Запрос КП / опт-цены",
+  STOCK_ALERT: "Уведомить о поступлении",
 } as const;
 
 const TYPE_BADGE = {
   CALLBACK: "adm-badge--active",
   QUOTE: "adm-badge--running",
+  STOCK_ALERT: "adm-badge--success",
 } as const;
 
 const SCOPE_LABEL: Record<string, string> = {
