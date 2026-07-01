@@ -757,6 +757,52 @@ function extractVacuumAttributes(text: string, attributes: ExtractedProductAttri
   }
 }
 
+function looksLikeNetworkProduct(text: string): boolean {
+  return /роутер|коммутатор|маршрутизатор|switch|router/i.test(text);
+}
+
+function extractNetworkAttributes(text: string, attributes: ExtractedProductAttribute[]) {
+  if (!looksLikeNetworkProduct(text)) return;
+
+  const ports = text.match(/(\d+)\s*(?:x\s*)?(?:poe\s*)?порт/i);
+  if (ports) {
+    addNumberAttribute(attributes, "port_count", "Количество портов", ports[1], "порт.");
+  }
+
+  if (/\bpoe\b/i.test(text)) {
+    addAttribute(attributes, {
+      key: "poe_support",
+      label: "Поддержка PoE",
+      value: "Да",
+      normalizedValue: "yes",
+      numericValue: null,
+      unit: null,
+    });
+  }
+
+  // Check "неуправляем" before "управляем" — "неуправляемый" contains "управляем"
+  // as a substring, so the order determines which one wins.
+  if (/неуправляем/i.test(text)) {
+    addAttribute(attributes, {
+      key: "managed_type",
+      label: "Тип управления",
+      value: "Неуправляемый",
+      normalizedValue: "unmanaged",
+      numericValue: null,
+      unit: null,
+    });
+  } else if (/управляем/i.test(text)) {
+    addAttribute(attributes, {
+      key: "managed_type",
+      label: "Тип управления",
+      value: "Управляемый",
+      normalizedValue: "managed",
+      numericValue: null,
+      unit: null,
+    });
+  }
+}
+
 function looksLikeTvProduct(text: string): boolean {
   return /телевизор|smart\s*tv|\bтв\b|qled|oled|\bled\b\s*т[ \-]?в|плазменн/i.test(text);
 }
@@ -949,6 +995,7 @@ export function extractProductNameAttributes(name: string | null | undefined): E
   extractTireAttributes(text, attributes);
   extractDishAndApparelAttributes(text, attributes);
   extractVacuumAttributes(text, attributes);
+  extractNetworkAttributes(text, attributes);
 
   const electricalProductType = extractElectricalProductType(text);
   if (electricalProductType) {

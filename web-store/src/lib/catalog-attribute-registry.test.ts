@@ -181,6 +181,20 @@ describe("catalog attribute registry", () => {
     });
   });
 
+  it("routes routers/switches to a new network family, not electrical (провод collision guard)", () => {
+    expect(
+      getCatalogAttributeFamilyForCategory({
+        categoryName: "Проводные роутеры (маршрутизаторы) и коммутаторы",
+        categorySlug: "provodnye-routery-marshrutizatory-i-kommutatory",
+      }),
+    ).toBe("network");
+
+    const keys = getCatalogAttributeKeysForCategory({ categoryName: "Проводные роутеры (маршрутизаторы) и коммутаторы" });
+    expect(keys).toEqual(expect.arrayContaining(["port_count", "poe_support", "managed_type"]));
+    expect(keys).not.toContain("cable_section");
+    expect(keys).not.toContain("electrical_product_type");
+  });
+
   describe("B4 — marketing order of attributes inside a family", () => {
     it("orders refrigerator attributes: volume → No Frost → energy → freezer position → sizes", () => {
       const keys = getCatalogAttributeKeysForCategory({ categoryName: "Холодильники", categorySlug: "holodilniki" });

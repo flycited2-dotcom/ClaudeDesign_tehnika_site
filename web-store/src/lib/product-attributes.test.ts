@@ -501,4 +501,17 @@ describe("extractProductNameAttributes", () => {
       expect(byKey.color, `color for "${name}"`).toMatchObject({ value: expectedValue, normalizedValue: expectedNormalized });
     }
   });
+
+  it("extracts port_count, poe_support and managed_type for network switches", () => {
+    const unmanaged = extractProductNameAttributes(
+      "Неуправляемый коммутатор Trassir TR-NS14282С-370-24POE с24 PoE портами (10/100/1000 Мбит/с Base-T PoE port)",
+    );
+    const unmanagedByKey = Object.fromEntries(unmanaged.map((a) => [a.key, a]));
+    expect(unmanagedByKey.port_count).toMatchObject({ normalizedValue: "24", numericValue: 24 });
+    expect(unmanagedByKey.poe_support).toMatchObject({ value: "Да" });
+    expect(unmanagedByKey.managed_type).toMatchObject({ value: "Неуправляемый", normalizedValue: "unmanaged" });
+
+    const managed = extractProductNameAttributes("Коммутатор Dahua DH-CS4006-4GT-60, 4×1 Гбит/с + 2×1 Гбит/с Combo, управляемый");
+    expect(Object.fromEntries(managed.map((a) => [a.key, a])).managed_type).toMatchObject({ value: "Управляемый", normalizedValue: "managed" });
+  });
 });

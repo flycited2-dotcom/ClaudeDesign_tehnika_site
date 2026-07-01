@@ -7,6 +7,7 @@ export type CatalogAttributeFamily =
   | "climate"
   | "garden"
   | "electrical"
+  | "network"
   | "laundry"
   | "refrigeration"
   | "camera"
@@ -92,6 +93,9 @@ export const catalogAttributeDefinitions = [
   { key: "processor_model", label: "Модель процессора", valueType: "enum", control: "checkbox", families: ["computer"] },
   { key: "gpu_family", label: "Видеокарта", valueType: "enum", control: "checkbox", families: ["computer"] },
   { key: "interface", label: "Интерфейс", valueType: "enum", control: "checkbox", families: ["computer", "camera"] },
+  { key: "port_count", label: "Количество портов", valueType: "number", control: "range", unit: "порт.", families: ["network"] },
+  { key: "poe_support", label: "Поддержка PoE", valueType: "boolean", control: "checkbox", families: ["network"] },
+  { key: "managed_type", label: "Тип управления", valueType: "enum", control: "checkbox", families: ["network"] },
 ] as const satisfies readonly CatalogAttributeDefinition[];
 
 export const catalogAttributeFacetKeys: string[] = catalogAttributeDefinitions.map((definition) => definition.key);
@@ -143,6 +147,9 @@ export function getCatalogAttributeFamilyForCategory({
     /мелк.*техник|бытов.*техник|кухонн.*техник|melkaya.*tehnika|bytovaya.*tehnika|kuhonn.*tehnika|appliance/.test(text)
   )
     return "appliance";
+  // Must run before "electrical" below — "Проводные роутеры" contains "провод"
+  // (from "Проводные"), which would otherwise match the electrical check first.
+  if (/роутер|коммутатор|маршрутизатор|switch|router/.test(text)) return "network";
   if (/кабел|провод|электр|розетк|выключател|светильник|ламп|щит|kabel|provod|elektr|rozetk|vykl|svetil|cable|wire|electric/.test(text)) return "electrical";
   if (/сад|огород|снегоубор|газон|мотоблок|триммер|культиватор|sad|ogorod|snegoub|gazon|motoblok|trimmer|kultivator|dacha|garden/.test(text)) return "garden";
   if (/кондиционер|сплит|осушител|увлажнител|очистител|климат|вентилятор|обогревател|kondits|split|osush|uvlazhn|ochist|climat|conditioner|humidifier|dehumidifier/.test(text)) return "climate";
