@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { ArrowRight, FileText, Phone } from "lucide-react";
 import Link from "next/link";
 import { AccountShell } from "@/components/account-shell";
+import { LeadHistoryList } from "@/components/lead-history-list";
 import { QuoteRequestButton } from "@/components/quote-request-button";
 import { RoleUpgradeRequestModal } from "@/components/role-upgrade-request-modal";
 import { getCurrentUser, roleToStorefront } from "@/lib/auth";
+import { getLeadsForUser } from "@/lib/leads";
 import { storefront } from "@/lib/storefront";
 
 export const metadata: Metadata = {
@@ -28,6 +30,7 @@ export default async function GovPage() {
   const userRole = user ? roleToStorefront(user.role) : null;
   const isGovUser = userRole === "gov";
   const isB2CUser = userRole === "b2c";
+  const leads = isGovUser && user ? await getLeadsForUser(user.id) : [];
 
   const heroCTA = !user ? (
     <Link
@@ -124,6 +127,7 @@ export default async function GovPage() {
             Опишите потребность или приложите файл ТЗ к запросу — менеджер ответит с КП и подтверждением сроков.
             Поддерживаем закупки по 44-ФЗ и 223-ФЗ, подбираем аналоги при отсутствии конкретной модели.
           </p>
+          {isGovUser && <LeadHistoryList leads={leads} />}
         </div>
 
         <div id="docs" className="acc-card">

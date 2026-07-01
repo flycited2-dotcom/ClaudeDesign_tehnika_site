@@ -42,6 +42,7 @@ model User {
   sessions     Session[]
   roleRequests RoleUpgradeRequest[]
   orders       Order[]
+  leads        Lead[]
 
   @@index([role])
 }
@@ -302,7 +303,10 @@ model Lead {
   scope     String?
   context   String?
   comment   String?
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime   @default(now())
 
   @@index([status, createdAt])
+  @@index([userId])
 }

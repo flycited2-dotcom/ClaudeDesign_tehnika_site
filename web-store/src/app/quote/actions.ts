@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { getCurrentUser } from "@/lib/auth";
 import { captureLead } from "@/lib/leads";
 import { escapeTelegramHtml as e, TELEGRAM_DIVIDER } from "@/lib/telegram";
 
@@ -63,6 +64,7 @@ export async function requestQuoteAction(
     .join("\n");
 
   try {
+    const user = await getCurrentUser();
     await captureLead({
       type: "QUOTE",
       name: customerName,
@@ -73,6 +75,7 @@ export async function requestQuoteAction(
       scope,
       context: context || null,
       comment: comment || null,
+      userId: user?.id ?? null,
       telegramText: text,
     });
     return { ok: true };

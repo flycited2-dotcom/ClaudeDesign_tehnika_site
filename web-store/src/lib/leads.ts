@@ -11,6 +11,7 @@ export type LeadInput = {
   scope?: string | null;
   context?: string | null;
   comment?: string | null;
+  userId?: string | null;
   /** Pre-built message for the manager Telegram chat. */
   telegramText: string;
 };
@@ -34,9 +35,27 @@ export async function captureLead(input: LeadInput): Promise<{ ok: true; deliver
       scope: input.scope || null,
       context: input.context || null,
       comment: input.comment || null,
+      userId: input.userId || null,
     },
   });
 
   const { delivered } = await sendTelegramMessage(input.telegramText);
   return { ok: true, delivered };
+}
+
+/** Recent quote (КП) requests for a logged-in b2b/gov user's cabinet (newest first). */
+export async function getLeadsForUser(userId: string, limit = 20) {
+  return prisma.lead.findMany({
+    where: { userId, type: "QUOTE" },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      status: true,
+      scope: true,
+      context: true,
+      comment: true,
+      createdAt: true,
+    },
+  });
 }

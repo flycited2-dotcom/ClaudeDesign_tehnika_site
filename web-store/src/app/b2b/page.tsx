@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { ArrowRight, Building2, FileText, Phone } from "lucide-react";
 import Link from "next/link";
 import { AccountShell } from "@/components/account-shell";
+import { LeadHistoryList } from "@/components/lead-history-list";
 import { QuoteRequestButton } from "@/components/quote-request-button";
 import { RoleUpgradeRequestModal } from "@/components/role-upgrade-request-modal";
 import { getCurrentUser, roleToStorefront } from "@/lib/auth";
+import { getLeadsForUser } from "@/lib/leads";
 import { getRolePricingConfig } from "@/lib/role-pricing";
 import { storefront } from "@/lib/storefront";
 
@@ -29,6 +31,7 @@ export default async function B2BPage() {
   const userRole = user ? roleToStorefront(user.role) : null;
   const isB2BUser = userRole === "b2b";
   const isB2CUser = userRole === "b2c";
+  const leads = isB2BUser && user ? await getLeadsForUser(user.id) : [];
 
   const heroCTA = !user ? (
     <Link
@@ -120,6 +123,7 @@ export default async function B2BPage() {
             Оставьте заявку с описанием объёма и позиций — менеджер пришлёт КП в ответ. Подтверждение цены, сроков и
             условий отгрузки происходит индивидуально.
           </p>
+          {isB2BUser && <LeadHistoryList leads={leads} />}
         </div>
 
         <div id="prices" className="acc-card">
