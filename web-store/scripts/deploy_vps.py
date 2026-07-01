@@ -57,7 +57,7 @@ def build_remote_deploy_script(
     run_install: bool,
     full_clean: bool = False,
     sync_attributes: bool = False,
-    run_audit: bool = False,
+    audit_script: str | None = None,
 ) -> str:
     quoted_root = shlex.quote(remote_root)
     quoted_process = shlex.quote(process_name)
@@ -120,13 +120,15 @@ def build_remote_deploy_script(
         # --run-audit below sees the fully-updated table rather than a half-written one.
         steps.append("npm run sync:attributes 2>&1 | tee /var/log/climat-simf-sync-attributes-deploy.log")
 
-    if run_audit:
-        # Read-only scan for the same false-positive class — prints to stdout so
-        # the deploy script can show the findings without needing a separate SSH
-        # session. A delimiter makes it easy to extract just this section from
-        # the captured command output.
+    if audit_script:
+        # Read-only diagnostic npm script (e.g. "audit:electrical",
+        # "audit:catalog") — prints to stdout so the deploy script can show the
+        # findings without needing a separate SSH session. A delimiter makes it
+        # easy to extract just this section from the captured command output.
+        quoted_audit_script = shlex.quote(audit_script)
+        quoted_audit_log = shlex.quote(f"/var/log/climat-simf-{audit_script.replace(':', '-')}-deploy.log")
         steps.append("echo '===AUDIT-START==='")
-        steps.append("npm run audit:electrical 2>&1 | tee /var/log/climat-simf-audit-electrical-deploy.log")
+        steps.append(f"npm run {quoted_audit_script} 2>&1 | tee {quoted_audit_log}")
         steps.append("echo '===AUDIT-END==='")
 
     return "\n".join(steps)
@@ -262,9 +264,10 @@ def main() -> int:
     )
     parser.add_argument(
         "--run-audit",
-        action="store_true",
-        help="After the above, synchronously run scripts/audit-electrical-false-positives.ts "
-        "(npm run audit:electrical) and print its findings — read-only.",
+        metavar="NPM_SCRIPT",
+        default=None,
+        help="After the above, synchronously run this read-only npm script (e.g. "
+        "audit:electrical, audit:catalog) on the server and print its findings.",
     )
     parser.add_argument("--remote-timeout", type=int, default=int(os.getenv("WEB_STORE_REMOTE_TIMEOUT") or "1800"))
     parser.add_argument("--skip-public-healthcheck", action="store_true")
@@ -317,7 +320,7 @@ def main() -> int:
             run_install=args.install,
             full_clean=args.full_clean,
             sync_attributes=args.sync_attributes,
-            run_audit=args.run_audit,
+            audit_script=args.run_audit,
         )
         command = f"{backup_command}\n{extract_command}\n{deploy_command}\nrm -f {shlex.quote(remote_archive)}"
 
@@ -332,7 +335,7 @@ def main() -> int:
             raise SystemExit(code)
         if args.run_audit and "===AUDIT-START===" in out:
             audit_output = out.split("===AUDIT-START===", 1)[1].split("===AUDIT-END===", 1)[0]
-            print("--- audit:electrical findings ---")
+            print(f"--- {args.run_audit} findings ---")
             print(printable_tail(audit_output, encoding=sys.stdout.encoding))
     finally:
         client.close()

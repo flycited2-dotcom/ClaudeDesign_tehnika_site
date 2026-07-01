@@ -119,7 +119,7 @@ class DeployVpsTests(unittest.TestCase):
             build_log="/tmp/climat-build.log",
             run_install=False,
             sync_attributes=True,
-            run_audit=True,
+            audit_script="audit:electrical",
         )
 
         sync_index = script.index("npm run sync:attributes")
@@ -131,6 +131,19 @@ class DeployVpsTests(unittest.TestCase):
         self.assertLess(audit_start_index, audit_run_index)
         self.assertLess(audit_run_index, audit_end_index)
         self.assertNotIn("nohup npm run audit:electrical", script)
+
+    def test_run_audit_accepts_any_npm_script_name(self):
+        script = build_remote_deploy_script(
+            remote_root="/var/www/climat-simf.ru",
+            process_name="climat-simf-store",
+            build_log="/tmp/climat-build.log",
+            run_install=False,
+            audit_script="audit:catalog",
+        )
+
+        self.assertIn("npm run audit:catalog", script)
+        self.assertIn("climat-simf-audit-catalog-deploy.log", script)
+        self.assertNotIn("audit:electrical", script)
 
     def test_full_clean_wipes_whole_next_instead_of_just_cache(self):
         script = build_remote_deploy_script(

@@ -18,7 +18,8 @@
     "sync:prices": "tsx scripts/sync-prices.ts",
     "sync:images": "tsx scripts/sync-images.ts",
     "sync:attributes": "tsx scripts/sync-product-attributes.ts",
-    "audit:electrical": "tsx scripts/audit-electrical-false-positives.ts"
+    "audit:electrical": "tsx scripts/audit-electrical-false-positives.ts",
+    "audit:catalog": "tsx scripts/catalog-audit-report.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

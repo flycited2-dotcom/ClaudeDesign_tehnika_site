@@ -75,7 +75,13 @@ describe("buildProductJsonLd", () => {
     expect(buildProductJsonLd({ ...base, stockStatus: "low" }).offers).toMatchObject({
       availability: "https://schema.org/LimitedAvailability",
     });
-    expect(buildProductJsonLd({ ...base, stockStatus: "out" }).offers).toMatchObject({
+    // No physical stock right now, but still orderable ("под заказ 7 дней") —
+    // schema.org's BackOrder is more accurate than a flat OutOfStock here.
+    expect(buildProductJsonLd({ ...base, stockStatus: "out", isAvailable: true }).offers).toMatchObject({
+      availability: "https://schema.org/BackOrder",
+    });
+    // No stock AND not orderable at all — genuinely out of stock.
+    expect(buildProductJsonLd({ ...base, stockStatus: "out", isAvailable: false }).offers).toMatchObject({
       availability: "https://schema.org/OutOfStock",
     });
     // No stockStatus given — falls back to the isAvailable boolean as before.

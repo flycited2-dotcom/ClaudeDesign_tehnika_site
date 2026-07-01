@@ -24,7 +24,9 @@ export type ProductJsonLdInput = {
 function schemaAvailability(isAvailable: boolean, stockStatus?: string | null): string {
   if (stockStatus === "low") return "https://schema.org/LimitedAvailability";
   if (stockStatus === "available" || stockStatus === "plenty") return "https://schema.org/InStock";
-  if (stockStatus === "out") return "https://schema.org/OutOfStock";
+  // No physical stock right now — still "BackOrder" (not a flat OutOfStock) if
+  // the storefront can still take the order for delivery "под заказ 7 дней".
+  if (stockStatus === "out") return isAvailable ? "https://schema.org/BackOrder" : "https://schema.org/OutOfStock";
   return isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
 }
 
