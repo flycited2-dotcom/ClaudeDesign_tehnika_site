@@ -12,6 +12,7 @@ import { syncItpImages } from "@/lib/itp/images";
 import { syncItpPrices } from "@/lib/itp/prices";
 import { syncItpProducts } from "@/lib/itp/products";
 import { upsertSetting } from "@/lib/settings";
+import { isFreshRunningLock } from "@/lib/sync-lock";
 
 export type LoginState = {
   error?: string;
@@ -38,10 +39,19 @@ export async function runSyncAction(formData: FormData) {
   await requireAdmin();
   const type = String(formData.get("type") ?? "");
 
-  if (type === "categories") await syncItpCategories();
-  if (type === "products") await syncItpProducts();
-  if (type === "prices") await syncItpPrices();
-  if (type === "images") await syncItpImages();
+  const latest = await prisma.syncLog.findFirst({
+    where: { type, status: "running" },
+    orderBy: { startedAt: "desc" },
+    select: { startedAt: true },
+  });
+  const isLocked = latest ? isFreshRunningLock(latest.startedAt) : false;
+
+  if (!isLocked) {
+    if (type === "categories") await syncItpCategories();
+    if (type === "products") await syncItpProducts();
+    if (type === "prices") await syncItpPrices();
+    if (type === "images") await syncItpImages();
+  }
 
   revalidatePath("/admin/sync");
   revalidatePath("/catalog");

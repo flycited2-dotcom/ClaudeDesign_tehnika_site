@@ -4,6 +4,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
+import { isFreshRunningLock } from "@/lib/sync-lock";
 
 export const dynamic = "force-dynamic";
 
@@ -13,33 +14,49 @@ function statusBadge(status: string): string {
   return "adm-badge--danger";
 }
 
+const SYNC_TYPES = [
+  ["categories", "Категории", "catalog_tree_9.json"],
+  ["products", "Товары", "products_9.json"],
+  ["prices", "Цены и остатки", "get_active_products"],
+  ["images", "Изображения", "read_new metadata"],
+] as const;
+
 export default async function AdminSyncPage() {
   await requireAdmin();
-  const logs = await prisma.syncLog.findMany({ orderBy: { startedAt: "desc" }, take: 20 });
+  const [logs, latestByType] = await Promise.all([
+    prisma.syncLog.findMany({ orderBy: { startedAt: "desc" }, take: 20 }),
+    prisma.syncLog.findMany({
+      where: { type: { in: SYNC_TYPES.map(([type]) => type) } },
+      orderBy: { startedAt: "desc" },
+      distinct: ["type"],
+    }),
+  ]);
+
+  const runningTypes = new Set(
+    latestByType.filter((log) => log.status === "running" && isFreshRunningLock(log.startedAt)).map((log) => log.type),
+  );
 
   return (
     <AdminShell title="Синхронизация">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          ["categories", "Категории", "catalog_tree_9.json"],
-          ["products", "Товары", "products_9.json"],
-          ["prices", "Цены и остатки", "get_active_products"],
-          ["images", "Изображения", "read_new metadata"],
-        ].map(([type, title, subtitle]) => (
-          <form key={type} action={runSyncAction} className="adm-card">
-            <p className="font-bold" style={{ fontSize: 16, color: "var(--text)" }}>
-              {title}
-            </p>
-            <p className="mt-1 text-sm" style={{ color: "var(--text-mute)" }}>
-              {subtitle}
-            </p>
-            <input type="hidden" name="type" value={type} />
-            <button className="adm-btn adm-btn--soft" style={{ marginTop: 16, width: "100%" }}>
-              <Play size={15} aria-hidden />
-              Запустить
-            </button>
-          </form>
-        ))}
+        {SYNC_TYPES.map(([type, title, subtitle]) => {
+          const isRunning = runningTypes.has(type);
+          return (
+            <form key={type} action={runSyncAction} className="adm-card">
+              <p className="font-bold" style={{ fontSize: 16, color: "var(--text)" }}>
+                {title}
+              </p>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-mute)" }}>
+                {subtitle}
+              </p>
+              <input type="hidden" name="type" value={type} />
+              <button className="adm-btn adm-btn--soft" style={{ marginTop: 16, width: "100%" }} disabled={isRunning}>
+                <Play size={15} aria-hidden />
+                {isRunning ? "Уже выполняется…" : "Запустить"}
+              </button>
+            </form>
+          );
+        })}
       </div>
 
       <div className="adm-section-head" style={{ marginTop: 28 }}>
