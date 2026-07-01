@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { buildProductAttributeRows } from "@/lib/product-attribute-backfill";
 import { finishSyncLog, sanitizePayload, startSyncLog } from "@/lib/sync-log";
+import { notifyRevalidate } from "./notify-revalidate";
 
 const BATCH_SIZE = Number(process.env.PRODUCT_ATTRIBUTE_BACKFILL_BATCH_SIZE ?? 500);
 
@@ -72,6 +73,7 @@ async function main() {
     });
 
     console.log(`product attributes backfill complete: scanned=${scanned} written=${written}`);
+    await notifyRevalidate();
   } catch (error) {
     await finishSyncLog(log.id, {
       status: "error",
