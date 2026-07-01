@@ -57,6 +57,47 @@ describe("buildProductJsonLd", () => {
       },
     });
   });
+
+  it("maps stockStatus to a more precise schema.org availability than the isAvailable boolean", () => {
+    const base = {
+      name: "Кабель ВВГнг",
+      description: "Кабель для заказа.",
+      sku: 11261996,
+      images: ["/api/product-images/1"],
+      price: 1200,
+      isAvailable: true,
+      url: "/product/kabel-11261996",
+    };
+
+    expect(buildProductJsonLd({ ...base, stockStatus: "plenty" }).offers).toMatchObject({
+      availability: "https://schema.org/InStock",
+    });
+    expect(buildProductJsonLd({ ...base, stockStatus: "low" }).offers).toMatchObject({
+      availability: "https://schema.org/LimitedAvailability",
+    });
+    expect(buildProductJsonLd({ ...base, stockStatus: "out" }).offers).toMatchObject({
+      availability: "https://schema.org/OutOfStock",
+    });
+    // No stockStatus given — falls back to the isAvailable boolean as before.
+    expect(buildProductJsonLd(base).offers).toMatchObject({
+      availability: "https://schema.org/InStock",
+    });
+  });
+
+  it("includes mpn (part number) in the offer when known", () => {
+    expect(
+      buildProductJsonLd({
+        name: "Осушитель воздуха Ballu",
+        description: "Осушитель воздуха для заказа.",
+        sku: 11261200,
+        images: ["/api/product-images/1"],
+        price: 19800,
+        isAvailable: true,
+        url: "/product/osushitel-11261200",
+        mpn: "BD-30L",
+      }),
+    ).toMatchObject({ mpn: "BD-30L" });
+  });
 });
 
 describe("buildBreadcrumbJsonLd", () => {

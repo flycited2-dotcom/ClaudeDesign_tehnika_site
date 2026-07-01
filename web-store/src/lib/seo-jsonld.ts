@@ -10,11 +10,23 @@ export type ProductJsonLdInput = {
   description: string;
   sku: number;
   brand?: string | null;
+  mpn?: string | null;
   images: string[];
   price: number;
   isAvailable: boolean;
+  stockStatus?: string | null;
   url: string;
 };
+
+// schema.org has a dedicated ItemAvailability for "some stock, but running low"
+// — more accurate than collapsing everything down to the isAvailable boolean
+// when we have the supplier feed's actual quantity code.
+function schemaAvailability(isAvailable: boolean, stockStatus?: string | null): string {
+  if (stockStatus === "low") return "https://schema.org/LimitedAvailability";
+  if (stockStatus === "available" || stockStatus === "plenty") return "https://schema.org/InStock";
+  if (stockStatus === "out") return "https://schema.org/OutOfStock";
+  return isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+}
 
 export function absoluteStorefrontUrl(path: string): string {
   const url = new URL(path, storefront.siteUrl);
@@ -48,9 +60,11 @@ export function buildProductJsonLd({
   description,
   sku,
   brand,
+  mpn,
   images,
   price,
   isAvailable,
+  stockStatus,
   url,
 }: ProductJsonLdInput) {
   return compactJsonLd({
@@ -59,6 +73,7 @@ export function buildProductJsonLd({
     name,
     description,
     sku: String(sku),
+    mpn: mpn ?? undefined,
     brand: brand ? { "@type": "Brand", name: brand } : undefined,
     image: images.map((image) => absoluteStorefrontUrl(image)),
     offers: price
@@ -67,7 +82,7 @@ export function buildProductJsonLd({
           url: absoluteStorefrontUrl(url),
           priceCurrency: "RUB",
           price: price.toFixed(2),
-          availability: isAvailable ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          availability: schemaAvailability(isAvailable, stockStatus),
           itemCondition: "https://schema.org/NewCondition",
           seller: {
             "@type": "Organization",

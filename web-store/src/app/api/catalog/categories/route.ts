@@ -69,13 +69,15 @@ const getMenuCategoriesForParent = unstable_cache(
       if (row.parentId) childMap.set(row.parentId, true);
     }
 
-    return visible.map((category) => ({
-      id: category.id,
-      slug: category.slug,
-      name: category.name,
-      productCount: countMap.get(category.id) ?? 0,
-      hasChildren: childMap.get(category.id) ?? false,
-    }));
+    return visible
+      .map((category) => ({
+        id: category.id,
+        slug: category.slug,
+        name: category.name,
+        productCount: countMap.get(category.id) ?? 0,
+        hasChildren: childMap.get(category.id) ?? false,
+      }))
+      .filter((category) => category.hasChildren || category.productCount > 0);
   },
   ["menu-categories-parent"],
   { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog"] },

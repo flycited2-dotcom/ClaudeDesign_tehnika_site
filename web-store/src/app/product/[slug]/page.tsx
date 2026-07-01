@@ -107,9 +107,11 @@ export default async function ProductPage({ params }: Props) {
     description,
     sku: product.sku,
     brand: product.vendor,
+    mpn: product.part,
     images: galleryImages.map((image) => image.src),
     price,
     isAvailable: fulfillment.canOrder,
+    stockStatus: product.stockStatus,
     url: productPath,
   });
   const breadcrumbJsonLd = buildBreadcrumbJsonLd([

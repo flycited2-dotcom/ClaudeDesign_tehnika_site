@@ -4,7 +4,7 @@ import { CatalogView } from "@/app/catalog/catalog-view";
 import { getCatalogPage, getCategoryBySlug } from "@/lib/catalog";
 import { parseCatalogSearchParams } from "@/lib/catalog-query";
 import { catalogRobotsForFilters } from "@/lib/seo-robots";
-import { absoluteStorefrontUrl } from "@/lib/seo-jsonld";
+import { absoluteStorefrontUrl, buildBreadcrumbJsonLd, jsonLdHtml } from "@/lib/seo-jsonld";
 import { storefront } from "@/lib/storefront";
 
 export const revalidate = 300;
@@ -65,32 +65,41 @@ export default async function CategoryPage({ params, searchParams }: Props) {
     notFound();
   }
 
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: storefront.brand, url: "/" },
+    { name: "Каталог", url: "/catalog" },
+    ...data.categoryPath.map((category) => ({ name: category.name, url: `/catalog/${category.slug}` })),
+  ]);
+
   return (
-    <CatalogView
-      title={data.category.name}
-      categoryPath={data.categoryPath}
-      products={data.products}
-      total={data.total}
-      page={data.page}
-      perPage={data.perPage}
-      categories={data.categories}
-      brands={data.brands}
-      currentCategorySlug={data.category.slug}
-      currentQuery={filters.query}
-      currentBrands={filters.brands}
-      onlyAvailable={filters.onlyAvailable}
-      withPhoto={filters.withPhoto}
-      onlyInStock={filters.onlyInStock}
-      minPrice={filters.minPrice}
-      maxPrice={filters.maxPrice}
-      sort={filters.sort}
-      currentSpecFilters={filters.specFilters}
-      specFilterOptions={data.specFilterOptions}
-      currentAttributeFilters={data.attributeFilters}
-      attributeFilterGroups={data.attributeFilterGroups}
-      currentAttributeRangeFilters={data.attributeRangeFilters}
-      attributeRangeGroups={data.attributeRangeGroups}
-      basePath={`/catalog/${data.category.slug}`}
-    />
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdHtml(breadcrumbJsonLd) }} />
+      <CatalogView
+        title={data.category.name}
+        categoryPath={data.categoryPath}
+        products={data.products}
+        total={data.total}
+        page={data.page}
+        perPage={data.perPage}
+        categories={data.categories}
+        brands={data.brands}
+        currentCategorySlug={data.category.slug}
+        currentQuery={filters.query}
+        currentBrands={filters.brands}
+        onlyAvailable={filters.onlyAvailable}
+        withPhoto={filters.withPhoto}
+        onlyInStock={filters.onlyInStock}
+        minPrice={filters.minPrice}
+        maxPrice={filters.maxPrice}
+        sort={filters.sort}
+        currentSpecFilters={filters.specFilters}
+        specFilterOptions={data.specFilterOptions}
+        currentAttributeFilters={data.attributeFilters}
+        attributeFilterGroups={data.attributeFilterGroups}
+        currentAttributeRangeFilters={data.attributeRangeFilters}
+        attributeRangeGroups={data.attributeRangeGroups}
+        basePath={`/catalog/${data.category.slug}`}
+      />
+    </>
   );
 }
