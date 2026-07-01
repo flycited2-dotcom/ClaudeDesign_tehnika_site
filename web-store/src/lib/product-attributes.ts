@@ -96,6 +96,17 @@ function looksLikePackagingBoxMention(text: string): boolean {
   return /\b(?:color|retail|gift|plain|brown|oem|no[\s-]?name|nobrand)\s+box\b/i.test(text);
 }
 
+// "Кабель-канал" (trunking), "стяжка кабельная" (cable tie) and "наконечник
+// кабельный" (cable lug) are ACCESSORIES for routing/terminating cables, not
+// cables themselves — their "W×H"/"W×L" dimension (channel cross-section,
+// tie width×length, lug pin size) must not be read as cores×section.
+function looksLikeCableAccessoryProduct(text: string): boolean {
+  const accessoryNoun = "(?:канал|лоток|короб|стяжк|наконечник|хомут|клипс|держател|гильз|муфт)";
+  return new RegExp(`кабель[-\\s]*канал|кабельн[а-яё]*\\s+${accessoryNoun}|${accessoryNoun}[а-яё]*\\s+кабельн`, "i").test(
+    text,
+  );
+}
+
 // Real electrical-accessory category names from the live catalog (checked
 // against the full flattened category list on 2026-07-01, ~184 of ~1785
 // non-empty categories match): cables/wires, sockets, switches, breakers,
@@ -112,7 +123,11 @@ function looksLikeElectricalAccessoryCategory(categoryName: string): boolean {
 }
 
 function extractElectricalProductType(text: string): { value: string; normalizedValue: string } | null {
-  if (/кабел|провод|шнур|\bcable\b|\bwire\b|\bcord\b/i.test(text) && !looksLikeInterfacePortSpec(text)) {
+  if (
+    /кабел|провод|шнур|\bcable\b|\bwire\b|\bcord\b/i.test(text) &&
+    !looksLikeInterfacePortSpec(text) &&
+    !looksLikeCableAccessoryProduct(text)
+  ) {
     return { value: "Кабель", normalizedValue: "cable" };
   }
   if (/розетк|\bsocket\b|\boutlet\b/i.test(text)) {

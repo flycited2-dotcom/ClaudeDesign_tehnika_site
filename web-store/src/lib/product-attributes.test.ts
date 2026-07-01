@@ -320,6 +320,18 @@ describe("extractProductNameAttributes", () => {
         "Телевизор Samsung UE55TU7000UXRU, 55 дюймов, разъемы 2x HDMI, 1x USB, Smart TV",
       ],
       ["Nintendo Switch game console", "Игровая консоль Nintendo Switch OLED 64GB белый"],
+      [
+        "Cable channel (кабель-канал) whose W×H dimension is not a core count",
+        "Короб перфорированный кабель-канал 40х20мм, 2м, белый",
+      ],
+      [
+        "Cable tie (стяжка кабельная) whose width×length is not a core count",
+        "Стяжка кабельная 4.8х300 нейлоновая черная (уп.100шт) DKC",
+      ],
+      [
+        "Cable lug (наконечник кабельный) whose pin size is not a core count",
+        "Наконечник кабельный медный луженый, с изолирующей втулкой, 7.6 х 280 мм, 10 шт",
+      ],
     ];
 
     it.each(cases)("%s", (_label, name) => {

@@ -227,6 +227,14 @@ def run_remote_command(client, command: str, *, timeout_seconds: int, poll_inter
 
 
 def main() -> int:
+    # Windows consoles often default stdout/stderr to a legacy codepage (not
+    # UTF-8), which mangles Cyrillic product names/categories beyond recovery
+    # in --run-audit output. Force UTF-8 so those findings are actually readable.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
     project_root = Path(__file__).resolve().parents[1]
     load_dotenv_if_available(project_root)
 
