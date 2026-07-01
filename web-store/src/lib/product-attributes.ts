@@ -89,6 +89,13 @@ function extractElectricalProductType(text: string): { value: string; normalized
   if (/розетк|\bsocket\b|\boutlet\b/i.test(text)) {
     return { value: "Розетка", normalizedValue: "socket" };
   }
+  // Must run before the bare "выключател" check below — "переключатель" does not
+  // contain "выключател" as a substring, but both describe wall switches and we
+  // want the more specific label when the accompanying words make it clear this
+  // is a two-way/crossover switch, not a plain on/off one.
+  if (/переключател[а-яё]*\s*(?:проходн|перекр[её]стн|клавиш)/i.test(text)) {
+    return { value: "Переключатель", normalizedValue: "changeover_switch" };
+  }
   if (/выключател|\bswitch\b/i.test(text)) {
     return { value: "Выключатель", normalizedValue: "switch" };
   }
@@ -100,6 +107,15 @@ function extractElectricalProductType(text: string): { value: string; normalized
   }
   if (/разъ[её]м|коннектор|клемм|\bconnector\b/i.test(text)) {
     return { value: "Коннектор", normalizedValue: "connector" };
+  }
+  if (/терморегулятор|термостат/i.test(text)) {
+    return { value: "Терморегулятор", normalizedValue: "thermostat" };
+  }
+  // "Рамка" alone is too generic (photo frames, mirror frames, license plate
+  // frames, etc.) — only tag it when a gang/post count is present, which is how
+  // electrical wall-plate frames are actually named ("Рамка 2-м", "Рамка на 3 поста").
+  if (/рамк/i.test(text) && /\d+[\s-]*(?:м\b|пост)/i.test(text)) {
+    return { value: "Рамка", normalizedValue: "frame" };
   }
   if (/коробк|бокс|\bbox\b|(^|[^а-яё])щит(ок)?(?=$|[^а-яё])/i.test(text)) {
     return { value: "Коробка/щит", normalizedValue: "box" };

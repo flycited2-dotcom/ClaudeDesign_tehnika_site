@@ -436,4 +436,32 @@ describe("extractProductNameAttributes", () => {
     const byKey = Object.fromEntries(attributes.map((attribute) => [attribute.key, attribute]));
     expect(byKey.ip_rating).toMatchObject({ value: "IP54", normalizedValue: "ip54" });
   });
+
+  it("recognizes рамка (frame), переключатель (changeover switch) and терморегулятор as electrical types", () => {
+    const frame = extractProductNameAttributes("Рамка на 3 поста (белый, basic) W0032001");
+    expect(Object.fromEntries(frame.map((a) => [a.key, a])).electrical_product_type).toMatchObject({
+      value: "Рамка",
+      normalizedValue: "frame",
+    });
+
+    const changeover = extractProductNameAttributes("Переключатель проходной Kranz Mini OG открытой установки, IP54 белый");
+    expect(Object.fromEntries(changeover.map((a) => [a.key, a])).electrical_product_type).toMatchObject({
+      value: "Переключатель",
+      normalizedValue: "changeover_switch",
+    });
+
+    const thermostat = extractProductNameAttributes("Терморегулятор ALFA Графит мягкое касание 16A-250V");
+    expect(Object.fromEntries(thermostat.map((a) => [a.key, a])).electrical_product_type).toMatchObject({
+      value: "Терморегулятор",
+      normalizedValue: "thermostat",
+    });
+  });
+
+  it("does not mistake an unrelated переключатель (gear shifter) or a bare рамка mention for an electrical accessory", () => {
+    const gearShifter = extractProductNameAttributes("Переключатель передач Shimano Deore 9 скоростей");
+    expect(Object.fromEntries(gearShifter.map((a) => [a.key, a])).electrical_product_type).toBeUndefined();
+
+    const bareFrame = extractProductNameAttributes("Рамка для номерного знака хром");
+    expect(Object.fromEntries(bareFrame.map((a) => [a.key, a])).electrical_product_type).toBeUndefined();
+  });
 });
