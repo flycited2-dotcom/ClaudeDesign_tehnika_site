@@ -92,6 +92,37 @@ class DeployVpsTests(unittest.TestCase):
         self.assertLess(restart_index, health_index)
         self.assertIn("set -euo pipefail", script)
         self.assertIn("for attempt in 1 2 3 4 5 6 7 8 9 10 11 12", script)
+        self.assertIn("rm -rf .next/cache", script)
+        self.assertNotIn("rm -rf .next\n", script)
+        self.assertNotIn("sync:attributes", script)
+
+    def test_sync_attributes_runs_in_background_after_healthcheck(self):
+        script = build_remote_deploy_script(
+            remote_root="/var/www/climat-simf.ru",
+            process_name="climat-simf-store",
+            build_log="/tmp/climat-build.log",
+            run_install=False,
+            sync_attributes=True,
+        )
+
+        health_index = script.index("curl -fsS -m 30 http://127.0.0.1:3001/")
+        sync_index = script.index("npm run sync:attributes")
+
+        self.assertLess(health_index, sync_index)
+        self.assertIn("nohup npm run sync:attributes", script)
+        self.assertIn("&", script.splitlines()[-1])
+
+    def test_full_clean_wipes_whole_next_instead_of_just_cache(self):
+        script = build_remote_deploy_script(
+            remote_root="/var/www/climat-simf.ru",
+            process_name="climat-simf-store",
+            build_log="/tmp/climat-build.log",
+            run_install=False,
+            full_clean=True,
+        )
+
+        self.assertIn("rm -rf .next\n", script)
+        self.assertNotIn("rm -rf .next/cache", script)
 
     def test_connect_kwargs_support_key_auth_without_password(self):
         kwargs = build_connect_kwargs(

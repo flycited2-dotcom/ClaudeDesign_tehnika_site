@@ -55,47 +55,73 @@ def build_remote_deploy_script(
     process_name: str,
     build_log: str,
     run_install: bool,
+    full_clean: bool = False,
+    sync_attributes: bool = False,
 ) -> str:
     quoted_root = shlex.quote(remote_root)
     quoted_process = shlex.quote(process_name)
     quoted_log = shlex.quote(build_log)
     install = "npm ci\n" if run_install else ""
 
-    return "\n".join(
-        [
-            "set -euo pipefail",
-            f"cd {quoted_root}",
-            install.rstrip(),
-            "npx prisma generate",
-            "npx prisma db push --skip-generate",
-            # Clear only the Turbopack persistent cache (not the whole .next) so a
-            # stale incremental cache can't fail/poison the build, while pm2 keeps
-            # serving the current build during the rebuild (no 500 window).
-            "rm -rf .next/cache",
-            f"npm run build 2>&1 | tee {quoted_log}",
-            "test -f .next/prerender-manifest.json",
-            "test -s .next/BUILD_ID",
-            f"pm2 delete {quoted_process} >/tmp/{process_name}-pm2.log 2>&1 || true",
-            "pm2 start ecosystem.config.cjs --update-env",
-            "pm2 jlist >/tmp/climat-simf-pm2.json",
-            "for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do",
-            "  if curl -fsS -m 30 http://127.0.0.1:3001/ >/tmp/climat-simf-health.html; then",
-            "    break",
-            "  fi",
-            "  if [ \"$attempt\" -eq 12 ]; then",
-            "    exit 1",
-            "  fi",
-            "  sleep 5",
-            "done",
-            # Warm the cache right after restart so the post-deploy window (the
-            # .next/cache was just cleared) doesn't make the first real users
-            # eat a ~10s cold render. Hot routes synchronously, full category
-            # tail in the background. Non-fatal — never fail a deploy on warming.
-            "echo 'post-deploy cache warm: hot routes (sync) + full category tail (bg)'",
-            "bash scripts/warm_cache.sh >/tmp/climat-simf-warm-deploy.log 2>&1 || true",
-            "nohup bash scripts/warm_all.sh >/var/log/climat-simf-warm-deploy-all.log 2>&1 </dev/null &",
-        ]
-    )
+    if full_clean:
+        # Turbopack's persistent build cache has been observed to keep serving
+        # the OLD compiled output for an existing file that was only edited
+        # (not renamed), even after `rm -rf .next/cache` — see AGENTS.md/CLAUDE.md
+        # "Turbopack persistent build cache игнорирует правки в existing route.ts".
+        # Wiping the whole .next forces a fully cold rebuild, at the cost of a
+        # slower build and losing the zero-downtime "pm2 keeps serving old .next
+        # during rebuild" property below.
+        clean_step = "rm -rf .next"
+    else:
+        # Clear only the Turbopack persistent cache (not the whole .next) so a
+        # stale incremental cache can't fail/poison the build, while pm2 keeps
+        # serving the current build during the rebuild (no 500 window).
+        clean_step = "rm -rf .next/cache"
+
+    steps = [
+        "set -euo pipefail",
+        f"cd {quoted_root}",
+        install.rstrip(),
+        "npx prisma generate",
+        "npx prisma db push --skip-generate",
+        clean_step,
+        f"npm run build 2>&1 | tee {quoted_log}",
+        "test -f .next/prerender-manifest.json",
+        "test -s .next/BUILD_ID",
+        f"pm2 delete {quoted_process} >/tmp/{process_name}-pm2.log 2>&1 || true",
+        "pm2 start ecosystem.config.cjs --update-env",
+        "pm2 jlist >/tmp/climat-simf-pm2.json",
+        "for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do",
+        "  if curl -fsS -m 30 http://127.0.0.1:3001/ >/tmp/climat-simf-health.html; then",
+        "    break",
+        "  fi",
+        "  if [ \"$attempt\" -eq 12 ]; then",
+        "    exit 1",
+        "  fi",
+        "  sleep 5",
+        "done",
+        # Warm the cache right after restart so the post-deploy window (the
+        # .next/cache was just cleared) doesn't make the first real users
+        # eat a ~10s cold render. Hot routes synchronously, full category
+        # tail in the background. Non-fatal — never fail a deploy on warming.
+        "echo 'post-deploy cache warm: hot routes (sync) + full category tail (bg)'",
+        "bash scripts/warm_cache.sh >/tmp/climat-simf-warm-deploy.log 2>&1 || true",
+        "nohup bash scripts/warm_all.sh >/var/log/climat-simf-warm-deploy-all.log 2>&1 </dev/null &",
+    ]
+
+    if sync_attributes:
+        # Re-derives every name-based ProductAttribute row (deletes source="name"
+        # rows, then reinserts using the just-deployed extractor code) across the
+        # whole catalog (~250k products) — needed because product pages read
+        # persisted attribute rows before falling back to a live title extraction,
+        # so a code fix alone does not correct already-synced products. Backgrounded
+        # like warm_all.sh above: this can take several minutes and must not hold
+        # up the deploy or its healthcheck.
+        steps.append(
+            "nohup npm run sync:attributes >/var/log/climat-simf-sync-attributes-deploy.log 2>&1 </dev/null &"
+        )
+
+    return "\n".join(steps)
 
 
 def create_archive(project_root: Path) -> Path:
@@ -204,6 +230,20 @@ def main() -> int:
     parser.add_argument("--public-url", default=os.getenv("WEB_STORE_PUBLIC_URL") or PUBLIC_URL)
     parser.add_argument("--key-path", default=os.getenv("WEB_STORE_SSH_KEY_PATH"))
     parser.add_argument("--install", action="store_true", help="Run npm ci on the server before build.")
+    parser.add_argument(
+        "--full-clean",
+        action="store_true",
+        help="Wipe the whole .next (not just .next/cache) before building — "
+        "use when an edit to an existing file doesn't show up after a normal deploy "
+        "(Turbopack persistent build cache staleness).",
+    )
+    parser.add_argument(
+        "--sync-attributes",
+        action="store_true",
+        help="After a healthy restart, re-run the name-based ProductAttribute backfill "
+        "(scripts/sync-product-attributes.ts) in the background on the server — use "
+        "when a product-attributes.ts change should also correct already-synced rows.",
+    )
     parser.add_argument("--remote-timeout", type=int, default=int(os.getenv("WEB_STORE_REMOTE_TIMEOUT") or "1800"))
     parser.add_argument("--skip-public-healthcheck", action="store_true")
     args = parser.parse_args()
@@ -246,6 +286,8 @@ def main() -> int:
             process_name=args.process_name,
             build_log=build_log,
             run_install=args.install,
+            full_clean=args.full_clean,
+            sync_attributes=args.sync_attributes,
         )
         command = f"{backup_command}\n{extract_command}\n{deploy_command}\nrm -f {shlex.quote(remote_archive)}"
 
