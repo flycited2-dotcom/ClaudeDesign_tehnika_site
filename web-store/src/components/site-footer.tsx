@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, Send } from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import Link from "next/link";
 import { FooterSubscribe } from "@/components/footer-subscribe";
 import { phoneHref, storefront } from "@/lib/storefront";
@@ -32,22 +32,12 @@ export function SiteFooter() {
           <a
             className="social"
             title="Telegram"
-            href="https://t.me/+79785792995"
+            href="https://t.me/B2B_opt_simf"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Telegram"
           >
             <Send size={18} aria-hidden />
-          </a>
-          <a
-            className="social"
-            title="WhatsApp"
-            href="https://wa.me/79785792995"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="WhatsApp"
-          >
-            <MessageCircle size={18} aria-hidden />
           </a>
         </div>
       </div>
