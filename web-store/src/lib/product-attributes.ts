@@ -130,6 +130,67 @@ function extractIpRating(text: string): { value: string; normalizedValue: string
   return { value: `IP${match[1]}`, normalizedValue: `ip${match[1]}` };
 }
 
+function looksLikeElectricalAccessory(text: string): boolean {
+  if (/розетк|выключател|переключател/i.test(text)) return true;
+  // Bare "рамка" is too generic on its own — only treat it as an electrical
+  // wall-plate frame when a gang/post count is present nearby.
+  return /рамк/i.test(text) && /\d+[\s-]*(?:м\b|пост)/i.test(text);
+}
+
+const electricalGangWordCounts: Record<string, number> = {
+  "одно": 1,
+  "двух": 2,
+  "трех": 3,
+  "трёх": 3,
+  "четырех": 4,
+  "четырёх": 4,
+};
+
+function extractElectricalAccessoryAttributes(text: string, attributes: ExtractedProductAttribute[]) {
+  if (!looksLikeElectricalAccessory(text)) return;
+
+  // Full word forms only — no 2-letter abbreviations (ОП/СП/ОУ/СУ), those are
+  // too easy to collide with unrelated brand/model codes.
+  if (/открыт[а-яё]*\s+установ|наружн[а-яё]*\s+установ/i.test(text)) {
+    addAttribute(attributes, {
+      key: "mount_type",
+      label: "Установка",
+      value: "Открытая",
+      normalizedValue: "surface",
+      numericValue: null,
+      unit: null,
+    });
+  } else if (/скрыт[а-яё]*\s+установ|внутренн[а-яё]*\s+установ/i.test(text)) {
+    addAttribute(attributes, {
+      key: "mount_type",
+      label: "Установка",
+      value: "Скрытая",
+      normalizedValue: "flush",
+      numericValue: null,
+      unit: null,
+    });
+  }
+
+  const gangMatch =
+    text.match(/(\d+)[\s-]*кл(?:авиш[а-яё]*)?/i) ??
+    text.match(/(одно|двух|тр[её]х|четыр[её]х)[\s-]*кл(?:авиш[а-яё]*)?/i) ??
+    text.match(/(\d+)[\s-]*пост/i);
+  if (gangMatch) {
+    const raw = gangMatch[1];
+    const count = /^\d+$/.test(raw) ? Number(raw) : electricalGangWordCounts[raw.toLocaleLowerCase("ru-RU")];
+    if (count) {
+      addAttribute(attributes, {
+        key: "gang_count",
+        label: "Количество клавиш/постов",
+        value: `${count} шт.`,
+        normalizedValue: String(count),
+        numericValue: count,
+        unit: "шт.",
+      });
+    }
+  }
+}
+
 function extractColor(text: string): { value: string; normalizedValue: string } | null {
   const colors: Array<{ pattern: RegExp; value: string; normalizedValue: string }> = [
     { pattern: /бел(ый|ая|ое|ые)|\bwhite\b/i, value: "Белый", normalizedValue: "white" },
@@ -943,6 +1004,8 @@ export function extractProductNameAttributes(name: string | null | undefined): E
       });
     }
   }
+
+  extractElectricalAccessoryAttributes(text, attributes);
 
   const color = extractColor(text);
   if (color) {

@@ -464,4 +464,27 @@ describe("extractProductNameAttributes", () => {
     const bareFrame = extractProductNameAttributes("Рамка для номерного знака хром");
     expect(Object.fromEntries(bareFrame.map((a) => [a.key, a])).electrical_product_type).toBeUndefined();
   });
+
+  it("extracts mount_type and gang_count for electrical accessories", () => {
+    const open = extractProductNameAttributes("Переключатель проходной Kranz Mini OG открытой установки, IP54 белый");
+    expect(Object.fromEntries(open.map((a) => [a.key, a])).mount_type).toMatchObject({ value: "Открытая", normalizedValue: "surface" });
+
+    const flush = extractProductNameAttributes("Розетка скрытой установки 2-м, белая");
+    const flushByKey = Object.fromEntries(flush.map((a) => [a.key, a]));
+    expect(flushByKey.mount_type).toMatchObject({ value: "Скрытая", normalizedValue: "flush" });
+
+    const digitGang = extractProductNameAttributes("Systeme Electric ArtGallery Шампань Выключатель 4-клавишный сценарный, сх. 1");
+    expect(Object.fromEntries(digitGang.map((a) => [a.key, a])).gang_count).toMatchObject({ normalizedValue: "4", numericValue: 4 });
+
+    const wordGang = extractProductNameAttributes("Выключатель двухклавишный с самовозвратом (айвори матовый)");
+    expect(Object.fromEntries(wordGang.map((a) => [a.key, a])).gang_count).toMatchObject({ normalizedValue: "2", numericValue: 2 });
+
+    const postGang = extractProductNameAttributes("Рамка на 3 поста (белый, basic) W0032001");
+    expect(Object.fromEntries(postGang.map((a) => [a.key, a])).gang_count).toMatchObject({ normalizedValue: "3", numericValue: 3 });
+  });
+
+  it("does not extract mount_type from a 2-letter abbreviation (СП/ОП) to avoid false positives", () => {
+    const attributes = extractProductNameAttributes("Розетка 2-м СП Glossa с заземл. в сборе бел. SchE GSL000124");
+    expect(Object.fromEntries(attributes.map((a) => [a.key, a])).mount_type).toBeUndefined();
+  });
 });
