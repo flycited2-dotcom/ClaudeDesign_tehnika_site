@@ -96,7 +96,7 @@ class DeployVpsTests(unittest.TestCase):
         self.assertNotIn("rm -rf .next\n", script)
         self.assertNotIn("sync:attributes", script)
 
-    def test_sync_attributes_runs_in_background_after_healthcheck(self):
+    def test_sync_attributes_runs_synchronously_after_healthcheck(self):
         script = build_remote_deploy_script(
             remote_root="/var/www/climat-simf.ru",
             process_name="climat-simf-store",
@@ -109,8 +109,28 @@ class DeployVpsTests(unittest.TestCase):
         sync_index = script.index("npm run sync:attributes")
 
         self.assertLess(health_index, sync_index)
-        self.assertIn("nohup npm run sync:attributes", script)
-        self.assertIn("&", script.splitlines()[-1])
+        self.assertNotIn("nohup npm run sync:attributes", script)
+        self.assertNotIn("audit:electrical", script)
+
+    def test_run_audit_runs_synchronously_after_sync_attributes_with_markers(self):
+        script = build_remote_deploy_script(
+            remote_root="/var/www/climat-simf.ru",
+            process_name="climat-simf-store",
+            build_log="/tmp/climat-build.log",
+            run_install=False,
+            sync_attributes=True,
+            run_audit=True,
+        )
+
+        sync_index = script.index("npm run sync:attributes")
+        audit_start_index = script.index("===AUDIT-START===")
+        audit_run_index = script.index("npm run audit:electrical")
+        audit_end_index = script.index("===AUDIT-END===")
+
+        self.assertLess(sync_index, audit_start_index)
+        self.assertLess(audit_start_index, audit_run_index)
+        self.assertLess(audit_run_index, audit_end_index)
+        self.assertNotIn("nohup npm run audit:electrical", script)
 
     def test_full_clean_wipes_whole_next_instead_of_just_cache(self):
         script = build_remote_deploy_script(

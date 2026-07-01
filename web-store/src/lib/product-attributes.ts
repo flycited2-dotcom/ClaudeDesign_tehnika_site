@@ -96,6 +96,21 @@ function looksLikePackagingBoxMention(text: string): boolean {
   return /\b(?:color|retail|gift|plain|brown|oem|no[\s-]?name|nobrand)\s+box\b/i.test(text);
 }
 
+// Real electrical-accessory category names from the live catalog (checked
+// against the full flattened category list on 2026-07-01, ~184 of ~1785
+// non-empty categories match): cables/wires, sockets, switches, breakers,
+// luminaires/lamps, connectors/terminals, thermostats, wall-plate frames,
+// distribution boxes/panels, grounding, disconnect switches/contactors,
+// extension cords, lampholders. Anything NOT matching this is some other
+// product family entirely (camera, cooler, TV, laptop, tire, ...), so a
+// stray "кабель"/"switch"/"box"/"разъём" word describing an unrelated spec
+// in its name must not tag it as an electrical accessory.
+function looksLikeElectricalAccessoryCategory(categoryName: string): boolean {
+  return /кабел|провод|шнур|розетк|выключател|переключател|автомат|узо|дифавтомат|светильник|ламп|разъ[её]м|коннектор|клемм|терморегулятор|термостат|рамк|коробк|бокс|щит|электроустановочн|заземлен|молниезащит|рубильник|контактор|пускател|штепсел|удлинител|патрон|ламподержател/i.test(
+    categoryName,
+  );
+}
+
 function extractElectricalProductType(text: string): { value: string; normalizedValue: string } | null {
   if (/кабел|провод|шнур|\bcable\b|\bwire\b|\bcord\b/i.test(text) && !looksLikeInterfacePortSpec(text)) {
     return { value: "Кабель", normalizedValue: "cable" };
@@ -1085,12 +1100,12 @@ export function extractProductNameAttributes(
   extractCoolingAttributes(text, attributes);
 
   // The real DB category is a stronger signal than name text alone — a bare
-  // model-code camera/cooler name (no Russian "камера"/"кулер" keyword at all)
-  // would otherwise still fall through to the generic electrical classifier.
-  // Category names are plural/generic ("Камеры видеонаблюдения", "Кулеры для
-  // процессора"), so match on the word stem rather than reusing
-  // looksLikeCameraProduct/looksLikeCoolingProduct (tuned for singular product-name wording).
-  const isKnownNonElectricalCategory = /камер|кулер|куллер|охлажден/i.test(category);
+  // model-code name (no Russian keyword at all) would otherwise still fall
+  // through to the generic electrical classifier. When the category is known
+  // and it's outside the electrical-accessory domain (whatever it is — camera,
+  // cooler, TV, laptop, tire, ...), skip the classifier outright. Fall back to
+  // the text-only heuristics below when the category is missing/unknown.
+  const isKnownNonElectricalCategory = category.length > 0 && !looksLikeElectricalAccessoryCategory(category);
   const electricalProductType = isKnownNonElectricalCategory ? null : extractElectricalProductType(text);
   if (electricalProductType) {
     addAttribute(attributes, {

@@ -57,6 +57,7 @@ def build_remote_deploy_script(
     run_install: bool,
     full_clean: bool = False,
     sync_attributes: bool = False,
+    run_audit: bool = False,
 ) -> str:
     quoted_root = shlex.quote(remote_root)
     quoted_process = shlex.quote(process_name)
@@ -114,12 +115,19 @@ def build_remote_deploy_script(
         # rows, then reinserts using the just-deployed extractor code) across the
         # whole catalog (~250k products) — needed because product pages read
         # persisted attribute rows before falling back to a live title extraction,
-        # so a code fix alone does not correct already-synced products. Backgrounded
-        # like warm_all.sh above: this can take several minutes and must not hold
-        # up the deploy or its healthcheck.
-        steps.append(
-            "nohup npm run sync:attributes >/var/log/climat-simf-sync-attributes-deploy.log 2>&1 </dev/null &"
-        )
+        # so a code fix alone does not correct already-synced products. Runs
+        # synchronously (not backgrounded) so a failure fails the deploy, and so
+        # --run-audit below sees the fully-updated table rather than a half-written one.
+        steps.append("npm run sync:attributes 2>&1 | tee /var/log/climat-simf-sync-attributes-deploy.log")
+
+    if run_audit:
+        # Read-only scan for the same false-positive class — prints to stdout so
+        # the deploy script can show the findings without needing a separate SSH
+        # session. A delimiter makes it easy to extract just this section from
+        # the captured command output.
+        steps.append("echo '===AUDIT-START==='")
+        steps.append("npm run audit:electrical 2>&1 | tee /var/log/climat-simf-audit-electrical-deploy.log")
+        steps.append("echo '===AUDIT-END==='")
 
     return "\n".join(steps)
 
@@ -240,9 +248,15 @@ def main() -> int:
     parser.add_argument(
         "--sync-attributes",
         action="store_true",
-        help="After a healthy restart, re-run the name-based ProductAttribute backfill "
-        "(scripts/sync-product-attributes.ts) in the background on the server — use "
-        "when a product-attributes.ts change should also correct already-synced rows.",
+        help="After a healthy restart, synchronously re-run the name-based ProductAttribute "
+        "backfill (scripts/sync-product-attributes.ts) on the server — use when a "
+        "product-attributes.ts change should also correct already-synced rows.",
+    )
+    parser.add_argument(
+        "--run-audit",
+        action="store_true",
+        help="After the above, synchronously run scripts/audit-electrical-false-positives.ts "
+        "(npm run audit:electrical) and print its findings — read-only.",
     )
     parser.add_argument("--remote-timeout", type=int, default=int(os.getenv("WEB_STORE_REMOTE_TIMEOUT") or "1800"))
     parser.add_argument("--skip-public-healthcheck", action="store_true")
@@ -288,6 +302,7 @@ def main() -> int:
             run_install=args.install,
             full_clean=args.full_clean,
             sync_attributes=args.sync_attributes,
+            run_audit=args.run_audit,
         )
         command = f"{backup_command}\n{extract_command}\n{deploy_command}\nrm -f {shlex.quote(remote_archive)}"
 
@@ -300,6 +315,10 @@ def main() -> int:
             print(printable_tail(out, encoding=sys.stdout.encoding))
             print(printable_tail(err, encoding=sys.stderr.encoding), file=sys.stderr)
             raise SystemExit(code)
+        if args.run_audit and "===AUDIT-START===" in out:
+            audit_output = out.split("===AUDIT-START===", 1)[1].split("===AUDIT-END===", 1)[0]
+            print("--- audit:electrical findings ---")
+            print(printable_tail(audit_output, encoding=sys.stdout.encoding))
     finally:
         client.close()
         archive_path.unlink(missing_ok=True)

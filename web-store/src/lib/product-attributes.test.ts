@@ -344,8 +344,22 @@ describe("extractProductNameAttributes", () => {
     expect(keys).not.toContain("electrical_product_type");
   });
 
-  it("still classifies a genuine cable product when the category is unrelated to camera/cooling", () => {
+  it("still classifies a genuine cable product when the category is a real electrical-accessory category", () => {
     const keys = extractProductNameAttributes("Кабель ВВГнг-LS 3х2,5 ГОСТ, бухта 100 м, белый", "Кабельная продукция").map(
+      (attribute) => attribute.key,
+    );
+    expect(keys).toContain("electrical_product_type");
+  });
+
+  it("suppresses electrical classification for ANY non-electrical real catalog category, not just camera/cooling", () => {
+    const keys = extractProductNameAttributes("Ноутбук ASUS X515EA-BQ2622, кабель в комплекте, 15.6 FHD", "Ноутбуки").map(
+      (attribute) => attribute.key,
+    );
+    expect(keys).not.toContain("electrical_product_type");
+  });
+
+  it("still recognizes a real electrical-accessory category outside camera/cooling", () => {
+    const keys = extractProductNameAttributes("Розетка Legrand Valena 2К+З белый", "Розетки, выключатели и рамки").map(
       (attribute) => attribute.key,
     );
     expect(keys).toContain("electrical_product_type");
