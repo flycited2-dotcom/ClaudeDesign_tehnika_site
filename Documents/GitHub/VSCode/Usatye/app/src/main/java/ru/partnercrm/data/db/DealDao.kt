@@ -30,6 +30,9 @@ interface DealDao {
     @Query("DELETE FROM deals WHERE id = :id")
     suspend fun delete(id: Long)
 
+    @Query("DELETE FROM deals WHERE partnerId = :partnerId")
+    suspend fun deleteByPartner(partnerId: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWithId(deal: DealEntity): Long
 

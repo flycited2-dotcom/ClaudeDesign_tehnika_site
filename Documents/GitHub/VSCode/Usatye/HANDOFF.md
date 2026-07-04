@@ -51,3 +51,13 @@
 - Весь UI в `app/src/main/java/ru/partnercrm/ui/PartnerMoneyApp.kt` (один файл).
 - `domain/` — калькуляторы (money, dashboard, report, deal), `data/` — Room + InMemory репозитории
   (обе реализуют `CrmRepository`), `export/` — Excel (ручной XLSX без библиотек), `notifications/` — WorkManager.
+
+## Handoff 2026-07-04: code review hardening pass
+- Completed the `CODEX_TASKS.md` hardening pass: Room access is now suspend/IO based, `allowMainThreadQueries()` and production `runBlocking` are gone, backup restore validates `version`, dirty DB enum values have a fallback, payout/restore operations use transactions, and profit calculations use shared `Deal` helpers.
+- Added Room schema export with database version 3 and `MIGRATION_2_3` for the new `(partnerId, status)` deal index.
+- Added JVM tests for backup parsing/version handling, dirty enum mapping, and deal profit helpers; added Compose instrumentation tests for add deal, restore picker launch, and tab back history.
+- Added release R8/proguard config, ktlint wiring, Android lint verification, and GitHub Actions workflow for `test assembleDebug lint ktlintCheck`.
+- Verification passed after the final edit: `.\gradlew.bat test assembleDebug assembleRelease :app:assembleDebugAndroidTest lint ktlintCheck --console=plain --no-daemon` -> `BUILD SUCCESSFUL in 6m 16s`.
+- Debug APK was installed on the connected TECNO BG6 with `adb install -r app/build/outputs/apk/debug/app-debug.apk`; app process `ru.partnercrm` was alive with `MainActivity` resumed.
+- Current visual state intentionally looks mostly the same. Next requested work is a visible UI pass: dashboard/card polish, buttons/forms, dark theme, and cleaner navigation.
+- Keep avoiding `git add -A` from repo root: this git repo root is `C:/Users/user`, so status includes unrelated folders outside `Documents/GitHub/VSCode/Usatye`.

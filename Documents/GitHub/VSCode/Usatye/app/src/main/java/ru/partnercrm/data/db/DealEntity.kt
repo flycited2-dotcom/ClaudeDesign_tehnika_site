@@ -15,7 +15,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index("partnerId"), Index("dueDate"), Index("status")],
+    indices = [Index("partnerId"), Index("dueDate"), Index("status"), Index(value = ["partnerId", "status"])],
 )
 data class DealEntity(
     @PrimaryKey(autoGenerate = true)
@@ -25,6 +25,7 @@ data class DealEntity(
     val percent: Double,
     val amountToReturn: Double,
     val profit: Double,
+    val paidOutAmount: Double = 0.0,
     val dateIn: Long,
     val dueDate: Long,
     val dateReturned: Long? = null,

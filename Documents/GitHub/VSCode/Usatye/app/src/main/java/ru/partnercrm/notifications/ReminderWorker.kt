@@ -59,7 +59,11 @@ class ReminderWorker(
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(applicationContext).notify(notificationId(dealId, type), notification)
+        try {
+            NotificationManagerCompat.from(applicationContext).notify(notificationId(dealId, type), notification)
+        } catch (_: SecurityException) {
+            return Result.success()
+        }
         return Result.success()
     }
 

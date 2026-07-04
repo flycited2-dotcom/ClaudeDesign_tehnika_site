@@ -85,6 +85,7 @@ class PeriodReportCalculatorTest {
         dateIn: LocalDate,
         status: DealLifecycleStatus,
         dateReturned: LocalDate? = null,
+        paidOutAmount: Double = if (status == DealLifecycleStatus.RETURNED) amountToReturn else 0.0,
     ) = Deal(
         id = id,
         partnerId = partnerId,
@@ -92,6 +93,7 @@ class PeriodReportCalculatorTest {
         percent = 10.0,
         amountToReturn = amountToReturn,
         profit = profit,
+        paidOutAmount = paidOutAmount,
         dateIn = dateIn,
         dueDate = dateIn.plusDays(7),
         dateReturned = dateReturned,

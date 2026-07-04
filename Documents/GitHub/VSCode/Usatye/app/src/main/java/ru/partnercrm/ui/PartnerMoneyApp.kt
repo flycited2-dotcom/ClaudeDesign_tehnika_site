@@ -1,14 +1,17 @@
-package ru.partnercrm.ui
+﻿package ru.partnercrm.ui
 
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,19 +56,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.core.content.FileProvider
 import java.io.File
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,21 +87,31 @@ import java.text.DecimalFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.launch
 import ru.partnercrm.R
 import ru.partnercrm.data.model.AppSettings
 import ru.partnercrm.data.model.Deal
 import ru.partnercrm.data.model.Partner
+import ru.partnercrm.data.model.expectedProfit
+import ru.partnercrm.data.model.realizedProfit
+import ru.partnercrm.data.model.remainingToReturn
 import ru.partnercrm.data.backup.BackupSerializer
 import ru.partnercrm.data.repository.CrmRepository
 import ru.partnercrm.domain.calculator.CalcType
 import ru.partnercrm.domain.calculator.MoneyCalculator
 import ru.partnercrm.domain.dashboard.DashboardSummary
 import ru.partnercrm.domain.dashboard.PartnerDashboardSummary
+import ru.partnercrm.domain.dashboard.DashboardBreakdownCalculator
+import ru.partnercrm.domain.dashboard.DashboardBreakdownType
+import ru.partnercrm.domain.dashboard.DashboardCalculator
 import ru.partnercrm.domain.deal.DealDisplayStatus
+import ru.partnercrm.domain.deal.DealDefaults
 import ru.partnercrm.domain.deal.DealListFilter
 import ru.partnercrm.domain.deal.DealLifecycleStatus
 import ru.partnercrm.domain.deal.DealStatusResolver
 import ru.partnercrm.domain.deal.applyTo
+import ru.partnercrm.domain.deal.sortedForIncomingTimeline
+import ru.partnercrm.domain.payment.PaymentAllocationPreview
 import ru.partnercrm.domain.report.PeriodReportCalculator
 import ru.partnercrm.domain.report.PeriodSelection
 import ru.partnercrm.domain.report.ReportPeriodType
@@ -103,7 +127,7 @@ private val AppColors = lightColorScheme(
     error = Color(0xFFB42318),
 )
 
-private val MoneyFormat = DecimalFormat("#,##0.##")
+private val MoneyFormat = DecimalFormat("#,##0")
 
 // Обновляются в PartnerMoneyApp из настроек, чтобы money() единообразно учитывал валюту и скрытие сумм.
 private var moneyCurrencySymbol: String = "₽"
@@ -112,6 +136,14 @@ private var moneyHideAmounts: Boolean = false
 private data class BottomNavItem(
     val title: String,
     val iconRes: Int,
+)
+
+private data class AppSnapshot(
+    val partners: List<Partner> = emptyList(),
+    val deals: List<Deal> = emptyList(),
+    val activeDeals: List<Deal> = emptyList(),
+    val dashboard: DashboardSummary = DashboardCalculator.calculate(emptyList(), LocalDate.now()),
+    val settings: AppSettings = AppSettings(),
 )
 
 @Composable
@@ -128,22 +160,28 @@ fun PartnerMoneyApp(
             var version by remember { mutableIntStateOf(0) }
             var showPartnerDialog by remember { mutableStateOf(false) }
             var showDealDialog by remember { mutableStateOf(false) }
+            var showPayoutDialog by remember { mutableStateOf(false) }
             var editingPartner by remember { mutableStateOf<Partner?>(null) }
             var editingDeal by remember { mutableStateOf<Deal?>(null) }
-            var closingDeal by remember { mutableStateOf<Deal?>(null) }
             var cancellingDeal by remember { mutableStateOf<Deal?>(null) }
             var deletingDeal by remember { mutableStateOf<Deal?>(null) }
+            var deletingPartner by remember { mutableStateOf<Partner?>(null) }
+            var dashboardBreakdownType by remember { mutableStateOf<DashboardBreakdownType?>(null) }
             var errorMessage by remember { mutableStateOf<String?>(null) }
             var infoMessage by remember { mutableStateOf<String?>(null) }
             var detailPartnerId by remember { mutableStateOf<Long?>(null) }
             var preselectedPartnerForDeal by remember { mutableStateOf<Long?>(null) }
+            var preselectedPartnerForPayout by remember { mutableStateOf<Long?>(null) }
+            val tabHistory = remember { mutableStateListOf<Int>() }
             val today = LocalDate.now()
             val context = LocalContext.current
-            val partners = remember(version) { repository.partners() }
-            val deals = remember(version) { repository.deals() }
-            val activeDeals = remember(version) { repository.activeDeals() }
-            val dashboard = remember(version) { repository.dashboard(today) }
-            val settings = remember(version) { repository.settings() }
+            val scope = rememberCoroutineScope()
+            var snapshot by remember { mutableStateOf(AppSnapshot()) }
+            val partners = snapshot.partners
+            val deals = snapshot.deals
+            val activeDeals = snapshot.activeDeals
+            val dashboard = snapshot.dashboard
+            val settings = snapshot.settings
             moneyCurrencySymbol = settings.currencySymbol
             moneyHideAmounts = settings.hideAmounts
             val tabs = listOf(
@@ -158,16 +196,89 @@ fun PartnerMoneyApp(
                 version += 1
             }
 
+            fun runMutation(
+                onSuccess: () -> Unit = {},
+                onFailure: (Throwable) -> Unit = { errorMessage = it.message },
+                action: suspend () -> Unit,
+            ) {
+                scope.launch {
+                    runCatching { action() }
+                        .onSuccess {
+                            onDataChanged()
+                            onSuccess()
+                            refresh()
+                        }
+                        .onFailure(onFailure)
+                }
+            }
+
+            LaunchedEffect(version) {
+                runCatching {
+                    AppSnapshot(
+                        partners = repository.partners(),
+                        deals = repository.deals(),
+                        activeDeals = repository.activeDeals(),
+                        dashboard = repository.dashboard(today),
+                        settings = repository.settings(),
+                    )
+                }
+                    .onSuccess { snapshot = it }
+                    .onFailure { errorMessage = it.message }
+            }
+
+            fun navigateToTab(index: Int) {
+                if (selectedTab != index) {
+                    tabHistory.add(selectedTab)
+                    selectedTab = index
+                }
+                detailPartnerId = null
+                dashboardBreakdownType = null
+            }
+
+            BackHandler(
+                enabled = showPartnerDialog ||
+                    showDealDialog ||
+                    showPayoutDialog ||
+                    editingPartner != null ||
+                    editingDeal != null ||
+                    cancellingDeal != null ||
+                    deletingDeal != null ||
+                    deletingPartner != null ||
+                    dashboardBreakdownType != null ||
+                    detailPartnerId != null ||
+                    tabHistory.isNotEmpty() ||
+                    selectedTab != 0,
+            ) {
+                when {
+                    showPartnerDialog -> showPartnerDialog = false
+                    showDealDialog -> {
+                        showDealDialog = false
+                        preselectedPartnerForDeal = null
+                    }
+                    showPayoutDialog -> {
+                        showPayoutDialog = false
+                        preselectedPartnerForPayout = null
+                    }
+                    editingPartner != null -> editingPartner = null
+                    editingDeal != null -> editingDeal = null
+                    cancellingDeal != null -> cancellingDeal = null
+                    deletingDeal != null -> deletingDeal = null
+                    deletingPartner != null -> deletingPartner = null
+                    dashboardBreakdownType != null -> dashboardBreakdownType = null
+                    detailPartnerId != null -> detailPartnerId = null
+                    tabHistory.isNotEmpty() -> selectedTab = tabHistory.removeAt(tabHistory.lastIndex)
+                    selectedTab != 0 -> selectedTab = 0
+                }
+            }
+
             Scaffold(
                 bottomBar = {
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                         tabs.forEachIndexed { index, item ->
                             NavigationBarItem(
+                                modifier = Modifier.testTag("tab-$index"),
                                 selected = selectedTab == index,
-                                onClick = {
-                                    selectedTab = index
-                                    detailPartnerId = null
-                                },
+                                onClick = { navigateToTab(index) },
                                 icon = {
                                     Icon(
                                         painter = painterResource(item.iconRes),
@@ -187,6 +298,21 @@ fun PartnerMoneyApp(
                     }
                 },
             ) { padding ->
+                dashboardBreakdownType?.let { type ->
+                    DashboardBreakdownScreen(
+                        type = type,
+                        partners = partners,
+                        deals = deals,
+                        today = today,
+                        onBack = { dashboardBreakdownType = null },
+                        onOpenPartner = { partnerId ->
+                            dashboardBreakdownType = null
+                            detailPartnerId = partnerId
+                        },
+                        contentPadding = padding,
+                    )
+                    return@Scaffold
+                }
                 val detailPartner = detailPartnerId?.let { id -> partners.firstOrNull { it.id == id } }
                 if (detailPartner != null) {
                     PartnerDetailScreen(
@@ -195,13 +321,9 @@ fun PartnerMoneyApp(
                         deals = deals.filter { it.partnerId == detailPartner.id },
                         onBack = { detailPartnerId = null },
                         onEditPartner = { editingPartner = it },
+                        onDeletePartner = { deletingPartner = it },
                         onArchive = { partnerId ->
-                            runCatching { repository.archivePartner(partnerId) }
-                                .onSuccess {
-                                    onDataChanged()
-                                    refresh()
-                                }
-                                .onFailure { errorMessage = it.message }
+                            runMutation { repository.archivePartner(partnerId) }
                         },
                         onAddDeal = {
                             preselectedPartnerForDeal = detailPartner.id
@@ -218,7 +340,10 @@ fun PartnerMoneyApp(
                                 onError = { errorMessage = it },
                             )
                         },
-                        onCloseDeal = { closingDeal = it },
+                        onCloseDeal = {
+                            preselectedPartnerForPayout = it.partnerId
+                            showPayoutDialog = true
+                        },
                         onCancelDeal = { cancellingDeal = it },
                         contentPadding = padding,
                     )
@@ -230,6 +355,12 @@ fun PartnerMoneyApp(
                         activeDeals = activeDeals,
                         onAddPartner = { showPartnerDialog = true },
                         onAddDeal = { showDealDialog = true },
+                        onAddPayout = {
+                            preselectedPartnerForPayout = null
+                            showPayoutDialog = true
+                        },
+                        onOpenDeals = { navigateToTab(2) },
+                        onOpenBreakdown = { dashboardBreakdownType = it },
                         onOpenPartner = { partnerId -> detailPartnerId = partnerId },
                         contentPadding = padding,
                     )
@@ -239,14 +370,10 @@ fun PartnerMoneyApp(
                         dashboard = dashboard,
                         onAddPartner = { showPartnerDialog = true },
                         onEditPartner = { editingPartner = it },
+                        onDeletePartner = { deletingPartner = it },
                         onOpenPartner = { partnerId -> detailPartnerId = partnerId },
                         onArchive = { partnerId ->
-                            runCatching { repository.archivePartner(partnerId) }
-                                .onSuccess {
-                                    onDataChanged()
-                                    refresh()
-                                }
-                                .onFailure { errorMessage = it.message }
+                            runMutation { repository.archivePartner(partnerId) }
                         },
                         contentPadding = padding,
                     )
@@ -264,7 +391,10 @@ fun PartnerMoneyApp(
                                 onError = { errorMessage = it },
                             )
                         },
-                        onCloseDeal = { closingDeal = it },
+                        onCloseDeal = {
+                            preselectedPartnerForPayout = it.partnerId
+                            showPayoutDialog = true
+                        },
                         onCancelDeal = { cancellingDeal = it },
                         contentPadding = padding,
                     )
@@ -280,40 +410,34 @@ fun PartnerMoneyApp(
                     else -> SettingsScreen(
                         settings = settings,
                         onSettingsChanged = { updated ->
-                            runCatching { repository.updateSettings(updated) }
-                                .onSuccess {
-                                    onDataChanged()
-                                    refresh()
-                                }
-                                .onFailure { errorMessage = it.message }
+                            runMutation { repository.updateSettings(updated) }
                         },
                         onExportBackup = {
-                            runCatching {
-                                val json = BackupSerializer.export(
-                                    repository.partners(),
-                                    repository.deals(),
-                                    repository.settings(),
-                                )
-                                exportAndShare(
-                                    context = context,
-                                    fileName = "partner_money_backup.json",
-                                    bytes = json.toByteArray(Charsets.UTF_8),
-                                    onError = { errorMessage = it },
-                                    mime = "application/json",
-                                )
-                            }.onFailure { errorMessage = it.message }
+                            scope.launch {
+                                runCatching {
+                                    val json = BackupSerializer.export(
+                                        repository.partners(),
+                                        repository.deals(),
+                                        repository.settings(),
+                                    )
+                                    exportAndShare(
+                                        context = context,
+                                        fileName = "partner_money_backup.json",
+                                        bytes = json.toByteArray(Charsets.UTF_8),
+                                        onError = { errorMessage = it },
+                                        mime = "application/json",
+                                    )
+                                }.onFailure { errorMessage = it.message }
+                            }
                         },
                         onRestoreBackup = { json ->
-                            runCatching {
+                            runMutation(
+                                onSuccess = { infoMessage = "Данные восстановлены из копии." },
+                                onFailure = { errorMessage = "Не удалось восстановить: ${it.message}" },
+                            ) {
                                 val data = BackupSerializer.parse(json)
                                 repository.replaceAll(data.partners, data.deals, data.settings)
                             }
-                                .onSuccess {
-                                    onDataChanged()
-                                    refresh()
-                                    infoMessage = "Данные восстановлены из копии."
-                                }
-                                .onFailure { errorMessage = "Не удалось восстановить: ${it.message}" }
                         },
                         contentPadding = padding,
                     )
@@ -325,7 +449,9 @@ fun PartnerMoneyApp(
                     partner = null,
                     onDismiss = { showPartnerDialog = false },
                     onSave = { name, percent, phone, telegram, comment, isActive ->
-                        runCatching {
+                        runMutation(
+                            onSuccess = { showPartnerDialog = false },
+                        ) {
                             repository.createPartner(
                                 name = name,
                                 defaultPercent = percent,
@@ -334,12 +460,6 @@ fun PartnerMoneyApp(
                                 comment = comment,
                             )
                         }
-                            .onSuccess {
-                                onDataChanged()
-                                showPartnerDialog = false
-                                refresh()
-                            }
-                            .onFailure { errorMessage = it.message }
                     },
                 )
             }
@@ -349,7 +469,9 @@ fun PartnerMoneyApp(
                     partner = partner,
                     onDismiss = { editingPartner = null },
                     onSave = { name, percent, phone, telegram, comment, isActive ->
-                        runCatching {
+                        runMutation(
+                            onSuccess = { editingPartner = null },
+                        ) {
                             repository.updatePartner(
                                 id = partner.id,
                                 name = name,
@@ -360,12 +482,6 @@ fun PartnerMoneyApp(
                                 isActive = isActive,
                             )
                         }
-                            .onSuccess {
-                                onDataChanged()
-                                editingPartner = null
-                                refresh()
-                            }
-                            .onFailure { errorMessage = it.message }
                     },
                 )
             }
@@ -381,7 +497,12 @@ fun PartnerMoneyApp(
                         preselectedPartnerForDeal = null
                     },
                     onSave = { partnerId, amount, percent, dateIn, dueDate, comment ->
-                        runCatching {
+                        runMutation(
+                            onSuccess = {
+                                showDealDialog = false
+                                preselectedPartnerForDeal = null
+                            },
+                        ) {
                             repository.createDeal(
                                 partnerId = partnerId,
                                 amountIn = amount,
@@ -391,13 +512,6 @@ fun PartnerMoneyApp(
                                 comment = comment,
                             )
                         }
-                            .onSuccess {
-                                onDataChanged()
-                                showDealDialog = false
-                                preselectedPartnerForDeal = null
-                                refresh()
-                            }
-                            .onFailure { errorMessage = it.message }
                     },
                 )
             }
@@ -413,7 +527,9 @@ fun PartnerMoneyApp(
                         if (dealPercent == null) {
                             errorMessage = "Партнёр не найден"
                         } else {
-                            runCatching {
+                            runMutation(
+                                onSuccess = { editingDeal = null },
+                            ) {
                                 repository.updateDeal(
                                     id = deal.id,
                                     partnerId = partnerId,
@@ -424,49 +540,28 @@ fun PartnerMoneyApp(
                                     comment = comment,
                                 )
                             }
-                                .onSuccess {
-                                    onDataChanged()
-                                    editingDeal = null
-                                    refresh()
-                                }
-                                .onFailure { errorMessage = it.message }
                         }
                     },
                 )
             }
 
-            closingDeal?.let { deal ->
-                val partnerName = partners.firstOrNull { it.id == deal.partnerId }?.name ?: "Партнёр"
-                AlertDialog(
-                    onDismissRequest = { closingDeal = null },
-                    title = { Text("Закрыть сделку?") },
-                    text = {
-                        Text(
-                            "Вы точно хотите закрыть сделку?\n" +
-                                "Партнёр: $partnerName\n" +
-                                "К возврату: ${money(deal.amountToReturn)}",
-                        )
+            if (showPayoutDialog) {
+                AddPayoutDialog(
+                    partners = partners,
+                    deals = deals,
+                    preselectedPartnerId = preselectedPartnerForPayout,
+                    onDismiss = {
+                        showPayoutDialog = false
+                        preselectedPartnerForPayout = null
                     },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                runCatching { repository.closeDeal(deal.id, LocalDate.now()) }
-                                    .onSuccess {
-                                        onDataChanged()
-                                        closingDeal = null
-                                        infoMessage = "Сделка закрыта.\nЗаработано: ${money(deal.profit)}"
-                                        refresh()
-                                    }
-                                    .onFailure { errorMessage = it.message }
+                    onSave = { partnerId, payoutAmount, paidAt ->
+                        runMutation(
+                            onSuccess = {
+                                showPayoutDialog = false
+                                preselectedPartnerForPayout = null
+                                infoMessage = "Выдача записана: ${money(payoutAmount)}"
                             },
-                        ) {
-                            Text("Закрыть")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { closingDeal = null }) {
-                            Text("Отмена")
-                        }
+                        ) { repository.recordPayout(partnerId, payoutAmount, paidAt) }
                     },
                 )
             }
@@ -479,13 +574,11 @@ fun PartnerMoneyApp(
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                runCatching { repository.deleteDeal(deal.id) }
-                                    .onSuccess {
-                                        onDataChanged()
+                                runMutation(
+                                    onSuccess = {
                                         deletingDeal = null
-                                        refresh()
-                                    }
-                                    .onFailure { errorMessage = it.message }
+                                    },
+                                ) { repository.deleteDeal(deal.id) }
                             },
                         ) {
                             Text("Удалить")
@@ -493,6 +586,40 @@ fun PartnerMoneyApp(
                     },
                     dismissButton = {
                         TextButton(onClick = { deletingDeal = null }) {
+                            Text("Отмена")
+                        }
+                    },
+                )
+            }
+
+            deletingPartner?.let { partner ->
+                AlertDialog(
+                    onDismissRequest = { deletingPartner = null },
+                    title = { Text("Удалить партнёра?") },
+                    text = {
+                        Text(
+                            "Партнёр «${partner.name}» будет удалён полностью.\n" +
+                                "Все его сделки и история по нему тоже будут стёрты. Это действие нельзя отменить.",
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                runMutation(
+                                    onSuccess = {
+                                        if (detailPartnerId == partner.id) {
+                                            detailPartnerId = null
+                                        }
+                                        deletingPartner = null
+                                    },
+                                ) { repository.deletePartner(partner.id) }
+                            },
+                        ) {
+                            Text("Удалить")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { deletingPartner = null }) {
                             Text("Отмена")
                         }
                     },
@@ -513,13 +640,11 @@ fun PartnerMoneyApp(
                     confirmButton = {
                         TextButton(
                             onClick = {
-                                runCatching { repository.cancelDeal(deal.id) }
-                                    .onSuccess {
-                                        onDataChanged()
+                                runMutation(
+                                    onSuccess = {
                                         cancellingDeal = null
-                                        refresh()
-                                    }
-                                    .onFailure { errorMessage = it.message }
+                                    },
+                                ) { repository.cancelDeal(deal.id) }
                             },
                         ) {
                             Text("Отменить сделку")
@@ -568,6 +693,9 @@ private fun DashboardScreen(
     activeDeals: List<Deal>,
     onAddPartner: () -> Unit,
     onAddDeal: () -> Unit,
+    onAddPayout: () -> Unit,
+    onOpenDeals: () -> Unit,
+    onOpenBreakdown: (DashboardBreakdownType) -> Unit,
     onOpenPartner: (Long) -> Unit,
     contentPadding: PaddingValues,
 ) {
@@ -581,14 +709,38 @@ private fun DashboardScreen(
         item { ScreenTitle("Дашборд") }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricCard(Modifier.weight(1f), "Заработано", money(dashboard.realizedProfit), Color(0xFF1E6B5C))
-                MetricCard(Modifier.weight(1f), "Ожидается", money(dashboard.expectedProfit), Color(0xFF8A5A14))
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Заработано",
+                    value = money(dashboard.realizedProfit),
+                    accent = Color(0xFF1E6B5C),
+                    onClick = { onOpenBreakdown(DashboardBreakdownType.EARNED) },
+                )
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Ожидается",
+                    value = money(dashboard.expectedProfit),
+                    accent = Color(0xFF8A5A14),
+                    onClick = { onOpenBreakdown(DashboardBreakdownType.EXPECTED) },
+                )
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricCard(Modifier.weight(1f), "Всего зашло", money(dashboard.totalAmountIn), Color(0xFF315C82))
-                MetricCard(Modifier.weight(1f), "К возврату", money(dashboard.totalAmountToReturn), Color(0xFF315C82))
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Всего зашло",
+                    value = money(dashboard.totalAmountIn),
+                    accent = Color(0xFF315C82),
+                    onClick = { onOpenBreakdown(DashboardBreakdownType.INCOMING) },
+                )
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "К возврату",
+                    value = money(dashboard.totalAmountToReturn),
+                    accent = Color(0xFF315C82),
+                    onClick = { onOpenBreakdown(DashboardBreakdownType.TO_RETURN) },
+                )
             }
         }
         item {
@@ -598,18 +750,31 @@ private fun DashboardScreen(
                     title = "Просрочено",
                     value = "${dashboard.overdueDealsCount} / ${money(dashboard.overdueAmount)}",
                     accent = Color(0xFFB42318),
+                    onClick = { onOpenBreakdown(DashboardBreakdownType.OVERDUE) },
                 )
-                MetricCard(Modifier.weight(1f), "На неделе", money(dashboard.dueThisWeekAmount), Color(0xFF6A4BBC))
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Выдано",
+                    value = money(dashboard.totalPaidOutAmount),
+                    accent = Color(0xFF6A4BBC),
+                    onClick = { onOpenBreakdown(DashboardBreakdownType.PAID_OUT) },
+                )
             }
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                MetricCard(Modifier.weight(1f), "Активных сделок", activeDeals.size.toString(), Color(0xFF18212F))
+                MetricCard(
+                    modifier = Modifier.weight(1f),
+                    title = "Активных сделок",
+                    value = activeDeals.size.toString(),
+                    accent = Color(0xFF18212F),
+                    onClick = onOpenDeals,
+                )
                 MetricCard(Modifier.weight(1f), "Закрыто сделок", dashboard.closedDealsCount.toString(), Color(0xFF667085))
             }
         }
         item {
-            ActionRow(onAddDeal = onAddDeal, onAddPartner = onAddPartner)
+            ActionRow(onAddDeal = onAddDeal, onAddPayout = onAddPayout, onAddPartner = onAddPartner)
         }
         if (dashboard.partners.isEmpty()) {
             item {
@@ -620,9 +785,82 @@ private fun DashboardScreen(
                 val partner = dashboard.partners[index]
                 SectionPanel(
                     title = partner.partnerName,
-                    body = "Зашло (активные): ${money(partner.totalAmountIn)}\nК возврату: ${money(partner.totalAmountToReturn)}\nОжидается профит: ${money(partner.totalProfit)}\nЗаработано (закрыто): ${money(partner.realizedProfit)}\nАктивных сделок: ${partner.activeDealsCount} • Закрыто: ${partner.closedDealsCount}\nБлижайший срок: ${partner.nearestDueDate ?: "-"}",
+                    body = "Зашло (активные): ${money(partner.totalAmountIn)}\nК возврату: ${money(partner.totalAmountToReturn)}\nВыдано: ${money(partner.totalPaidOutAmount)}\nОжидается профит: ${money(partner.totalProfit)}\nЗаработано (закрыто): ${money(partner.realizedProfit)}\nАктивных сделок: ${partner.activeDealsCount} • Закрыто: ${partner.closedDealsCount}\nБлижайший срок: ${partner.nearestDueDate ?: "-"}",
                     onClick = { onOpenPartner(partner.partnerId) },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardBreakdownScreen(
+    type: DashboardBreakdownType,
+    partners: List<Partner>,
+    deals: List<Deal>,
+    today: LocalDate,
+    onBack: () -> Unit,
+    onOpenPartner: (Long) -> Unit,
+    contentPadding: PaddingValues,
+) {
+    val breakdown = DashboardBreakdownCalculator.calculate(type, partners, deals, today)
+    val accent = when (type) {
+        DashboardBreakdownType.EARNED -> Color(0xFF1E6B5C)
+        DashboardBreakdownType.EXPECTED -> Color(0xFF8A5A14)
+        DashboardBreakdownType.INCOMING,
+        DashboardBreakdownType.TO_RETURN,
+        -> Color(0xFF315C82)
+
+        DashboardBreakdownType.OVERDUE -> Color(0xFFB42318)
+        DashboardBreakdownType.PAID_OUT -> Color(0xFF6A4BBC)
+    }
+    val dealsLabel = if (type == DashboardBreakdownType.OVERDUE) "Просроченных сделок" else "Сделок"
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(contentPadding),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) { Text("← Назад") }
+                ScreenTitle("${type.title} по партнёрам", modifier = Modifier.weight(1f))
+            }
+        }
+        item {
+            Column(modifier = panelModifier(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Всего", color = Color(0xFF667085))
+                Text(
+                    money(breakdown.totalAmount),
+                    color = accent,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+        item {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text("Партнёр", modifier = Modifier.weight(1f), color = Color(0xFF667085), fontSize = 13.sp)
+                Text("Сумма", color = Color(0xFF667085), fontSize = 13.sp)
+            }
+        }
+        if (breakdown.lines.isEmpty()) {
+            item { SectionPanel("Нет данных", "По этому показателю сделок пока нет.") }
+        } else {
+            items(breakdown.lines.size) { index ->
+                val line = breakdown.lines[index]
+                Row(
+                    modifier = panelModifier().clickable { onOpenPartner(line.partnerId) },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(line.partnerName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                        Text("$dealsLabel: ${line.dealsCount}", color = Color(0xFF667085), fontSize = 13.sp)
+                    }
+                    Text(line.amount.let(::money), color = accent, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
@@ -634,6 +872,7 @@ private fun PartnersScreen(
     dashboard: DashboardSummary,
     onAddPartner: () -> Unit,
     onEditPartner: (Partner) -> Unit,
+    onDeletePartner: (Partner) -> Unit,
     onOpenPartner: (Long) -> Unit,
     onArchive: (Long) -> Unit,
     contentPadding: PaddingValues,
@@ -698,10 +937,11 @@ private fun PartnersScreen(
                 PartnerCard(
                     partner = partner,
                     summaryText = summary?.let {
-                        "Зашло: ${money(it.totalAmountIn)}\nК возврату: ${money(it.totalAmountToReturn)}\nЗаработано: ${money(it.realizedProfit)}\nАктивных сделок: ${it.activeDealsCount} • Закрыто: ${it.closedDealsCount}"
+                        "Зашло: ${money(it.totalAmountIn)}\nК возврату: ${money(it.totalAmountToReturn)}\nВыдано: ${money(it.totalPaidOutAmount)}\nЗаработано: ${money(it.realizedProfit)}\nАктивных сделок: ${it.activeDealsCount} • Закрыто: ${it.closedDealsCount}"
                     } ?: "Сделок пока нет",
                     onOpen = onOpenPartner,
                     onEdit = onEditPartner,
+                    onDelete = onDeletePartner,
                     onArchive = onArchive,
                 )
             }
@@ -744,7 +984,7 @@ private fun DealsScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 ScreenTitle("Сделки", modifier = Modifier.weight(1f))
                 Button(onClick = onAddDeal, enabled = partners.any { it.isActive }, shape = RoundedCornerShape(8.dp)) {
-                    Text("+")
+                    Text("+ Приход")
                 }
             }
         }
@@ -956,7 +1196,7 @@ private fun monthlyRealizedProfit(deals: List<Deal>, year: Int): List<Double> {
         .forEach { deal ->
             val returned = deal.dateReturned ?: return@forEach
             if (returned.year == year) {
-                totals[returned.monthValue - 1] += deal.profit
+                totals[returned.monthValue - 1] += deal.realizedProfit()
             }
         }
     return totals.toList()
@@ -1083,6 +1323,7 @@ private fun SettingsScreen(
                     Text("Сохранить копию (.json)")
                 }
                 Button(
+                    modifier = Modifier.testTag("restore-backup-button"),
                     onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "*/*")) },
                     shape = RoundedCornerShape(8.dp),
                 ) {
@@ -1168,6 +1409,7 @@ private fun PartnerDetailScreen(
     deals: List<Deal>,
     onBack: () -> Unit,
     onEditPartner: (Partner) -> Unit,
+    onDeletePartner: (Partner) -> Unit,
     onArchive: (Long) -> Unit,
     onAddDeal: () -> Unit,
     onCall: (String) -> Unit,
@@ -1185,7 +1427,7 @@ private fun PartnerDetailScreen(
     val overdueCount = activeDeals.count {
         DealStatusResolver.resolve(it.lifecycleStatus, it.dueDate, today) == DealDisplayStatus.OVERDUE
     }
-    val sortedDeals = deals.sortedWith(compareBy({ it.lifecycleStatus != DealLifecycleStatus.ACTIVE }, { it.dueDate }))
+    val sortedDeals = deals.sortedForIncomingTimeline()
 
     LazyColumn(
         modifier = Modifier
@@ -1216,10 +1458,11 @@ private fun PartnerDetailScreen(
             Column(modifier = panelModifier(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Финансы", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
                 Text("Зашло (активные): ${money(activeDeals.sumOf { it.amountIn })}", color = Color(0xFF344054))
-                Text("К возврату: ${money(activeDeals.sumOf { it.amountToReturn })}", color = Color(0xFF344054))
-                Text("Ожидается профит: ${money(activeDeals.sumOf { it.profit })}", color = Color(0xFF344054))
+                Text("К возврату: ${money(activeDeals.sumOf { it.remainingToReturn() })}", color = Color(0xFF344054))
+                Text("Выдано: ${money(deals.sumOf { it.paidOutAmount })}", color = Color(0xFF344054))
+                Text("Ожидается профит: ${money(activeDeals.sumOf { it.expectedProfit() })}", color = Color(0xFF344054))
                 Text(
-                    "Заработано (закрыто): ${money(closedDeals.sumOf { it.profit })}",
+                    "Заработано (закрыто): ${money(closedDeals.sumOf { it.realizedProfit() })}",
                     color = Color(0xFF1E6B5C),
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -1233,7 +1476,7 @@ private fun PartnerDetailScreen(
         item {
             Column(modifier = panelModifier(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Button(onClick = onAddDeal, shape = RoundedCornerShape(8.dp)) {
-                    Text("+ Добавить сделку")
+                    Text("+ Приход")
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     partner.phone?.takeIf { it.isNotBlank() }?.let { phone ->
@@ -1245,9 +1488,12 @@ private fun PartnerDetailScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = { onEditPartner(partner) }) { Text("Редактировать") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     if (partner.isActive) {
                         TextButton(onClick = { onArchive(partner.id) }) { Text("В архив") }
                     }
+                    TextButton(onClick = { onDeletePartner(partner) }) { Text("Удалить") }
                 }
             }
         }
@@ -1279,6 +1525,7 @@ private fun PartnerCard(
     summaryText: String,
     onOpen: (Long) -> Unit,
     onEdit: (Partner) -> Unit,
+    onDelete: (Partner) -> Unit,
     onArchive: (Long) -> Unit,
 ) {
     Column(
@@ -1298,16 +1545,189 @@ private fun PartnerCard(
             TextButton(onClick = { onEdit(partner) }) {
                 Text("Редактировать")
             }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (partner.isActive) {
                 TextButton(onClick = { onArchive(partner.id) }) {
                     Text("В архив")
                 }
+            }
+            TextButton(onClick = { onDelete(partner) }) {
+                Text("Удалить")
             }
         }
         if (!partner.isActive) {
             Text("Архивный", color = Color(0xFF667085))
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddPayoutDialog(
+    partners: List<Partner>,
+    deals: List<Deal>,
+    preselectedPartnerId: Long?,
+    onDismiss: () -> Unit,
+    onSave: (Long, Double, LocalDate) -> Unit,
+) {
+    val defaultPartnerId = preselectedPartnerId
+        ?: partners.firstOrNull { partner ->
+            deals.any {
+                it.partnerId == partner.id &&
+                    it.lifecycleStatus == DealLifecycleStatus.ACTIVE &&
+                    it.remainingToReturn() > 0.0
+            }
+        }?.id
+        ?: partners.firstOrNull()?.id
+    var selectedPartnerId by remember(partners, deals, preselectedPartnerId) {
+        mutableStateOf(defaultPartnerId)
+    }
+    var partnerMenuExpanded by remember { mutableStateOf(false) }
+    var payoutText by remember { mutableStateOf("") }
+    var paidAt by remember { mutableStateOf(LocalDate.now()) }
+    var localError by remember { mutableStateOf<String?>(null) }
+    val focusManager = LocalFocusManager.current
+    val selectedPartner = partners.firstOrNull { it.id == selectedPartnerId }
+    val activePartnerDeals = selectedPartnerId?.let { partnerId ->
+        deals
+            .filter { it.partnerId == partnerId && it.lifecycleStatus == DealLifecycleStatus.ACTIVE }
+    } ?: emptyList()
+    val remainingTotal = activePartnerDeals.sumOf { it.remainingToReturn() }
+    val parsedPayout = payoutText.parseDecimalOrNull()
+    val allocationPreview = if (parsedPayout != null && parsedPayout > 0.0) {
+        PaymentAllocationPreview.preview(activePartnerDeals, parsedPayout)
+    } else {
+        emptyList()
+    }
+
+    fun submit() {
+        focusManager.clearFocus()
+        val partnerId = selectedPartnerId
+        val parsed = payoutText.parseDecimalOrNull()
+        when {
+            partnerId == null -> localError = "Выберите партнёра"
+            parsed == null -> localError = "Введите сумму числом"
+            parsed <= 0.0 -> localError = "Сумма должна быть больше 0"
+            remainingTotal <= 0.0 -> localError = "У партнёра нет активного долга"
+            MoneyCalculator.roundMoney(parsed) > remainingTotal -> localError = "Сумма больше остатка"
+            else -> onSave(partnerId, parsed, paidAt)
+        }
+    }
+
+    LaunchedEffect(selectedPartnerId, remainingTotal) {
+        payoutText = if (remainingTotal > 0.0) formatNumber(remainingTotal) else ""
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Сделка-выдача") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (partners.isEmpty()) {
+                    Text("Сначала добавьте партнёра.")
+                } else {
+                    ExposedDropdownMenuBox(
+                        expanded = partnerMenuExpanded,
+                        onExpandedChange = { partnerMenuExpanded = it },
+                    ) {
+                        OutlinedTextField(
+                            value = selectedPartner?.name ?: "Выберите партнёра",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Партнёр") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = partnerMenuExpanded)
+                            },
+                            modifier = Modifier
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
+                                .fillMaxWidth(),
+                        )
+                        ExposedDropdownMenu(
+                            expanded = partnerMenuExpanded,
+                            onDismissRequest = { partnerMenuExpanded = false },
+                        ) {
+                            partners.forEach { partner ->
+                                DropdownMenuItem(
+                                    text = { Text(partner.name) },
+                                    onClick = {
+                                        selectedPartnerId = partner.id
+                                        partnerMenuExpanded = false
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    Text("Остаток к возврату: ${money(remainingTotal)}", color = Color(0xFF344054))
+                    DateField("Дата выдачи", paidAt) { paidAt = it }
+                }
+                OutlinedTextField(
+                    value = payoutText,
+                    onValueChange = { payoutText = it },
+                    label = { Text("Сумма выдачи") },
+                    enabled = partners.isNotEmpty(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onPreviewKeyEvent {
+                            if (it.key == Key.Enter && it.type == KeyEventType.KeyUp) {
+                                submit()
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done,
+                    ),
+                    keyboardActions = KeyboardActions(onDone = { submit() }),
+                )
+                if (allocationPreview.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFEFF4F2), RoundedCornerShape(8.dp))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text("Подбор по дате прихода", color = Color(0xFF18212F), fontWeight = FontWeight.SemiBold)
+                        allocationPreview.forEach { row ->
+                            val status = if (row.willClose) "закроется" else "частично"
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    "Дата прихода ${row.deal.dateIn}: ${money(row.appliedAmount)} • $status",
+                                    color = Color(0xFF344054),
+                                    fontSize = 13.sp,
+                                )
+                                Text(
+                                    "Остаток после расхода: ${money(row.remainingAfter)}",
+                                    color = if (row.willClose) Color(0xFF1E6B5C) else Color(0xFF8A5A14),
+                                    fontSize = 13.sp,
+                                )
+                            }
+                        }
+                    }
+                }
+                localError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                modifier = Modifier.testTag("save-deal-button"),
+                enabled = partners.isNotEmpty(),
+                onClick = { submit() },
+            ) {
+                Text("Записать")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Отмена") }
+        },
+    )
 }
 
 @Composable
@@ -1331,10 +1751,15 @@ private fun DealCard(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(partnerName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
-        Text("Сумма от партнёра: ${money(deal.amountIn)}", color = Color(0xFF344054))
+        Text("Сумма прихода: ${money(deal.amountIn)}", color = Color(0xFF344054))
         Text("К возврату партнёру: ${money(deal.amountToReturn)}", color = Color(0xFF344054))
+        Text("Выдано: ${money(deal.paidOutAmount)}", color = Color(0xFF344054))
+        if (deal.lifecycleStatus == DealLifecycleStatus.ACTIVE && deal.paidOutAmount > 0.0) {
+            Text("Осталось: ${money(deal.remainingToReturn())}", color = Color(0xFF8A5A14))
+        }
         Text(
-            text = (if (isClosed) "Заработано" else "Ваш профит") + ": ${money(deal.profit)} (${deal.percent}%)",
+            text = (if (isClosed) "Заработано" else "Ваш профит") +
+                ": ${money(if (isClosed) deal.realizedProfit() else deal.expectedProfit())} (${deal.percent}%)",
             color = if (isClosed) Color(0xFF1E6B5C) else Color(0xFF344054),
             fontWeight = FontWeight.SemiBold,
         )
@@ -1350,7 +1775,7 @@ private fun DealCard(
         }
         if (deal.lifecycleStatus == DealLifecycleStatus.ACTIVE) {
             Button(onClick = { onCloseDeal(deal) }, shape = RoundedCornerShape(8.dp)) {
-                Text("Закрыть сделку")
+                Text("Сделка-выдача")
             }
             TextButton(onClick = { onCancelDeal(deal) }) {
                 Text("Отменить сделку")
@@ -1438,9 +1863,10 @@ private fun AddDealDialog(
     var amount by remember(deal) { mutableStateOf(deal?.amountIn?.let { formatNumber(it) } ?: "") }
     var percent by remember(deal) { mutableStateOf(deal?.percent?.let { formatNumber(it) } ?: "") }
     var dateIn by remember(deal) { mutableStateOf(deal?.dateIn ?: LocalDate.now()) }
-    var dueDate by remember(deal) { mutableStateOf(deal?.dueDate ?: LocalDate.now().plusDays(7)) }
+    var dueDate by remember(deal) { mutableStateOf(deal?.dueDate ?: DealDefaults.defaultDueDate(dateIn)) }
     var comment by remember(deal) { mutableStateOf(deal?.comment ?: "") }
     var localError by remember { mutableStateOf<String?>(null) }
+    val focusManager = LocalFocusManager.current
 
     val selectedPartner = partners.firstOrNull { it.id == selectedPartnerId }
 
@@ -1459,9 +1885,31 @@ private fun AddDealDialog(
         null
     }
 
+    fun submit() {
+        focusManager.clearFocus()
+        val partnerId = selectedPartnerId
+        val parsed = amount.parseDecimalOrNull()
+        val parsedPercent = percent.takeIf { it.isNotBlank() }?.parseDecimalOrNull()
+        when {
+            partnerId == null -> localError = "Выберите партнёра"
+            parsed == null -> localError = "Введите сумму числом"
+            parsed <= 0.0 -> localError = "Сумма должна быть больше 0"
+            percent.isNotBlank() && parsedPercent == null -> localError = "Введите процент числом"
+            dueDate.isBefore(dateIn) -> localError = "Срок возврата не может быть раньше даты поступления"
+            else -> onSave(
+                partnerId,
+                parsed,
+                parsedPercent,
+                dateIn,
+                dueDate,
+                comment.takeIf { it.isNotBlank() },
+            )
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (deal == null) "Новая сделка" else "Редактировать сделку") },
+        title = { Text(if (deal == null) "Сделка-приход" else "Редактировать приход") },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -1504,16 +1952,52 @@ private fun AddDealDialog(
                     OutlinedTextField(
                         value = amount,
                         onValueChange = { amount = it },
-                        label = { Text("Сумма от партнёра") },
-                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Сумма прихода") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("deal-amount-field")
+                            .onPreviewKeyEvent {
+                                if (it.key == Key.Enter && it.type == KeyEventType.KeyUp) {
+                                    submit()
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
                     )
                     OutlinedTextField(
                         value = percent,
                         onValueChange = { percent = it },
                         label = { Text("Процент удержания, %") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onPreviewKeyEvent {
+                                if (it.key == Key.Enter && it.type == KeyEventType.KeyUp) {
+                                    submit()
+                                    true
+                                } else {
+                                    false
+                                }
+                            },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { submit() }),
                     )
-                    DateField("Дата поступления", dateIn) { dateIn = it }
+                    DateField("Дата поступления", dateIn) {
+                        dateIn = it
+                        if (deal == null) {
+                            dueDate = DealDefaults.defaultDueDate(it)
+                        }
+                    }
                     DateField("Срок возврата", dueDate) { dueDate = it }
                     OutlinedTextField(
                         value = comment,
@@ -1544,26 +2028,7 @@ private fun AddDealDialog(
         confirmButton = {
             TextButton(
                 enabled = partners.isNotEmpty(),
-                onClick = {
-                    val partnerId = selectedPartnerId
-                    val parsed = amount.parseDecimalOrNull()
-                    val parsedPercent = percent.takeIf { it.isNotBlank() }?.parseDecimalOrNull()
-                    when {
-                        partnerId == null -> localError = "Выберите партнёра"
-                        parsed == null -> localError = "Введите сумму числом"
-                        parsed <= 0.0 -> localError = "Сумма должна быть больше 0"
-                        percent.isNotBlank() && parsedPercent == null -> localError = "Введите процент числом"
-                        dueDate.isBefore(dateIn) -> localError = "Срок возврата не может быть раньше даты поступления"
-                        else -> onSave(
-                            partnerId,
-                            parsed,
-                            parsedPercent,
-                            dateIn,
-                            dueDate,
-                            comment.takeIf { it.isNotBlank() },
-                        )
-                    }
-                },
+                onClick = { submit() },
             ) {
                 Text("Сохранить")
             }
@@ -1627,9 +2092,18 @@ private fun MetricCard(
     title: String,
     value: String,
     accent: Color,
+    onClick: (() -> Unit)? = null,
 ) {
+    val cardModifier = if (onClick == null) {
+        modifier.height(108.dp)
+    } else {
+        modifier
+            .height(108.dp)
+            .clickable { onClick() }
+    }
+
     Card(
-        modifier = modifier.height(108.dp),
+        modifier = cardModifier,
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -1641,32 +2115,83 @@ private fun MetricCard(
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(title, color = Color(0xFF667085), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 13.sp)
-            Text(value, color = accent, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = value,
+                color = accent,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                fontSize = metricValueFontSize(value),
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
 
+private fun metricValueFontSize(value: String) = when {
+    value.length >= 18 -> 15.sp
+    value.length >= 14 -> 17.sp
+    value.length >= 11 -> 19.sp
+    else -> 22.sp
+}
+
 @Composable
-private fun ActionRow(onAddDeal: () -> Unit, onAddPartner: () -> Unit) {
+private fun ActionRow(onAddDeal: () -> Unit, onAddPayout: () -> Unit, onAddPartner: () -> Unit) {
+    val actionButtonPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)
+
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Button(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .testTag("add-deal-button"),
             onClick = onAddDeal,
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E6B5C)),
+            contentPadding = actionButtonPadding,
         ) {
-            Text("+ Сделка", maxLines = 1)
+            Text(
+                "Приход",
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = onAddPayout,
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A4BBC)),
+            contentPadding = actionButtonPadding,
+        ) {
+            Text(
+                "Расход",
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
         Button(
             modifier = Modifier.weight(1f),
             onClick = onAddPartner,
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF315C82)),
+            contentPadding = actionButtonPadding,
         ) {
-            Text("+ Партнёр", maxLines = 1)
+            Text(
+                "Партнер",
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
     }
 }
@@ -1792,7 +2317,7 @@ private fun openTelegram(context: Context, telegram: String, onError: (String) -
 
 private fun money(value: Double): String {
     if (moneyHideAmounts) return "•••"
-    return "${MoneyFormat.format(value).replace(',', ' ')} $moneyCurrencySymbol"
+    return "${MoneyFormat.format(MoneyCalculator.roundMoney(value)).replace(',', ' ')} $moneyCurrencySymbol"
 }
 
 private fun dealFilterLabel(filter: DealListFilter): String {

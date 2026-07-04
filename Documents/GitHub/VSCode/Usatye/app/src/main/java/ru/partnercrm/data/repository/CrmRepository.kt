@@ -7,13 +7,13 @@ import ru.partnercrm.data.model.Partner
 import ru.partnercrm.domain.dashboard.DashboardSummary
 
 interface CrmRepository {
-    fun partners(): List<Partner>
+    suspend fun partners(): List<Partner>
 
-    fun deals(): List<Deal>
+    suspend fun deals(): List<Deal>
 
-    fun activeDeals(): List<Deal>
+    suspend fun activeDeals(): List<Deal>
 
-    fun createPartner(
+    suspend fun createPartner(
         name: String,
         defaultPercent: Double,
         phone: String? = null,
@@ -21,9 +21,11 @@ interface CrmRepository {
         comment: String? = null,
     ): Partner
 
-    fun archivePartner(partnerId: Long): Partner
+    suspend fun archivePartner(partnerId: Long): Partner
 
-    fun updatePartner(
+    suspend fun deletePartner(partnerId: Long)
+
+    suspend fun updatePartner(
         id: Long,
         name: String,
         defaultPercent: Double,
@@ -33,7 +35,7 @@ interface CrmRepository {
         isActive: Boolean = true,
     ): Partner
 
-    fun createDeal(
+    suspend fun createDeal(
         partnerId: Long,
         amountIn: Double,
         dateIn: LocalDate,
@@ -42,11 +44,13 @@ interface CrmRepository {
         comment: String? = null,
     ): Deal
 
-    fun closeDeal(dealId: Long, returnedAt: LocalDate): Deal
+    suspend fun recordPayout(partnerId: Long, payoutAmount: Double, paidAt: LocalDate): List<Deal>
 
-    fun cancelDeal(dealId: Long): Deal
+    suspend fun closeDeal(dealId: Long, payoutAmount: Double, returnedAt: LocalDate): List<Deal>
 
-    fun updateDeal(
+    suspend fun cancelDeal(dealId: Long): Deal
+
+    suspend fun updateDeal(
         id: Long,
         partnerId: Long,
         amountIn: Double,
@@ -56,14 +60,14 @@ interface CrmRepository {
         comment: String? = null,
     ): Deal
 
-    fun deleteDeal(dealId: Long)
+    suspend fun deleteDeal(dealId: Long)
 
-    fun settings(): AppSettings
+    suspend fun settings(): AppSettings
 
-    fun updateSettings(settings: AppSettings): AppSettings
+    suspend fun updateSettings(settings: AppSettings): AppSettings
 
-    fun dashboard(today: LocalDate): DashboardSummary
+    suspend fun dashboard(today: LocalDate): DashboardSummary
 
     /** Полностью заменяет данные (используется для восстановления из резервной копии). */
-    fun replaceAll(partners: List<Partner>, deals: List<Deal>, settings: AppSettings)
+    suspend fun replaceAll(partners: List<Partner>, deals: List<Deal>, settings: AppSettings)
 }

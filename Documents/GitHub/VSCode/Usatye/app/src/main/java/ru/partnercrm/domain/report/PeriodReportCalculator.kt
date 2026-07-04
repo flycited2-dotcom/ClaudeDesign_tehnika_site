@@ -3,6 +3,9 @@ package ru.partnercrm.domain.report
 import java.time.LocalDate
 import ru.partnercrm.data.model.Deal
 import ru.partnercrm.data.model.Partner
+import ru.partnercrm.data.model.expectedProfit
+import ru.partnercrm.data.model.realizedProfit
+import ru.partnercrm.data.model.remainingToReturn
 import ru.partnercrm.domain.deal.DealLifecycleStatus
 
 enum class ReportPeriodType {
@@ -121,8 +124,8 @@ object PeriodReportCalculator {
                 partnerId = partnerId,
                 partnerName = names[partnerId] ?: "—",
                 amountIn = opened.sumOf { it.amountIn },
-                returnedAmount = closed.sumOf { it.amountToReturn },
-                realizedProfit = closed.sumOf { it.profit },
+                returnedAmount = closed.sumOf { it.paidOutAmount },
+                realizedProfit = closed.sumOf { it.realizedProfit() },
                 dealsOpened = opened.size,
             )
         }.sortedByDescending { it.realizedProfit + it.amountIn }
@@ -131,10 +134,10 @@ object PeriodReportCalculator {
             start = start,
             end = end,
             amountIn = openedInPeriod.sumOf { it.amountIn },
-            returnedAmount = closedInPeriod.sumOf { it.amountToReturn },
-            realizedProfit = closedInPeriod.sumOf { it.profit },
-            expectedProfit = activeOpenedInPeriod.sumOf { it.profit },
-            outstandingToReturn = activeOpenedInPeriod.sumOf { it.amountToReturn },
+            returnedAmount = closedInPeriod.sumOf { it.paidOutAmount },
+            realizedProfit = closedInPeriod.sumOf { it.realizedProfit() },
+            expectedProfit = activeOpenedInPeriod.sumOf { it.expectedProfit() },
+            outstandingToReturn = activeOpenedInPeriod.sumOf { it.remainingToReturn() },
             dealsOpened = openedInPeriod.size,
             dealsClosed = closedInPeriod.size,
             partners = lines,

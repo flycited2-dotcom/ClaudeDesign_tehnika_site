@@ -12,6 +12,7 @@ import ru.partnercrm.data.db.DealEntity
 import ru.partnercrm.data.db.PartnerDao
 import ru.partnercrm.data.db.PartnerEntity
 import ru.partnercrm.data.db.SettingsDao
+import ru.partnercrm.data.db.toEntity
 import ru.partnercrm.domain.deal.DealLifecycleStatus
 import ru.partnercrm.data.model.AppSettings
 
@@ -51,10 +52,85 @@ class RoomCrmRepositoryTest {
             dueDate = today.plusDays(7),
         )
 
-        repository.closeDeal(deal.id, returnedAt = today.plusDays(1))
+        repository.closeDeal(deal.id, payoutAmount = deal.amountToReturn, returnedAt = today.plusDays(1))
 
         assertEquals(emptyList(), repository.activeDeals())
         assertEquals(DealLifecycleStatus.RETURNED, repository.deals().single().lifecycleStatus)
+    }
+
+    @Test
+    fun `records payout through dao by oldest partner deals and leaves partial active`() = runBlocking {
+        val partnerDao = FakePartnerDao()
+        val dealDao = FakeDealDao()
+        val repository = RoomCrmRepository(partnerDao = partnerDao, dealDao = dealDao)
+        val partner = repository.createPartner(name = "Ivan", defaultPercent = 0.0)
+        val first = repository.createDeal(
+            partnerId = partner.id,
+            amountIn = 300_000.0,
+            dateIn = today.minusDays(2),
+            dueDate = today.plusDays(7),
+        )
+        val second = repository.createDeal(
+            partnerId = partner.id,
+            amountIn = 300_000.0,
+            dateIn = today.minusDays(1),
+            dueDate = today.plusDays(8),
+        )
+
+        repository.recordPayout(partnerId = partner.id, payoutAmount = 500_000.0, paidAt = today)
+
+        val deals = repository.deals()
+        assertEquals(300_000.0, deals.single { it.id == first.id }.paidOutAmount)
+        assertEquals(DealLifecycleStatus.RETURNED, deals.single { it.id == first.id }.lifecycleStatus)
+        assertEquals(200_000.0, deals.single { it.id == second.id }.paidOutAmount)
+        assertEquals(DealLifecycleStatus.ACTIVE, deals.single { it.id == second.id }.lifecycleStatus)
+    }
+
+    @Test
+    fun `repairs fully paid active deal when reading from dao`() = runBlocking {
+        val partnerDao = FakePartnerDao()
+        val dealDao = FakeDealDao()
+        val repository = RoomCrmRepository(partnerDao = partnerDao, dealDao = dealDao)
+        val partner = repository.createPartner(name = "Ivan", defaultPercent = 0.0)
+        val deal = repository.createDeal(
+            partnerId = partner.id,
+            amountIn = 300_000.0,
+            dateIn = today.minusDays(2),
+            dueDate = today.plusDays(7),
+        )
+        dealDao.update(
+            deal.toEntity().copy(
+                paidOutAmount = deal.amountToReturn,
+                status = DealLifecycleStatus.ACTIVE.name,
+                dateReturned = null,
+            ),
+        )
+
+        val repaired = repository.deals().single()
+
+        assertEquals(DealLifecycleStatus.RETURNED, repaired.lifecycleStatus)
+        assertEquals(deal.amountToReturn, repaired.paidOutAmount)
+        assertEquals(emptyList(), repository.activeDeals())
+    }
+
+    @Test
+    fun `deletes partner through dao with all related deals`() = runBlocking {
+        val partnerDao = FakePartnerDao()
+        val dealDao = FakeDealDao()
+        val repository = RoomCrmRepository(partnerDao = partnerDao, dealDao = dealDao)
+        val partner = repository.createPartner(name = "Ivan", defaultPercent = 10.0)
+        repository.createDeal(
+            partnerId = partner.id,
+            amountIn = 100_000.0,
+            dateIn = today,
+            dueDate = today.plusDays(7),
+        )
+
+        repository.deletePartner(partner.id)
+
+        assertEquals(emptyList(), repository.partners())
+        assertEquals(emptyList(), repository.deals())
+        assertEquals(0.0, repository.dashboard(today).totalAmountToReturn)
     }
 
     @Test
@@ -131,6 +207,10 @@ class RoomCrmRepositoryTest {
             partners.replaceAll { if (it.id == id) it.copy(isActive = false, updatedAt = updatedAt) else it }
         }
 
+        override suspend fun delete(id: Long) {
+            partners.removeAll { it.id == id }
+        }
+
         override suspend fun insertWithId(partner: PartnerEntity): Long {
             partners.removeAll { it.id == partner.id }
             partners += partner
@@ -168,6 +248,10 @@ class RoomCrmRepositoryTest {
 
         override suspend fun delete(id: Long) {
             deals.removeAll { it.id == id }
+        }
+
+        override suspend fun deleteByPartner(partnerId: Long) {
+            deals.removeAll { it.partnerId == partnerId }
         }
 
         override suspend fun insertWithId(deal: DealEntity): Long {

@@ -1,8 +1,14 @@
 package ru.partnercrm.data.repository
 
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
-import kotlinx.coroutines.runBlocking
+import androidx.room.RoomDatabase
+import androidx.room.withTransaction
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import ru.partnercrm.data.db.AppDatabase
 import ru.partnercrm.data.db.DealDao
 import ru.partnercrm.data.db.DealEntity
 import ru.partnercrm.data.db.PartnerDao
@@ -14,40 +20,57 @@ import ru.partnercrm.data.db.toEntity
 import ru.partnercrm.data.model.AppSettings
 import ru.partnercrm.data.model.Deal
 import ru.partnercrm.data.model.Partner
+import ru.partnercrm.data.model.realizedProfit
 import ru.partnercrm.domain.calculator.CalcType
 import ru.partnercrm.domain.calculator.MoneyCalculator
 import ru.partnercrm.domain.dashboard.DashboardCalculator
 import ru.partnercrm.domain.dashboard.DashboardSummary
 import ru.partnercrm.domain.dashboard.DealDashboardItem
 import ru.partnercrm.domain.deal.DealLifecycleStatus
+import ru.partnercrm.domain.payment.PaymentAllocator
 
 class RoomCrmRepository(
     private val partnerDao: PartnerDao,
     private val dealDao: DealDao,
     private val settingsDao: SettingsDao? = null,
     private val clock: Clock = Clock.systemDefaultZone(),
+    private val database: RoomDatabase? = null,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : CrmRepository {
-    override fun partners(): List<Partner> = runBlocking {
+    constructor(
+        database: AppDatabase,
+        clock: Clock = Clock.systemDefaultZone(),
+        ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    ) : this(
+        partnerDao = database.partnerDao(),
+        dealDao = database.dealDao(),
+        settingsDao = database.settingsDao(),
+        clock = clock,
+        database = database,
+        ioDispatcher = ioDispatcher,
+    )
+
+    override suspend fun partners(): List<Partner> = dbCall {
         partnerDao.getAll().map { it.toModel() }
     }
 
-    override fun deals(): List<Deal> = runBlocking {
-        dealDao.getAll().map { it.toModel() }
+    override suspend fun deals(): List<Deal> = dbCall {
+        repairFullyPaidActiveDeals(dealDao.getAll())
     }
 
-    override fun activeDeals(): List<Deal> {
+    override suspend fun activeDeals(): List<Deal> {
         return deals()
             .filter { it.lifecycleStatus == DealLifecycleStatus.ACTIVE }
             .sortedBy { it.dueDate }
     }
 
-    override fun createPartner(
+    override suspend fun createPartner(
         name: String,
         defaultPercent: Double,
         phone: String?,
         telegram: String?,
         comment: String?,
-    ): Partner = runBlocking {
+    ): Partner = dbCall {
         val normalizedName = name.trim()
         require(normalizedName.isNotEmpty()) { "Partner name is required" }
         require(defaultPercent in 0.0..100.0) { "Partner percent must be between 0 and 100" }
@@ -67,12 +90,20 @@ class RoomCrmRepository(
         requireNotNull(partnerDao.getById(id)) { "Inserted partner not found: $id" }.toModel()
     }
 
-    override fun archivePartner(partnerId: Long): Partner = runBlocking {
+    override suspend fun archivePartner(partnerId: Long): Partner = dbCall {
         partnerDao.archive(partnerId, clock.millis())
         requireNotNull(partnerDao.getById(partnerId)) { "Partner not found: $partnerId" }.toModel()
     }
 
-    override fun updatePartner(
+    override suspend fun deletePartner(partnerId: Long) = dbCall {
+        inTransaction {
+            requireNotNull(partnerDao.getById(partnerId)) { "Partner not found: $partnerId" }
+            dealDao.deleteByPartner(partnerId)
+            partnerDao.delete(partnerId)
+        }
+    }
+
+    override suspend fun updatePartner(
         id: Long,
         name: String,
         defaultPercent: Double,
@@ -80,7 +111,7 @@ class RoomCrmRepository(
         telegram: String?,
         comment: String?,
         isActive: Boolean,
-    ): Partner = runBlocking {
+    ): Partner = dbCall {
         val existing = requireNotNull(partnerDao.getById(id)) { "Partner not found: $id" }
         val normalizedName = name.trim()
         require(normalizedName.isNotEmpty()) { "Partner name is required" }
@@ -99,26 +130,27 @@ class RoomCrmRepository(
         requireNotNull(partnerDao.getById(id)) { "Partner not found after update: $id" }.toModel()
     }
 
-    override fun createDeal(
+    override suspend fun createDeal(
         partnerId: Long,
         amountIn: Double,
         dateIn: LocalDate,
         dueDate: LocalDate,
         percent: Double?,
         comment: String?,
-    ): Deal = runBlocking {
+    ): Deal = dbCall {
         val partner = requireNotNull(partnerDao.getById(partnerId)) { "Partner not found: $partnerId" }
         val dealPercent = percent ?: partner.defaultPercent
         require(amountIn > 0.0) { "Deal amount must be greater than 0" }
         require(dealPercent in 0.0..100.0) { "Deal percent must be between 0 and 100" }
         require(!dueDate.isBefore(dateIn)) { "Due date cannot be before incoming date" }
 
-        val calculation = MoneyCalculator.calculate(amountIn, dealPercent, readCalcType())
+        val roundedAmountIn = MoneyCalculator.roundMoney(amountIn)
+        val calculation = MoneyCalculator.calculate(roundedAmountIn, dealPercent, readCalcType())
         val now = clock.millis()
         val id = dealDao.insert(
             DealEntity(
                 partnerId = partnerId,
-                amountIn = amountIn,
+                amountIn = roundedAmountIn,
                 percent = dealPercent,
                 amountToReturn = calculation.amountToReturn,
                 profit = calculation.profit,
@@ -133,18 +165,41 @@ class RoomCrmRepository(
         requireNotNull(dealDao.getById(id)) { "Inserted deal not found: $id" }.toModel()
     }
 
-    override fun closeDeal(dealId: Long, returnedAt: LocalDate): Deal = runBlocking {
-        val deal = requireNotNull(dealDao.getById(dealId)) { "Deal not found: $dealId" }
-        val closed = deal.copy(
-            dateReturned = returnedAt.toEpochDay(),
-            status = DealLifecycleStatus.RETURNED.name,
-            updatedAt = clock.millis(),
-        )
-        dealDao.update(closed)
-        requireNotNull(dealDao.getById(dealId)) { "Deal not found after update: $dealId" }.toModel()
+    override suspend fun closeDeal(dealId: Long, payoutAmount: Double, returnedAt: LocalDate): List<Deal> {
+        val deal = dbCall {
+            requireNotNull(dealDao.getById(dealId)) { "Deal not found: $dealId" }
+        }
+        return recordPayout(deal.partnerId, payoutAmount, returnedAt)
     }
 
-    override fun cancelDeal(dealId: Long): Deal = runBlocking {
+    override suspend fun recordPayout(partnerId: Long, payoutAmount: Double, paidAt: LocalDate): List<Deal> = dbCall {
+        inTransaction {
+            requireNotNull(partnerDao.getById(partnerId)) { "Partner not found: $partnerId" }
+            require(payoutAmount > 0.0) { "Payout amount must be greater than 0" }
+
+            val activePartnerDeals = dealDao.getAll()
+                .map { it.toModel() }
+                .filter {
+                    it.partnerId == partnerId &&
+                        it.lifecycleStatus == DealLifecycleStatus.ACTIVE
+                }
+            val totalRemaining = activePartnerDeals.sumOf { PaymentAllocator.remainingToPay(it) }
+            val roundedPayout = MoneyCalculator.roundMoney(payoutAmount)
+            require(totalRemaining > 0.0) { "Partner has no active deals to pay out" }
+            require(roundedPayout <= totalRemaining) { "Payout amount exceeds remaining return amount" }
+
+            val now = clock.millis()
+            val updatedDeals = PaymentAllocator.allocate(activePartnerDeals, roundedPayout, paidAt)
+                .map { repairFullyPaidActiveDeal(it, paidAt) }
+                .map { it.copy(updatedAt = now) }
+            updatedDeals.forEach { dealDao.update(it.toEntity()) }
+            updatedDeals.map { updated ->
+                requireNotNull(dealDao.getById(updated.id)) { "Deal not found after update: ${updated.id}" }.toModel()
+            }
+        }
+    }
+
+    override suspend fun cancelDeal(dealId: Long): Deal = dbCall {
         val deal = requireNotNull(dealDao.getById(dealId)) { "Deal not found: $dealId" }
         val cancelled = deal.copy(
             status = DealLifecycleStatus.CANCELLED.name,
@@ -154,7 +209,7 @@ class RoomCrmRepository(
         requireNotNull(dealDao.getById(dealId)) { "Deal not found after update: $dealId" }.toModel()
     }
 
-    override fun updateDeal(
+    override suspend fun updateDeal(
         id: Long,
         partnerId: Long,
         amountIn: Double,
@@ -162,20 +217,23 @@ class RoomCrmRepository(
         dateIn: LocalDate,
         dueDate: LocalDate,
         comment: String?,
-    ): Deal = runBlocking {
+    ): Deal = dbCall {
         val existing = requireNotNull(dealDao.getById(id)) { "Deal not found: $id" }
         requireNotNull(partnerDao.getById(partnerId)) { "Partner not found: $partnerId" }
         require(amountIn > 0.0) { "Deal amount must be greater than 0" }
         require(percent in 0.0..100.0) { "Deal percent must be between 0 and 100" }
         require(!dueDate.isBefore(dateIn)) { "Due date cannot be before incoming date" }
 
-        val calculation = MoneyCalculator.calculate(amountIn, percent, readCalcType())
+        val roundedAmountIn = MoneyCalculator.roundMoney(amountIn)
+        val calculation = MoneyCalculator.calculate(roundedAmountIn, percent, readCalcType())
+        val paidOutAmount = minOf(existing.paidOutAmount, calculation.amountToReturn)
         val updated = existing.copy(
             partnerId = partnerId,
-            amountIn = amountIn,
+            amountIn = roundedAmountIn,
             percent = percent,
             amountToReturn = calculation.amountToReturn,
             profit = calculation.profit,
+            paidOutAmount = paidOutAmount,
             dateIn = dateIn.toEpochDay(),
             dueDate = dueDate.toEpochDay(),
             comment = comment,
@@ -185,12 +243,37 @@ class RoomCrmRepository(
         requireNotNull(dealDao.getById(id)) { "Deal not found after update: $id" }.toModel()
     }
 
-    override fun deleteDeal(dealId: Long) = runBlocking {
+    private suspend fun repairFullyPaidActiveDeals(entities: List<DealEntity>): List<Deal> {
+        return entities.map { entity ->
+            val deal = entity.toModel()
+            val repaired = repairFullyPaidActiveDeal(deal, returnedAt = null)
+            if (repaired != deal) {
+                dealDao.update(repaired.toEntity())
+            }
+            repaired
+        }
+    }
+
+    private fun repairFullyPaidActiveDeal(deal: Deal, returnedAt: LocalDate?): Deal {
+        if (deal.lifecycleStatus != DealLifecycleStatus.ACTIVE) return deal
+        if (PaymentAllocator.remainingToPay(deal) > 0.0) return deal
+
+        val repairedReturnedAt = returnedAt
+            ?: deal.dateReturned
+            ?: Instant.ofEpochMilli(deal.updatedAt).atZone(clock.zone).toLocalDate()
+        return deal.copy(
+            profit = deal.copy(lifecycleStatus = DealLifecycleStatus.RETURNED).realizedProfit(),
+            dateReturned = repairedReturnedAt,
+            lifecycleStatus = DealLifecycleStatus.RETURNED,
+        )
+    }
+
+    override suspend fun deleteDeal(dealId: Long) = dbCall {
         dealDao.delete(dealId)
     }
 
-    override fun settings(): AppSettings = runBlocking {
-        val dao = settingsDao ?: return@runBlocking AppSettings()
+    override suspend fun settings(): AppSettings = dbCall {
+        val dao = settingsDao ?: return@dbCall AppSettings()
         AppSettings(
             remindersEnabled = dao.booleanValue(SettingsKeys.REMINDERS_ENABLED, true),
             remindThreeDaysBefore = dao.booleanValue(SettingsKeys.REMIND_THREE_DAYS_BEFORE, true),
@@ -205,18 +288,20 @@ class RoomCrmRepository(
         )
     }
 
-    override fun updateSettings(settings: AppSettings): AppSettings = runBlocking {
-        val dao = settingsDao ?: return@runBlocking settings
+    override suspend fun updateSettings(settings: AppSettings): AppSettings = dbCall {
+        val dao = settingsDao ?: return@dbCall settings
         writeSettings(dao, settings)
         settings
     }
 
-    override fun replaceAll(partners: List<Partner>, deals: List<Deal>, settings: AppSettings) = runBlocking {
-        dealDao.deleteAll()
-        partnerDao.deleteAll()
-        partners.forEach { partnerDao.insertWithId(it.toEntity()) }
-        deals.forEach { dealDao.insertWithId(it.toEntity()) }
-        settingsDao?.let { writeSettings(it, settings) }
+    override suspend fun replaceAll(partners: List<Partner>, deals: List<Deal>, settings: AppSettings) = dbCall {
+        inTransaction {
+            dealDao.deleteAll()
+            partnerDao.deleteAll()
+            partners.forEach { partnerDao.insertWithId(it.toEntity()) }
+            deals.forEach { dealDao.insertWithId(it.toEntity()) }
+            settingsDao?.let { writeSettings(it, settings) }
+        }
         Unit
     }
 
@@ -237,7 +322,7 @@ class RoomCrmRepository(
         return runCatching { CalcType.valueOf(raw) }.getOrDefault(CalcType.DISCOUNT)
     }
 
-    override fun dashboard(today: LocalDate): DashboardSummary {
+    override suspend fun dashboard(today: LocalDate): DashboardSummary {
         val partnersById = partners().associateBy { it.id }
         val dashboardDeals = deals().mapNotNull { deal ->
             val partner = partnersById[deal.partnerId] ?: return@mapNotNull null
@@ -248,6 +333,7 @@ class RoomCrmRepository(
                 amountIn = deal.amountIn,
                 amountToReturn = deal.amountToReturn,
                 profit = deal.profit,
+                paidOutAmount = deal.paidOutAmount,
                 dueDate = deal.dueDate,
                 lifecycleStatus = deal.lifecycleStatus,
             )
@@ -257,6 +343,15 @@ class RoomCrmRepository(
 
     private suspend fun SettingsDao.booleanValue(key: String, defaultValue: Boolean): Boolean {
         return getValue(key)?.toBooleanStrictOrNull() ?: defaultValue
+    }
+
+    private suspend fun <T> dbCall(block: suspend () -> T): T {
+        return withContext(ioDispatcher) { block() }
+    }
+
+    private suspend fun <T> inTransaction(block: suspend () -> T): T {
+        val room = database ?: return block()
+        return room.withTransaction { block() }
     }
 
     private object SettingsKeys {

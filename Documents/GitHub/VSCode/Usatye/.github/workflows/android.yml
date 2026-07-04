@@ -1,0 +1,25 @@
+name: Android
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Remove local AAPT2 override
+        run: sed -i '/android.aapt2FromMavenOverride/d' gradle.properties
+
+      - name: Verify
+        run: ./gradlew test assembleDebug lint ktlintCheck --console=plain

@@ -27,5 +27,9 @@ fun DealListFilter.applyTo(deals: List<Deal>, today: LocalDate): List<Deal> {
         }
 
         DealListFilter.ALL -> deals
-    }.sortedWith(compareBy<Deal> { it.dueDate }.thenBy { it.id })
+    }.sortedForIncomingTimeline()
+}
+
+fun List<Deal>.sortedForIncomingTimeline(): List<Deal> {
+    return sortedWith(compareBy<Deal> { it.dateIn }.thenBy { it.id })
 }

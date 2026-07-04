@@ -6,7 +6,7 @@ import java.util.Locale
 import ru.partnercrm.data.model.Deal
 
 object DealShareTextFormatter {
-    private val MoneyFormat = DecimalFormat("#,##0.##", DecimalFormatSymbols(Locale.US))
+    private val MoneyFormat = DecimalFormat("#,##0", DecimalFormatSymbols(Locale.US))
 
     fun format(
         partnerName: String,

@@ -49,4 +49,23 @@ class EntityMapperTest {
 
         assertEquals(deal, mapped)
     }
+
+    @Test
+    fun `falls back to active lifecycle status for dirty database value`() {
+        val entity = Deal(
+            id = 3,
+            partnerId = 7,
+            amountIn = 100_000.0,
+            percent = 12.0,
+            amountToReturn = 88_000.0,
+            profit = 12_000.0,
+            dateIn = LocalDate.of(2026, 6, 8),
+            dueDate = LocalDate.of(2026, 6, 15),
+            lifecycleStatus = DealLifecycleStatus.RETURNED,
+            createdAt = 100,
+            updatedAt = 200,
+        ).toEntity().copy(status = "BROKEN_STATUS")
+
+        assertEquals(DealLifecycleStatus.ACTIVE, entity.toModel().lifecycleStatus)
+    }
 }

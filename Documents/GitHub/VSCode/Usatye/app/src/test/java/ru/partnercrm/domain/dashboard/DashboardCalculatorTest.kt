@@ -123,6 +123,7 @@ class DashboardCalculatorTest {
         profit: Double,
         dueDate: LocalDate,
         lifecycleStatus: DealLifecycleStatus = DealLifecycleStatus.ACTIVE,
+        paidOutAmount: Double = if (lifecycleStatus == DealLifecycleStatus.RETURNED) amountToReturn else 0.0,
     ): DealDashboardItem {
         return DealDashboardItem(
             id = 1,
@@ -131,6 +132,7 @@ class DashboardCalculatorTest {
             amountIn = amountIn,
             amountToReturn = amountToReturn,
             profit = profit,
+            paidOutAmount = paidOutAmount,
             dueDate = dueDate,
             lifecycleStatus = lifecycleStatus,
         )

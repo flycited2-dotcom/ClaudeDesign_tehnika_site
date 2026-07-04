@@ -51,6 +51,7 @@ object BackupSerializer {
                     put("percent", deal.percent)
                     put("amountToReturn", deal.amountToReturn)
                     put("profit", deal.profit)
+                    put("paidOutAmount", deal.paidOutAmount)
                     put("dateIn", deal.dateIn.toEpochDay())
                     put("dueDate", deal.dueDate.toEpochDay())
                     put("dateReturned", deal.dateReturned?.toEpochDay() ?: JSONObject.NULL)
@@ -82,6 +83,8 @@ object BackupSerializer {
 
     fun parse(json: String): BackupData {
         val root = JSONObject(json)
+        val version = root.optInt("version", -1)
+        require(version == VERSION) { "Unsupported backup version: $version" }
 
         val partnersJson = root.getJSONArray("partners")
         val partners = (0 until partnersJson.length()).map { index ->
@@ -109,6 +112,13 @@ object BackupSerializer {
                 percent = obj.getDouble("percent"),
                 amountToReturn = obj.getDouble("amountToReturn"),
                 profit = obj.getDouble("profit"),
+                paidOutAmount = if (obj.has("paidOutAmount")) {
+                    obj.getDouble("paidOutAmount")
+                } else if (DealLifecycleStatus.valueOf(obj.getString("status")) == DealLifecycleStatus.RETURNED) {
+                    obj.getDouble("amountToReturn")
+                } else {
+                    0.0
+                },
                 dateIn = LocalDate.ofEpochDay(obj.getLong("dateIn")),
                 dueDate = LocalDate.ofEpochDay(obj.getLong("dueDate")),
                 dateReturned = if (obj.isNull("dateReturned")) null else LocalDate.ofEpochDay(obj.getLong("dateReturned")),

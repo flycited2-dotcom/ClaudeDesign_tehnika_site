@@ -34,8 +34,47 @@ class DealListFilterTest {
         assertEquals(listOf(1L), filtered.map { it.id })
     }
 
+    @Test
+    fun `active deals list follows incoming date rather than due date`() {
+        val deals = listOf(
+            deal(
+                id = 1,
+                dateIn = today.minusDays(1),
+                dueDate = today.plusDays(1),
+            ),
+            deal(
+                id = 2,
+                dateIn = today.minusDays(10),
+                dueDate = today.plusDays(30),
+            ),
+        )
+
+        val filtered = DealListFilter.ACTIVE.applyTo(deals, today)
+
+        assertEquals(listOf(2L, 1L), filtered.map { it.id })
+    }
+
+    @Test
+    fun `partner timeline keeps earlier closed deal before newer active deal`() {
+        val deals = listOf(
+            deal(
+                id = 1,
+                dateIn = today.minusDays(1),
+                status = DealLifecycleStatus.ACTIVE,
+            ),
+            deal(
+                id = 2,
+                dateIn = today.minusDays(10),
+                status = DealLifecycleStatus.RETURNED,
+            ),
+        )
+
+        assertEquals(listOf(2L, 1L), deals.sortedForIncomingTimeline().map { it.id })
+    }
+
     private fun deal(
         id: Long,
+        dateIn: LocalDate = today,
         dueDate: LocalDate = today.plusDays(7),
         status: DealLifecycleStatus = DealLifecycleStatus.ACTIVE,
     ): Deal {
@@ -46,7 +85,7 @@ class DealListFilterTest {
             percent = 10.0,
             amountToReturn = 90_000.0,
             profit = 10_000.0,
-            dateIn = today,
+            dateIn = dateIn,
             dueDate = dueDate,
             lifecycleStatus = status,
             createdAt = 1,

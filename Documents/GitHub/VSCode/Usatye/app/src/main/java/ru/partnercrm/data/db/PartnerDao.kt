@@ -27,6 +27,9 @@ interface PartnerDao {
     @Query("UPDATE partners SET isActive = 0, updatedAt = :updatedAt WHERE id = :id")
     suspend fun archive(id: Long, updatedAt: Long)
 
+    @Query("DELETE FROM partners WHERE id = :id")
+    suspend fun delete(id: Long)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWithId(partner: PartnerEntity): Long
 

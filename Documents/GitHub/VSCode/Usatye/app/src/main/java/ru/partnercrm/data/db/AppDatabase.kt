@@ -9,8 +9,8 @@ import androidx.room.RoomDatabase
         DealEntity::class,
         AppSettingEntity::class,
     ],
-    version = 1,
-    exportSchema = false,
+    version = 3,
+    exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun partnerDao(): PartnerDao

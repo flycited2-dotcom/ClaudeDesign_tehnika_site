@@ -6,6 +6,9 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import ru.partnercrm.data.model.Deal
 import ru.partnercrm.data.model.Partner
+import ru.partnercrm.data.model.expectedProfit
+import ru.partnercrm.data.model.realizedProfit
+import ru.partnercrm.data.model.remainingToReturn
 import ru.partnercrm.domain.report.PeriodReportCalculator
 
 object ExcelExporter {
@@ -19,7 +22,9 @@ object ExcelExporter {
                     "Дата поступления",
                     "Сумма поступления",
                     "Процент",
-                    "Сумма к возврату",
+                    "Сумма к возврату всего",
+                    "Выдано",
+                    "Осталось к возврату",
                     "Профит",
                     "Срок возврата",
                     "Статус",
@@ -36,7 +41,9 @@ object ExcelExporter {
                         deal.amountIn.toPlainCell(),
                         deal.percent.toPlainCell(),
                         deal.amountToReturn.toPlainCell(),
-                        deal.profit.toPlainCell(),
+                        deal.paidOutAmount.toPlainCell(),
+                        deal.remainingToReturn().toPlainCell(),
+                        deal.expectedProfit().toPlainCell(),
                         deal.dueDate.toString(),
                         deal.lifecycleStatus.name,
                         deal.comment.orEmpty(),
@@ -51,15 +58,16 @@ object ExcelExporter {
         val weekEnd = today.plusDays(7)
         val partnersById = partners.associateBy { it.id }
         val rows = mutableListOf(
-            listOf("Партнёр", "Всего зашло", "Всего к возврату", "Профит", "Активных сделок", "Ближайший срок", "Просрочено"),
+            listOf("Партнёр", "Всего зашло", "Всего к возврату", "Выдано", "Профит", "Активных сделок", "Ближайший срок", "Просрочено"),
         )
         deals.groupBy { it.partnerId }.forEach { (partnerId, partnerDeals) ->
             val activeDeals = partnerDeals.filter { it.dateReturned == null }
             rows += listOf(
                 partnersById[partnerId]?.name.orEmpty(),
                 activeDeals.sumOf { it.amountIn }.toPlainCell(),
-                activeDeals.sumOf { it.amountToReturn }.toPlainCell(),
-                activeDeals.sumOf { it.profit }.toPlainCell(),
+                activeDeals.sumOf { it.remainingToReturn() }.toPlainCell(),
+                partnerDeals.sumOf { it.paidOutAmount }.toPlainCell(),
+                activeDeals.sumOf { it.expectedProfit() }.toPlainCell(),
                 activeDeals.size.toString(),
                 activeDeals.minOfOrNull { it.dueDate }?.toString().orEmpty(),
                 activeDeals.count { it.dueDate.isBefore(today) }.toString(),
@@ -72,7 +80,7 @@ object ExcelExporter {
     fun monthlySummary(partners: List<Partner>, deals: List<Deal>, month: Int, year: Int): ByteArray {
         val partnersById = partners.associateBy { it.id }
         val rows = mutableListOf(
-            listOf("Месяц", "Партнёр", "Сумма поступления", "Сумма возврата", "Профит", "Дата поступления", "Дата возврата", "Статус"),
+            listOf("Месяц", "Партнёр", "Сумма поступления", "Сумма возврата", "Выдано", "Профит", "Дата поступления", "Дата возврата", "Статус"),
         )
         deals
             .filter { it.dateIn.monthValue == month && it.dateIn.year == year }
@@ -82,7 +90,8 @@ object ExcelExporter {
                     partnersById[deal.partnerId]?.name.orEmpty(),
                     deal.amountIn.toPlainCell(),
                     deal.amountToReturn.toPlainCell(),
-                    deal.profit.toPlainCell(),
+                    deal.paidOutAmount.toPlainCell(),
+                    deal.displayProfit().toPlainCell(),
                     deal.dateIn.toString(),
                     deal.dateReturned?.toString().orEmpty(),
                     deal.lifecycleStatus.name,
@@ -117,7 +126,7 @@ object ExcelExporter {
             )
         }
         rows += listOf("")
-        rows += listOf("Партнёр", "Дата поступления", "Сумма", "Процент", "К возврату", "Профит", "Срок", "Дата возврата", "Статус")
+        rows += listOf("Партнёр", "Дата поступления", "Сумма", "Процент", "К возврату", "Выдано", "Осталось", "Профит", "Срок", "Дата возврата", "Статус")
         deals
             .filter { !it.dateIn.isBefore(start) && !it.dateIn.isAfter(end) }
             .sortedBy { it.dateIn }
@@ -128,7 +137,9 @@ object ExcelExporter {
                     deal.amountIn.toPlainCell(),
                     deal.percent.toPlainCell(),
                     deal.amountToReturn.toPlainCell(),
-                    deal.profit.toPlainCell(),
+                    deal.paidOutAmount.toPlainCell(),
+                    deal.remainingToReturn().toPlainCell(),
+                    deal.displayProfit().toPlainCell(),
                     deal.dueDate.toString(),
                     deal.dateReturned?.toString().orEmpty(),
                     deal.lifecycleStatus.name,
@@ -217,4 +228,6 @@ object ExcelExporter {
     private fun Double.toPlainCell(): String {
         return if (this % 1.0 == 0.0) toLong().toString() else toString()
     }
+
+    private fun Deal.displayProfit(): Double = realizedProfit() + expectedProfit()
 }
