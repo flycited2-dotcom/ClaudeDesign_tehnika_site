@@ -10,6 +10,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,6 +43,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -49,6 +52,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -118,13 +122,42 @@ import ru.partnercrm.domain.report.ReportPeriodType
 import ru.partnercrm.export.ExcelExporter
 import ru.partnercrm.share.DealShareTextFormatter
 
-private val AppColors = lightColorScheme(
+private val LightAppColors = lightColorScheme(
     primary = Color(0xFF1E6B5C),
     secondary = Color(0xFF315C82),
     tertiary = Color(0xFF8A5A14),
+    primaryContainer = Color(0xFFE4F3EE),
+    secondaryContainer = Color(0xFFE7F0F7),
+    tertiaryContainer = Color(0xFFFFE9C2),
     background = Color(0xFFF7F8FA),
     surface = Color.White,
+    surfaceVariant = Color(0xFFF0F3F6),
+    onPrimary = Color.White,
+    onPrimaryContainer = Color(0xFF123C34),
+    onBackground = Color(0xFF18212F),
+    onSurface = Color(0xFF18212F),
+    onSurfaceVariant = Color(0xFF667085),
+    outline = Color(0xFF98A2B3),
     error = Color(0xFFB42318),
+)
+
+private val DarkAppColors = darkColorScheme(
+    primary = Color(0xFF6ED0B8),
+    secondary = Color(0xFF8FB8D8),
+    tertiary = Color(0xFFE6B66A),
+    primaryContainer = Color(0xFF173C34),
+    secondaryContainer = Color(0xFF1E3448),
+    tertiaryContainer = Color(0xFF4B3515),
+    background = Color(0xFF0D1216),
+    surface = Color(0xFF151C22),
+    surfaceVariant = Color(0xFF202A32),
+    onPrimary = Color(0xFF06221C),
+    onPrimaryContainer = Color(0xFFD7FFF2),
+    onBackground = Color(0xFFE9EEF2),
+    onSurface = Color(0xFFE9EEF2),
+    onSurfaceVariant = Color(0xFFB8C3CC),
+    outline = Color(0xFF85939E),
+    error = Color(0xFFFFB4AB),
 )
 
 private val MoneyFormat = DecimalFormat("#,##0")
@@ -151,7 +184,8 @@ fun PartnerMoneyApp(
     repository: CrmRepository,
     onDataChanged: () -> Unit = {},
 ) {
-    MaterialTheme(colorScheme = AppColors) {
+    val appColors = if (isSystemInDarkTheme()) DarkAppColors else LightAppColors
+    MaterialTheme(colorScheme = appColors) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -273,12 +307,22 @@ fun PartnerMoneyApp(
 
             Scaffold(
                 bottomBar = {
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 4.dp,
+                    ) {
                         tabs.forEachIndexed { index, item ->
                             NavigationBarItem(
                                 modifier = Modifier.testTag("tab-$index"),
                                 selected = selectedTab == index,
                                 onClick = { navigateToTab(index) },
+                                colors = NavigationBarItemDefaults.colors(
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                    unselectedIconColor = MaterialTheme.colorScheme.outline,
+                                    unselectedTextColor = MaterialTheme.colorScheme.outline,
+                                ),
                                 icon = {
                                     Icon(
                                         painter = painterResource(item.iconRes),
@@ -706,21 +750,21 @@ private fun DashboardScreen(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { ScreenTitle("Дашборд") }
+        item { DashboardHeader(dashboard) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     title = "Заработано",
                     value = money(dashboard.realizedProfit),
-                    accent = Color(0xFF1E6B5C),
+                    accent = MaterialTheme.colorScheme.primary,
                     onClick = { onOpenBreakdown(DashboardBreakdownType.EARNED) },
                 )
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     title = "Ожидается",
                     value = money(dashboard.expectedProfit),
-                    accent = Color(0xFF8A5A14),
+                    accent = MaterialTheme.colorScheme.tertiary,
                     onClick = { onOpenBreakdown(DashboardBreakdownType.EXPECTED) },
                 )
             }
@@ -731,14 +775,14 @@ private fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                     title = "Всего зашло",
                     value = money(dashboard.totalAmountIn),
-                    accent = Color(0xFF315C82),
+                    accent = MaterialTheme.colorScheme.secondary,
                     onClick = { onOpenBreakdown(DashboardBreakdownType.INCOMING) },
                 )
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     title = "К возврату",
                     value = money(dashboard.totalAmountToReturn),
-                    accent = Color(0xFF315C82),
+                    accent = MaterialTheme.colorScheme.secondary,
                     onClick = { onOpenBreakdown(DashboardBreakdownType.TO_RETURN) },
                 )
             }
@@ -749,14 +793,14 @@ private fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                     title = "Просрочено",
                     value = "${dashboard.overdueDealsCount} / ${money(dashboard.overdueAmount)}",
-                    accent = Color(0xFFB42318),
+                    accent = MaterialTheme.colorScheme.error,
                     onClick = { onOpenBreakdown(DashboardBreakdownType.OVERDUE) },
                 )
                 MetricCard(
                     modifier = Modifier.weight(1f),
                     title = "Выдано",
                     value = money(dashboard.totalPaidOutAmount),
-                    accent = Color(0xFF6A4BBC),
+                    accent = paidOutAccent(),
                     onClick = { onOpenBreakdown(DashboardBreakdownType.PAID_OUT) },
                 )
             }
@@ -767,10 +811,10 @@ private fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                     title = "Активных сделок",
                     value = activeDeals.size.toString(),
-                    accent = Color(0xFF18212F),
+                    accent = MaterialTheme.colorScheme.onSurface,
                     onClick = onOpenDeals,
                 )
-                MetricCard(Modifier.weight(1f), "Закрыто сделок", dashboard.closedDealsCount.toString(), Color(0xFF667085))
+                MetricCard(Modifier.weight(1f), "Закрыто сделок", dashboard.closedDealsCount.toString(), MaterialTheme.colorScheme.outline)
             }
         }
         item {
@@ -805,14 +849,14 @@ private fun DashboardBreakdownScreen(
 ) {
     val breakdown = DashboardBreakdownCalculator.calculate(type, partners, deals, today)
     val accent = when (type) {
-        DashboardBreakdownType.EARNED -> Color(0xFF1E6B5C)
-        DashboardBreakdownType.EXPECTED -> Color(0xFF8A5A14)
+        DashboardBreakdownType.EARNED -> MaterialTheme.colorScheme.primary
+        DashboardBreakdownType.EXPECTED -> MaterialTheme.colorScheme.tertiary
         DashboardBreakdownType.INCOMING,
         DashboardBreakdownType.TO_RETURN,
-        -> Color(0xFF315C82)
+        -> MaterialTheme.colorScheme.secondary
 
-        DashboardBreakdownType.OVERDUE -> Color(0xFFB42318)
-        DashboardBreakdownType.PAID_OUT -> Color(0xFF6A4BBC)
+        DashboardBreakdownType.OVERDUE -> MaterialTheme.colorScheme.error
+        DashboardBreakdownType.PAID_OUT -> paidOutAccent()
     }
     val dealsLabel = if (type == DashboardBreakdownType.OVERDUE) "Просроченных сделок" else "Сделок"
 
@@ -831,7 +875,7 @@ private fun DashboardBreakdownScreen(
         }
         item {
             Column(modifier = panelModifier(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Всего", color = Color(0xFF667085))
+                Text("Всего", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     money(breakdown.totalAmount),
                     color = accent,
@@ -842,8 +886,8 @@ private fun DashboardBreakdownScreen(
         }
         item {
             Row(modifier = Modifier.fillMaxWidth()) {
-                Text("Партнёр", modifier = Modifier.weight(1f), color = Color(0xFF667085), fontSize = 13.sp)
-                Text("Сумма", color = Color(0xFF667085), fontSize = 13.sp)
+                Text("Партнёр", modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                Text("Сумма", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
             }
         }
         if (breakdown.lines.isEmpty()) {
@@ -856,8 +900,8 @@ private fun DashboardBreakdownScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(line.partnerName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
-                        Text("$dealsLabel: ${line.dealsCount}", color = Color(0xFF667085), fontSize = 13.sp)
+                        Text(line.partnerName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                        Text("$dealsLabel: ${line.dealsCount}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
                     }
                     Text(line.amount.let(::money), color = accent, fontWeight = FontWeight.SemiBold)
                 }
@@ -1080,7 +1124,7 @@ private fun ReportsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     TextButton(onClick = { selection = selection.previous() }) { Text("◀ Назад") }
-                    Text(selection.label(), fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                    Text(selection.label(), fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                     TextButton(onClick = { selection = selection.next() }) { Text("Вперёд ▶") }
                 }
             }
@@ -1090,19 +1134,19 @@ private fun ReportsScreen(
                 modifier = panelModifier(),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text("Сводка за период", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
-                Text("Зашло: ${money(report.amountIn)}", color = Color(0xFF344054))
-                Text("Возвращено: ${money(report.returnedAmount)}", color = Color(0xFF344054))
+                Text("Сводка за период", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Зашло: ${money(report.amountIn)}", color = MaterialTheme.colorScheme.onSurface)
+                Text("Возвращено: ${money(report.returnedAmount)}", color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "Заработано: ${money(report.realizedProfit)}",
-                    color = Color(0xFF1E6B5C),
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Text("Ожидается профит: ${money(report.expectedProfit)}", color = Color(0xFF344054))
-                Text("Остаток к возврату: ${money(report.outstandingToReturn)}", color = Color(0xFF344054))
+                Text("Ожидается профит: ${money(report.expectedProfit)}", color = MaterialTheme.colorScheme.onSurface)
+                Text("Остаток к возврату: ${money(report.outstandingToReturn)}", color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "Сделок открыто: ${report.dealsOpened} • закрыто: ${report.dealsClosed}",
-                    color = Color(0xFF667085),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -1112,9 +1156,9 @@ private fun ReportsScreen(
                     modifier = panelModifier(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Заработано по месяцам", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                    Text("Заработано по месяцам", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                     MonthBarsChart(monthlyRealizedProfit(deals, selection.start.year))
-                    Text("Янв … Дек", fontSize = 12.sp, color = Color(0xFF98A2B3))
+                    Text("Янв … Дек", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
                 }
             }
         }
@@ -1134,7 +1178,7 @@ private fun ReportsScreen(
                 modifier = panelModifier(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Excel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                Text("Excel", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 Button(
                     onClick = {
                         exportAndShare(
@@ -1169,6 +1213,7 @@ private fun ReportsScreen(
 @Composable
 private fun MonthBarsChart(values: List<Double>) {
     val maxValue = (values.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
+    val barColor = MaterialTheme.colorScheme.primary
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
@@ -1181,7 +1226,7 @@ private fun MonthBarsChart(values: List<Double>) {
             val barHeight = (value / maxValue * size.height).toFloat().coerceIn(0f, size.height)
             val left = index * (barWidth + gap)
             drawRect(
-                color = Color(0xFF1E6B5C),
+                color = barColor,
                 topLeft = Offset(left, size.height - barHeight),
                 size = Size(barWidth, barHeight),
             )
@@ -1238,7 +1283,7 @@ private fun SettingsScreen(
                 modifier = panelModifier(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Напоминания", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                Text("Напоминания", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 SwitchSettingRow("Включены", settings.remindersEnabled) {
                     onSettingsChanged(settings.copy(remindersEnabled = it))
                 }
@@ -1264,7 +1309,7 @@ private fun SettingsScreen(
                 modifier = panelModifier(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Отображение", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                Text("Отображение", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 OutlinedTextField(
                     value = currencySymbol,
                     onValueChange = { currencySymbol = it.take(4) },
@@ -1288,7 +1333,7 @@ private fun SettingsScreen(
                 modifier = panelModifier(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Тип расчёта", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                Text("Тип расчёта", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = settings.calcType == CalcType.DISCOUNT,
@@ -1308,9 +1353,9 @@ private fun SettingsScreen(
                         "Наценка: к возврату = сумма + %. Вы возвращаете больше."
                     },
                     fontSize = 13.sp,
-                    color = Color(0xFF667085),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text("Применяется к новым сделкам.", fontSize = 12.sp, color = Color(0xFF98A2B3))
+                Text("Применяется к новым сделкам.", fontSize = 12.sp, color = MaterialTheme.colorScheme.outline)
             }
         }
         item {
@@ -1318,7 +1363,7 @@ private fun SettingsScreen(
                 modifier = panelModifier(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Резервная копия", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+                Text("Резервная копия", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 Button(onClick = onExportBackup, shape = RoundedCornerShape(8.dp)) {
                     Text("Сохранить копию (.json)")
                 }
@@ -1447,30 +1492,30 @@ private fun PartnerDetailScreen(
         }
         item {
             Column(modifier = panelModifier(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Процент по умолчанию: ${formatNumber(partner.defaultPercent)}%", color = Color(0xFF667085))
-                partner.phone?.takeIf { it.isNotBlank() }?.let { Text("Телефон: $it", color = Color(0xFF667085)) }
-                partner.telegram?.takeIf { it.isNotBlank() }?.let { Text("Telegram: $it", color = Color(0xFF667085)) }
-                partner.comment?.takeIf { it.isNotBlank() }?.let { Text(it, color = Color(0xFF667085)) }
-                if (!partner.isActive) Text("Архивный", color = Color(0xFFB42318))
+                Text("Процент по умолчанию: ${formatNumber(partner.defaultPercent)}%", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                partner.phone?.takeIf { it.isNotBlank() }?.let { Text("Телефон: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                partner.telegram?.takeIf { it.isNotBlank() }?.let { Text("Telegram: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                partner.comment?.takeIf { it.isNotBlank() }?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                if (!partner.isActive) Text("Архивный", color = MaterialTheme.colorScheme.error)
             }
         }
         item {
             Column(modifier = panelModifier(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Финансы", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
-                Text("Зашло (активные): ${money(activeDeals.sumOf { it.amountIn })}", color = Color(0xFF344054))
-                Text("К возврату: ${money(activeDeals.sumOf { it.remainingToReturn() })}", color = Color(0xFF344054))
-                Text("Выдано: ${money(deals.sumOf { it.paidOutAmount })}", color = Color(0xFF344054))
-                Text("Ожидается профит: ${money(activeDeals.sumOf { it.expectedProfit() })}", color = Color(0xFF344054))
+                Text("Финансы", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Зашло (активные): ${money(activeDeals.sumOf { it.amountIn })}", color = MaterialTheme.colorScheme.onSurface)
+                Text("К возврату: ${money(activeDeals.sumOf { it.remainingToReturn() })}", color = MaterialTheme.colorScheme.onSurface)
+                Text("Выдано: ${money(deals.sumOf { it.paidOutAmount })}", color = MaterialTheme.colorScheme.onSurface)
+                Text("Ожидается профит: ${money(activeDeals.sumOf { it.expectedProfit() })}", color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "Заработано (закрыто): ${money(closedDeals.sumOf { it.realizedProfit() })}",
-                    color = Color(0xFF1E6B5C),
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     "Активных: ${activeDeals.size} • Закрыто: ${closedDeals.size} • Просрочено: $overdueCount",
-                    color = Color(0xFF667085),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text("Ближайший срок: ${summary?.nearestDueDate ?: activeDeals.minOfOrNull { it.dueDate } ?: "-"}", color = Color(0xFF667085))
+                Text("Ближайший срок: ${summary?.nearestDueDate ?: activeDeals.minOfOrNull { it.dueDate } ?: "-"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         item {
@@ -1498,7 +1543,7 @@ private fun PartnerDetailScreen(
             }
         }
         item {
-            Text("Сделки партнёра", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
+            Text("Сделки партнёра", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
         }
         if (sortedDeals.isEmpty()) {
             item { SectionPanel("Сделок нет", "Добавьте первую сделку этого партнёра.") }
@@ -1532,12 +1577,12 @@ private fun PartnerCard(
         modifier = panelModifier().clickable { onOpen(partner.id) },
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(partner.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
-        Text("Процент по умолчанию: ${formatNumber(partner.defaultPercent)}%", color = Color(0xFF667085))
-        partner.phone?.takeIf { it.isNotBlank() }?.let { Text("Телефон: $it", color = Color(0xFF667085)) }
-        partner.telegram?.takeIf { it.isNotBlank() }?.let { Text("Telegram: $it", color = Color(0xFF667085)) }
-        partner.comment?.takeIf { it.isNotBlank() }?.let { Text(it, color = Color(0xFF667085)) }
-        Text(summaryText, color = Color(0xFF344054))
+        Text(partner.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+        Text("Процент по умолчанию: ${formatNumber(partner.defaultPercent)}%", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        partner.phone?.takeIf { it.isNotBlank() }?.let { Text("Телефон: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        partner.telegram?.takeIf { it.isNotBlank() }?.let { Text("Telegram: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        partner.comment?.takeIf { it.isNotBlank() }?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        Text(summaryText, color = MaterialTheme.colorScheme.onSurface)
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = { onOpen(partner.id) }) {
                 Text("Открыть")
@@ -1557,7 +1602,7 @@ private fun PartnerCard(
             }
         }
         if (!partner.isActive) {
-            Text("Архивный", color = Color(0xFF667085))
+            Text("Архивный", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -1661,7 +1706,7 @@ private fun AddPayoutDialog(
                             }
                         }
                     }
-                    Text("Остаток к возврату: ${money(remainingTotal)}", color = Color(0xFF344054))
+                    Text("Остаток к возврату: ${money(remainingTotal)}", color = MaterialTheme.colorScheme.onSurface)
                     DateField("Дата выдачи", paidAt) { paidAt = it }
                 }
                 OutlinedTextField(
@@ -1690,22 +1735,26 @@ private fun AddPayoutDialog(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFEFF4F2), RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
                             .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text("Подбор по дате прихода", color = Color(0xFF18212F), fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Подбор по дате прихода",
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                        )
                         allocationPreview.forEach { row ->
                             val status = if (row.willClose) "закроется" else "частично"
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
                                     "Дата прихода ${row.deal.dateIn}: ${money(row.appliedAmount)} • $status",
-                                    color = Color(0xFF344054),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontSize = 13.sp,
                                 )
                                 Text(
                                     "Остаток после расхода: ${money(row.remainingAfter)}",
-                                    color = if (row.willClose) Color(0xFF1E6B5C) else Color(0xFF8A5A14),
+                                    color = if (row.willClose) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary,
                                     fontSize = 13.sp,
                                 )
                             }
@@ -1750,22 +1799,22 @@ private fun DealCard(
         modifier = panelModifier(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(partnerName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
-        Text("Сумма прихода: ${money(deal.amountIn)}", color = Color(0xFF344054))
-        Text("К возврату партнёру: ${money(deal.amountToReturn)}", color = Color(0xFF344054))
-        Text("Выдано: ${money(deal.paidOutAmount)}", color = Color(0xFF344054))
+        Text(partnerName, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+        Text("Сумма прихода: ${money(deal.amountIn)}", color = MaterialTheme.colorScheme.onSurface)
+        Text("К возврату партнёру: ${money(deal.amountToReturn)}", color = MaterialTheme.colorScheme.onSurface)
+        Text("Выдано: ${money(deal.paidOutAmount)}", color = MaterialTheme.colorScheme.onSurface)
         if (deal.lifecycleStatus == DealLifecycleStatus.ACTIVE && deal.paidOutAmount > 0.0) {
-            Text("Осталось: ${money(deal.remainingToReturn())}", color = Color(0xFF8A5A14))
+            Text("Осталось: ${money(deal.remainingToReturn())}", color = MaterialTheme.colorScheme.tertiary)
         }
         Text(
             text = (if (isClosed) "Заработано" else "Ваш профит") +
                 ": ${money(if (isClosed) deal.realizedProfit() else deal.expectedProfit())} (${deal.percent}%)",
-            color = if (isClosed) Color(0xFF1E6B5C) else Color(0xFF344054),
+            color = if (isClosed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
         )
-        Text("Дата поступления: ${deal.dateIn}", color = Color(0xFF667085))
-        deal.dateReturned?.let { Text("Закрыта: $it", color = Color(0xFF667085)) }
-        deal.comment?.takeIf { it.isNotBlank() }?.let { Text(it, color = Color(0xFF667085)) }
+        Text("Дата поступления: ${deal.dateIn}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        deal.dateReturned?.let { Text("Закрыта: $it", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        deal.comment?.takeIf { it.isNotBlank() }?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         Text("Срок: ${deal.dueDate} • ${statusLabel(status)}", color = statusColor(status))
         TextButton(onClick = { onEditDeal(deal) }) {
             Text("Редактировать")
@@ -2009,14 +2058,17 @@ private fun AddDealDialog(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFFEFF4F2), RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
                                 .padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Text("К возврату партнёру: ${money(preview.amountToReturn)}", color = Color(0xFF18212F))
+                            Text(
+                                "К возврату партнёру: ${money(preview.amountToReturn)}",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
                             Text(
                                 "Ваш профит: ${money(preview.profit)}",
-                                color = Color(0xFF1E6B5C),
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold,
                             )
                         }
@@ -2076,13 +2128,59 @@ private fun DateField(
 }
 
 @Composable
+private fun DashboardHeader(dashboard: DashboardSummary) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(
+            text = "Дашборд",
+            color = MaterialTheme.colorScheme.onPrimary,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "Портфель на сегодня",
+            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.76f),
+            fontSize = 14.sp,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+            HeaderAmount("Заработано", money(dashboard.realizedProfit), Modifier.weight(1f))
+            HeaderAmount("К возврату", money(dashboard.totalAmountToReturn), Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun HeaderAmount(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(label, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f), fontSize = 12.sp)
+        Text(
+            value,
+            color = MaterialTheme.colorScheme.onPrimary,
+            fontSize = metricValueFontSize(value),
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip,
+        )
+    }
+}
+
+@Composable
 private fun ScreenTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         modifier = modifier,
         text = text,
         fontSize = 24.sp,
         fontWeight = FontWeight.SemiBold,
-        color = Color(0xFF18212F),
+        color = MaterialTheme.colorScheme.onBackground,
     )
 }
 
@@ -2095,10 +2193,10 @@ private fun MetricCard(
     onClick: (() -> Unit)? = null,
 ) {
     val cardModifier = if (onClick == null) {
-        modifier.height(108.dp)
+        modifier.height(112.dp)
     } else {
         modifier
-            .height(108.dp)
+            .height(112.dp)
             .clickable { onClick() }
     }
 
@@ -2106,24 +2204,43 @@ private fun MetricCard(
         modifier = cardModifier,
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp),
+                .background(MaterialTheme.colorScheme.surface),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(title, color = Color(0xFF667085), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 13.sp)
-            Text(
-                text = value,
-                color = accent,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
-                fontSize = metricValueFontSize(value),
-                fontWeight = FontWeight.SemiBold,
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(accent),
             )
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 14.dp, top = 10.dp, end = 14.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    title,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 13.sp,
+                )
+                Text(
+                    text = value,
+                    color = accent,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Clip,
+                    fontSize = metricValueFontSize(value),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }
@@ -2133,6 +2250,11 @@ private fun metricValueFontSize(value: String) = when {
     value.length >= 14 -> 17.sp
     value.length >= 11 -> 19.sp
     else -> 22.sp
+}
+
+@Composable
+private fun paidOutAccent(): Color {
+    return if (isSystemInDarkTheme()) Color(0xFFC7B8FF) else Color(0xFF6A4BBC)
 }
 
 @Composable
@@ -2149,7 +2271,7 @@ private fun ActionRow(onAddDeal: () -> Unit, onAddPayout: () -> Unit, onAddPartn
                 .testTag("add-deal-button"),
             onClick = onAddDeal,
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E6B5C)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             contentPadding = actionButtonPadding,
         ) {
             Text(
@@ -2165,7 +2287,7 @@ private fun ActionRow(onAddDeal: () -> Unit, onAddPayout: () -> Unit, onAddPartn
             modifier = Modifier.weight(1f),
             onClick = onAddPayout,
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6A4BBC)),
+            colors = ButtonDefaults.buttonColors(containerColor = paidOutAccent()),
             contentPadding = actionButtonPadding,
         ) {
             Text(
@@ -2181,7 +2303,7 @@ private fun ActionRow(onAddDeal: () -> Unit, onAddPayout: () -> Unit, onAddPartn
             modifier = Modifier.weight(1f),
             onClick = onAddPartner,
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF315C82)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
             contentPadding = actionButtonPadding,
         ) {
             Text(
@@ -2203,8 +2325,8 @@ private fun SectionPanel(title: String, body: String, onClick: (() -> Unit)? = n
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF18212F))
-        Text(body, fontSize = 14.sp, color = Color(0xFF667085))
+        Text(title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+        Text(body, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -2220,7 +2342,10 @@ private fun SwitchSettingRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, color = if (enabled) Color(0xFF344054) else Color(0xFF98A2B3))
+        Text(
+            title,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outline,
+        )
         Switch(
             checked = checked,
             enabled = enabled,
@@ -2229,11 +2354,12 @@ private fun SwitchSettingRow(
     }
 }
 
+@Composable
 private fun panelModifier(): Modifier {
     return Modifier
         .fillMaxWidth()
         .background(
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(8.dp),
         )
         .padding(16.dp)
@@ -2340,12 +2466,13 @@ private fun statusLabel(status: DealDisplayStatus): String {
     }
 }
 
+@Composable
 private fun statusColor(status: DealDisplayStatus): Color {
     return when (status) {
-        DealDisplayStatus.ACTIVE -> Color(0xFF1E6B5C)
-        DealDisplayStatus.DUE_SOON -> Color(0xFF8A5A14)
-        DealDisplayStatus.OVERDUE -> Color(0xFFB42318)
-        DealDisplayStatus.RETURNED -> Color(0xFF667085)
-        DealDisplayStatus.CANCELLED -> Color(0xFF667085)
+        DealDisplayStatus.ACTIVE -> MaterialTheme.colorScheme.primary
+        DealDisplayStatus.DUE_SOON -> MaterialTheme.colorScheme.tertiary
+        DealDisplayStatus.OVERDUE -> MaterialTheme.colorScheme.error
+        DealDisplayStatus.RETURNED -> MaterialTheme.colorScheme.onSurfaceVariant
+        DealDisplayStatus.CANCELLED -> MaterialTheme.colorScheme.onSurfaceVariant
     }
 }

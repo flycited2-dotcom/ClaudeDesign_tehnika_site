@@ -61,3 +61,10 @@
 - Debug APK was installed on the connected TECNO BG6 with `adb install -r app/build/outputs/apk/debug/app-debug.apk`; app process `ru.partnercrm` was alive with `MainActivity` resumed.
 - Current visual state intentionally looks mostly the same. Next requested work is a visible UI pass: dashboard/card polish, buttons/forms, dark theme, and cleaner navigation.
 - Keep avoiding `git add -A` from repo root: this git repo root is `C:/Users/user`, so status includes unrelated folders outside `Documents/GitHub/VSCode/Usatye`.
+
+## Handoff 2026-07-04: visible UI pass
+- After pushing the hardening pass, the UI was visibly updated in `PartnerMoneyApp.kt`: automatic light/dark Compose color schemes, a green dashboard hero summary, metric cards with semantic top accent strips, theme-aware panels/text, and clearer selected/unselected bottom navigation colors.
+- Debug APK was rebuilt and installed on TECNO BG6 with `adb install -r`; app opened on `ru.partnercrm/.MainActivity`.
+- Fresh device screenshot: `build/usatye_ui_pass.png` (local build artifact, not intended for git).
+- Verification after UI changes: `.\gradlew.bat test assembleDebug lint ktlintCheck --console=plain --no-daemon` -> `BUILD SUCCESSFUL in 1m 42s`.
+- Still not done: full NavHost refactor, strings.xml extraction, and full accessibility contentDescription pass.

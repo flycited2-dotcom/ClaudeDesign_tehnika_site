@@ -1,21 +1,25 @@
 # Worklog: Usatye Partner Money CRM
 
 ## Current goal
-Publish the verified `CODEX_TASKS.md` hardening pass, then start the visible UI pass for dashboard, cards, buttons, forms, dark theme, and cleaner navigation.
+Publish the verified hardening pass and the first visible UI pass, with APK installed on the connected phone.
 
 ## State (updated 2026-07-04)
 - Done: Backup version validation, dirty enum fallback, shared deal profit helpers, Room suspend/IO access, transactional restore/payout operations, schema export, composite deal index, release R8 config, ktlint/CI wiring, and initial Compose instrumentation tests have been implemented.
 - Done: `runBlocking` and `allowMainThreadQueries` no longer appear in `app/src/main/java`.
 - Done: Final verification passed with `test assembleDebug assembleRelease :app:assembleDebugAndroidTest lint ktlintCheck`, and `git diff --check` is clean for the project paths.
-- Done: Debug APK was installed on TECNO BG6 with `adb install -r`; `ru.partnercrm/.MainActivity` was resumed and a phone screenshot was captured at `build/usatye_phone_screen.png`.
-- In progress: Commit and push the verified hardening pass to GitHub.
-- Next: Start visible UI pass only after handoff, memory update, commit, and push are complete.
+- Done: Debug APK was installed on TECNO BG6 with `adb install -r`; `ru.partnercrm/.MainActivity` was resumed and phone screenshots were captured at `build/usatye_phone_screen.png` and `build/usatye_ui_pass.png`.
+- Done: Hardening pass was committed and pushed to `origin/codex/parsing_tenders` at `e772af9`.
+- Done: First visible UI pass was implemented in `PartnerMoneyApp.kt`: automatic dark/light color schemes, dashboard hero summary, accented metric cards, theme-aware panels/text, and clearer bottom navigation states.
+- Done: UI pass verification passed with `test assembleDebug lint ktlintCheck`.
+- In progress: Commit and push the UI pass to GitHub.
+- Next: Show user the phone screenshot and summarize remaining design follow-ups.
 
 ## Decisions
 - 2026-07-04: Repository API was moved to `suspend` instead of keeping `runBlocking`, because the task explicitly identified UI-thread blocking as a critical ANR risk.
 - 2026-07-04: Room schema was bumped to version 3 only for the new composite index, with a matching `MIGRATION_2_3`, because adding the index without a migration would break existing installs.
 - 2026-07-04: ktlint is configured with `ignoreFailures = true`, because enabling it as a hard gate immediately produced a large backlog of pre-existing style violations. The reports still get generated and CI can be tightened after formatting cleanup.
 - 2026-07-04: CI removes the local `android.aapt2FromMavenOverride` line before Gradle runs, because the project has a Windows absolute SDK path that will not exist on GitHub Actions Ubuntu runners.
+- 2026-07-04: The first UI pass stays in `PartnerMoneyApp.kt` and shared UI primitives rather than splitting NavHost immediately, because the user wanted visible changes on the phone first and the monolith split is a larger risk.
 
 ## Gotchas
 - The git repository root is `C:/Users/user`, so `git status` includes many unrelated files outside `Documents/GitHub/VSCode/Usatye`.
@@ -26,3 +30,4 @@ Publish the verified `CODEX_TASKS.md` hardening pass, then start the visible UI 
 - The large `PartnerMoneyApp.kt` split into smaller screens/NavHost is not fully done; current work adds safer async loading/mutations and test tags first.
 - Dark theme, full accessibility content descriptions, strings extraction, and centralized live form validation remain good follow-up improvements.
 - User specifically asked to push the current verified work before starting the visible UI pass.
+- Dark theme is implemented automatically from system theme, but a manual dark-mode phone screenshot was not captured yet.
