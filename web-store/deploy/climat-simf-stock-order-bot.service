@@ -1,0 +1,25 @@
+[Unit]
+Description=Climat Simf Telegram B2B order bot
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/climat-simf.ru
+Environment=NODE_ENV=production
+EnvironmentFile=/var/www/climat-simf.ru/.env
+ExecStart=/bin/bash /var/www/climat-simf.ru/scripts/run-stock-order-bot.sh
+Restart=always
+RestartSec=5s
+# A periodic clean restart also recovers from failures outside the fetch watchdog.
+RuntimeMaxSec=12h
+TimeoutStopSec=20s
+KillMode=control-group
+StandardOutput=append:/var/log/climat-simf.ru/stock-order-bot.log
+StandardError=append:/var/log/climat-simf.ru/stock-order-bot.log
+
+[Install]
+WantedBy=multi-user.target

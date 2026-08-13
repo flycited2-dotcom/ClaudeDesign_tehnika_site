@@ -18,6 +18,7 @@
 
 # mobile QA audit scratch (CDP walk scripts + screenshots + TZ)
 /qa-cabinet-audit/
+/.runtime/
 
 # next.js
 /.next/

@@ -278,6 +278,22 @@ model Address {
   updatedAt  DateTime @updatedAt
 }
 
+/// Internal idempotency record for orders initiated from a signed Telegram
+/// link or bot callback. Technical markers stay here and are never exposed in
+/// the supplier-facing B2B order comment.
+model SupplierOrderAttempt {
+  nonce           String   @id
+  sku             Int
+  quantity        Int
+  supplierOrderId Int?     @unique
+  status          String   @default("creating")
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
 enum LeadType {
   CALLBACK     @map("callback")
   QUOTE        @map("quote")
