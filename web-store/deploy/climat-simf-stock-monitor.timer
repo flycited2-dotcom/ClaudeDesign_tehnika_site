@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Climat Simf I-T-P stock monitor every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00,15,30,45:00
+Persistent=true
+AccuracySec=10s
+Unit=climat-simf-stock-monitor.service
+
+[Install]
+WantedBy=timers.target

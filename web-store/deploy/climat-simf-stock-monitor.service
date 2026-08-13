@@ -1,0 +1,20 @@
+[Unit]
+Description=Climat Simf I-T-P stock monitor
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=900
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/var/www/climat-simf.ru
+Environment=NODE_ENV=production
+EnvironmentFile=/var/www/climat-simf.ru/.env
+ExecStart=/bin/bash /var/www/climat-simf.ru/scripts/monitor-stock.sh
+TimeoutStartSec=5min
+KillMode=control-group
+Restart=on-failure
+RestartSec=60s
+StandardOutput=append:/var/log/climat-simf.ru/stock-monitor.log
+StandardError=append:/var/log/climat-simf.ru/stock-monitor.log

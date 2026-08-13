@@ -8,6 +8,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Prices/stocks can be refreshed several times a day, staying below 10 calls/hour.
 15 8,12,16,20 * * * cd /var/www/climat-simf.ru && /usr/bin/npm run sync:prices >> /var/log/climat-simf-sync.log 2>&1
 
+# The urgent stock monitor is installed as a self-recovering systemd service +
+# timer by scripts/install-stock-monitor-systemd.sh. Do not duplicate it here.
+
 # Keep common full-search and typeahead results hot without overlapping runs.
 */8 * * * * /var/www/climat-simf.ru/scripts/warm_search.sh >> /var/log/climat-simf-warm-search.log 2>&1
 
