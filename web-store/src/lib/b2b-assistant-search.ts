@@ -34,6 +34,14 @@ export type B2bAssistantProduct = Prisma.ProductGetPayload<{
   select: typeof b2bAssistantProductSelect;
 }>;
 
+export type B2bAssistantSearchPage = {
+  query: string;
+  products: B2bAssistantProduct[];
+  total: number;
+  offset: number;
+  hasMore: boolean;
+};
+
 export function normalizeB2bSearchQuery(rawQuery: string): string | null {
   const normalized = normalizeSearchQuery(rawQuery).replace(/\s+/g, " ").trim();
   if (/^\d+$/.test(normalized)) return normalized;
@@ -99,44 +107,81 @@ export async function findB2bProductBySku(sku: number): Promise<B2bAssistantProd
   return prisma.product.findUnique({ where: { sku }, select: b2bAssistantProductSelect });
 }
 
-export async function searchB2bProducts(rawQuery: string, limit = 5): Promise<B2bAssistantProduct[]> {
+export async function searchB2bProductPage(
+  rawQuery: string,
+  { limit = 5, offset = 0 }: { limit?: number; offset?: number } = {},
+): Promise<B2bAssistantSearchPage> {
   const query = normalizeB2bSearchQuery(rawQuery);
-  if (!query) return [];
+  const pageSize = Math.max(1, Math.min(Math.trunc(limit), 10));
+  const safeOffset = Math.max(0, Math.min(Math.trunc(offset), 100_000));
+  if (!query) return { query: "", products: [], total: 0, offset: safeOffset, hasMore: false };
   const tokens = buildProductSearchTokens(query);
-  if (tokens.length === 0) return [];
+  if (tokens.length === 0) return { query, products: [], total: 0, offset: safeOffset, hasMore: false };
 
   const numericSku = /^\d+$/.test(query) ? Number(query) : null;
-  const exactWhere: Prisma.ProductWhereInput = {
-    isActive: true,
-    OR: [
-      ...(numericSku && Number.isSafeInteger(numericSku) ? [{ sku: numericSku }] : []),
-      { part: { equals: query, mode: "insensitive" } },
-      { barcodes: { contains: query, mode: "insensitive" } },
-    ],
-  };
   const generalWhere: Prisma.ProductWhereInput = {
     isActive: true,
     AND: tokens.map((token) => assistantSearchTokenOr(token)),
   };
+  const exactMatchWhere: Prisma.ProductWhereInput = {
+    OR: [
+      ...(numericSku && Number.isSafeInteger(numericSku) ? [{ sku: numericSku }] : []),
+      { part: { equals: query, mode: "insensitive" } },
+      ...(numericSku && Number.isSafeInteger(numericSku)
+        ? [{ barcodes: { contains: query, mode: "insensitive" as const } }]
+        : []),
+    ],
+  };
 
-  const [exact, candidates] = await Promise.all([
+  const [total, exact] = await Promise.all([
+    prisma.product.count({ where: generalWhere }),
     prisma.product.findMany({
-      where: exactWhere,
+      where: { AND: [generalWhere, exactMatchWhere] },
       select: b2bAssistantProductSelect,
-      take: Math.max(10, limit),
-    }),
-    prisma.product.findMany({
-      where: generalWhere,
-      select: b2bAssistantProductSelect,
-      orderBy: [{ isAvailable: "desc" }, { hasImage: "desc" }, { updatedAt: "desc" }],
-      take: Math.max(40, limit * 8),
+      take: 25,
     }),
   ]);
 
-  const unique = new Map<string, B2bAssistantProduct>();
-  for (const product of [...exact, ...candidates]) unique.set(product.id, product);
+  const rankedExact = exact.sort(
+    (left, right) => rankB2bSearchProduct(right, query) - rankB2bSearchProduct(left, query),
+  );
+  const products: B2bAssistantProduct[] = [];
+  if (safeOffset < rankedExact.length) {
+    products.push(...rankedExact.slice(safeOffset, safeOffset + pageSize));
+  }
 
-  return [...unique.values()]
-    .sort((left, right) => rankB2bSearchProduct(right, query) - rankB2bSearchProduct(left, query))
-    .slice(0, Math.max(1, Math.min(limit, 10)));
+  const remaining = pageSize - products.length;
+  if (remaining > 0) {
+    const generalSkip = Math.max(0, safeOffset - rankedExact.length);
+    const generalProducts = await prisma.product.findMany({
+      where: {
+        AND: [
+          generalWhere,
+          ...(rankedExact.length > 0 ? [{ id: { notIn: rankedExact.map((product) => product.id) } }] : []),
+        ],
+      },
+      select: b2bAssistantProductSelect,
+      orderBy: [
+        { isAvailable: "desc" },
+        { hasImage: "desc" },
+        { updatedAt: "desc" },
+        { sku: "asc" },
+      ],
+      skip: generalSkip,
+      take: remaining,
+    });
+    products.push(...generalProducts);
+  }
+
+  return {
+    query,
+    products,
+    total,
+    offset: safeOffset,
+    hasMore: safeOffset + products.length < total,
+  };
+}
+
+export async function searchB2bProducts(rawQuery: string, limit = 5): Promise<B2bAssistantProduct[]> {
+  return (await searchB2bProductPage(rawQuery, { limit })).products;
 }

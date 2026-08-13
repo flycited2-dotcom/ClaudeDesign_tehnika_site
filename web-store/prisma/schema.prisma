@@ -308,6 +308,19 @@ model TelegramClientOffer {
   @@index([expiresAt])
 }
 
+/// Short-lived catalog query used by Telegram pagination callbacks. Keeping
+/// the query server-side avoids callback_data length limits and stale buttons.
+model TelegramSearchSession {
+  code              String   @id @db.VarChar(8)
+  query             String   @db.VarChar(500)
+  telegramUserId    String
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+
+  @@index([telegramUserId, expiresAt])
+  @@index([expiresAt])
+}
+
 enum LeadType {
   CALLBACK     @map("callback")
   QUOTE        @map("quote")
