@@ -16,12 +16,14 @@
     "sync:categories": "tsx scripts/sync-categories.ts",
     "sync:products": "tsx scripts/sync-products.ts",
     "sync:prices": "tsx scripts/sync-prices.ts",
+    "monitor:stock": "tsx scripts/monitor-stock.ts",
     "sync:images": "tsx scripts/sync-images.ts",
     "sync:attributes": "tsx scripts/sync-product-attributes.ts",
     "audit:electrical": "tsx scripts/audit-electrical-false-positives.ts",
     "audit:catalog": "tsx scripts/catalog-audit-report.ts"
   },
   "dependencies": {
+    "@next/env": "16.2.4",
     "@prisma/client": "^6.19.3",
     "@types/nodemailer": "^8.0.0",
     "clsx": "^2.1.1",
