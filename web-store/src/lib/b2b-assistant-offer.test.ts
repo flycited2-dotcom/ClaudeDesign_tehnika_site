@@ -2,12 +2,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   buildMarkupCallback,
   buildCustomMarkupCallback,
+  buildShortClientOfferCode,
   calculateClientPrice,
   createClientOfferQuery,
   parseClientOfferQuery,
   parseMarkupCallback,
   parseCustomMarkupCallback,
   parseCustomMarkupPercent,
+  isShortClientOfferQuery,
 } from "@/lib/b2b-assistant-offer";
 
 const secret = "test-secret-with-at-least-thirty-two-characters";
@@ -36,6 +38,16 @@ describe("B2B assistant client offers", () => {
     expect(parseCustomMarkupCallback(callback)).toBe(10_539_750);
     expect(parseCustomMarkupPercent("17,5")).toBe(17.5);
     expect(parseCustomMarkupPercent("-5")).toBeNull();
+  });
+
+  it("builds a compact unambiguous inline offer code", () => {
+    const indexes = [0, 1, 2, 3, 4, 5];
+    const code = buildShortClientOfferCode(() => indexes.shift() ?? 0);
+
+    expect(code).toBe("234567");
+    expect(isShortClientOfferQuery(code)).toBe(true);
+    expect(isShortClientOfferQuery("O0I1LZ")).toBe(false);
+    expect(isShortClientOfferQuery("offer_signed")).toBe(false);
   });
 
   it("signs an inline offer without exposing the supplier price", () => {

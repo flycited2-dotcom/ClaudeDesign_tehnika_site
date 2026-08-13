@@ -294,6 +294,20 @@ model SupplierOrderAttempt {
   @@index([status, createdAt])
 }
 
+/// Short-lived client price prepared by an allowed Telegram manager. The
+/// random code is shown in inline mode; it contains no SKU, price or secrets.
+model TelegramClientOffer {
+  code              String   @id @db.VarChar(8)
+  sku               Int
+  priceCents        Int
+  telegramUserId    String
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+
+  @@index([telegramUserId, expiresAt])
+  @@index([expiresAt])
+}
+
 enum LeadType {
   CALLBACK     @map("callback")
   QUOTE        @map("quote")

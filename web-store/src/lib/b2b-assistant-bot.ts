@@ -20,6 +20,7 @@ import {
   parseClientOfferQuery,
   parseMarkupCallback,
 } from "@/lib/b2b-assistant-offer";
+import { createShortClientOffer, resolveShortClientOffer } from "@/lib/b2b-assistant-offer-store";
 import {
   findB2bProductBySku,
   searchB2bProducts,
@@ -182,7 +183,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
       );
       return;
     }
-    await sendClientOffer(message.chat.id, customMarkupSku, markupPercent);
+    await sendClientOffer(message.chat.id, customMarkupSku, markupPercent, message.from.id);
     return;
   }
   await handleSearch(message.chat.id, text);
@@ -195,16 +196,24 @@ function parseCustomMarkupPrompt(value: string | undefined): number | null {
   return Number.isSafeInteger(sku) && sku > 0 ? sku : null;
 }
 
-async function sendClientOffer(chatId: number, sku: number, markupPercent: number): Promise<number> {
+async function sendClientOffer(
+  chatId: number,
+  sku: number,
+  markupPercent: number,
+  telegramUserId: number,
+): Promise<number> {
   const product = await findB2bProductBySku(sku);
   const supplierPrice = Number(product?.supplierPrice?.toString() ?? 0);
   if (!product || !Number.isFinite(supplierPrice) || supplierPrice <= 0) {
     throw new Error("Для товара нет актуальной цены.");
   }
   const clientPrice = calculateClientPrice(supplierPrice, markupPercent, b2bAssistantRoundingStep());
-  const shareQuery = createClientOfferQuery({ sku: product.sku, price: clientPrice });
-  const parsed = parseClientOfferQuery(shareQuery);
-  const validUntil = parsed.offer ? new Date(parsed.offer.expiresAt * 1000) : undefined;
+  const stored = await createShortClientOffer({
+    sku: product.sku,
+    price: clientPrice,
+    telegramUserId,
+  });
+  const validUntil = new Date(stored.offer.expiresAt * 1000);
   await sendCard(
     chatId,
     buildClientProductCard({
@@ -212,7 +221,7 @@ async function sendClientOffer(chatId: number, sku: number, markupPercent: numbe
       clientPrice,
       imageUrl: absoluteUrl(productImageSrc(product.images[0])),
       validUntil,
-      shareQuery,
+      shareQuery: stored.code,
     }),
   );
   await sendB2bTelegramMessage(
@@ -238,7 +247,7 @@ async function handleMarkup(query: TelegramCallbackQuery): Promise<void> {
     return;
   }
   await answerB2bCallbackQuery(query.id, "Формирую карточку клиента…");
-  await sendClientOffer(query.message.chat.id, markup.sku, markup.markupPercent);
+  await sendClientOffer(query.message.chat.id, markup.sku, markup.markupPercent, query.from.id);
 }
 
 async function handleCustomMarkup(query: TelegramCallbackQuery, sku: number): Promise<void> {
@@ -309,11 +318,28 @@ async function handleInlineQuery(query: TelegramInlineQuery): Promise<void> {
     return;
   }
 
-  const parsedOffer = parseClientOfferQuery(query.query.trim());
+  const inlineText = query.query.trim();
+  const storedOffer = await resolveShortClientOffer(inlineText, query.from.id);
+  if (storedOffer.matched) {
+    const product = storedOffer.offer ? await findB2bProductBySku(storedOffer.offer.sku) : null;
+    const results = product && storedOffer.offer
+      ? [inlineArticle(product, storedOffer.offer.priceCents / 100, inlineText, storedOffer.offer.expiresAt)]
+      : [];
+    await b2bTelegramApi<true>("answerInlineQuery", {
+      inline_query_id: query.id,
+      results,
+      cache_time: 1,
+      is_personal: true,
+    });
+    return;
+  }
+
+  // Compatibility for client cards created before short server-side codes.
+  const parsedOffer = parseClientOfferQuery(inlineText);
   if (parsedOffer.offer) {
     const product = await findB2bProductBySku(parsedOffer.offer.sku);
     const results = product
-      ? [inlineArticle(product, parsedOffer.offer.priceCents / 100, query.query.trim(), parsedOffer.offer.expiresAt)]
+      ? [inlineArticle(product, parsedOffer.offer.priceCents / 100, inlineText, parsedOffer.offer.expiresAt)]
       : [];
     await b2bTelegramApi<true>("answerInlineQuery", {
       inline_query_id: query.id,
