@@ -31,6 +31,7 @@ import {
   b2bTelegramApi,
   delayB2bTelegram,
   sendB2bTelegramMessage,
+  sendB2bTelegramPhoto,
   type TelegramCallbackQuery,
   type TelegramInlineQuery,
   type TelegramMessage,
@@ -70,15 +71,18 @@ function inlineKeyboard(rows: B2bAssistantCard["buttonRows"]): Record<string, un
 
 async function sendCard(chatId: number, card: B2bAssistantCard): Promise<void> {
   if (card.imageUrl && card.text.length <= 1_024) {
-    await b2bTelegramApi("sendPhoto", {
-      chat_id: chatId,
-      photo: card.imageUrl,
-      caption: card.text,
-      parse_mode: "HTML",
-      show_caption_above_media: true,
-      ...(card.buttonRows ? { reply_markup: inlineKeyboard(card.buttonRows) } : {}),
-    });
-    return;
+    try {
+      await sendB2bTelegramPhoto({
+        chatId,
+        imageUrl: card.imageUrl,
+        caption: card.text,
+        replyMarkup: card.buttonRows ? inlineKeyboard(card.buttonRows) : undefined,
+      });
+      return;
+    } catch (error) {
+      // A broken/unsupported supplier image must never suppress search results.
+      console.warn("B2B assistant photo fallback", error instanceof Error ? error.message : error);
+    }
   }
   await sendB2bTelegramMessage(chatId, card.text, {
     ...(card.buttonRows ? { reply_markup: inlineKeyboard(card.buttonRows) } : {}),
@@ -278,27 +282,14 @@ function inlineArticle(product: B2bAssistantProduct, clientPrice: number, offerQ
     clientPrice,
     validUntil: new Date(expiresAt * 1000),
   });
-  const imageUrl = absoluteUrl(productImageSrc(product.images[0]));
   const shared = {
     id: offerQuery.slice(0, 64),
     title: product.name || product.supplierName,
     description: `${clientPrice.toLocaleString("ru-RU")} ₽ · ${product.isAvailable ? "в наличии" : "наличие уточняется"}`,
   };
-  if (imageUrl && card.text.length <= 1_024) {
-    return {
-      type: "photo",
-      ...shared,
-      photo_url: imageUrl,
-      thumbnail_url: imageUrl,
-      caption: card.text,
-      parse_mode: "HTML",
-      show_caption_above_media: true,
-    };
-  }
   return {
     type: "article",
     ...shared,
-    thumbnail_url: imageUrl,
     input_message_content: {
       message_text: card.text,
       parse_mode: "HTML",
