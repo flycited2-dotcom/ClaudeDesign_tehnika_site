@@ -49,6 +49,17 @@ type TelegramApiResponse<T> = {
   description?: string;
 };
 
+function parseTelegramApiResponse<T>(
+  method: string,
+  response: Response,
+  json: TelegramApiResponse<T>,
+): T {
+  if (!response.ok || !json.ok || json.result === undefined) {
+    throw new Error(`Telegram ${method}: ${json.description || `HTTP ${response.status}`}`);
+  }
+  return json.result;
+}
+
 export async function b2bTelegramApi<T>(
   method: string,
   payload: Record<string, unknown>,
@@ -66,13 +77,54 @@ export async function b2bTelegramApi<T>(
       signal: controller.signal,
     });
     const json = (await response.json()) as TelegramApiResponse<T>;
-    if (!response.ok || !json.ok || json.result === undefined) {
-      throw new Error(`Telegram ${method}: ${json.description || `HTTP ${response.status}`}`);
-    }
-    return json.result;
+    return parseTelegramApiResponse(method, response, json);
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener("abort", abort);
+  }
+}
+
+/**
+ * Upload an image through our server instead of asking Telegram to download a
+ * URL. The public image proxy uses chunked WebP responses, which Telegram can
+ * intermittently reject with "failed to get HTTP URL content".
+ */
+export async function sendB2bTelegramPhoto({
+  chatId,
+  imageUrl,
+  caption,
+  replyMarkup,
+}: {
+  chatId: number;
+  imageUrl: string;
+  caption: string;
+  replyMarkup?: Record<string, unknown>;
+}): Promise<TelegramMessage> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const imageResponse = await fetch(imageUrl, { signal: controller.signal });
+    if (!imageResponse.ok) throw new Error(`Product image: HTTP ${imageResponse.status}`);
+    const contentType = imageResponse.headers.get("content-type")?.split(";", 1)[0] || "image/jpeg";
+    if (!contentType.startsWith("image/")) throw new Error(`Product image has invalid content type: ${contentType}`);
+    const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+    const form = new FormData();
+    form.set("chat_id", String(chatId));
+    form.set("photo", new Blob([await imageResponse.arrayBuffer()], { type: contentType }), `product.${extension}`);
+    form.set("caption", caption);
+    form.set("parse_mode", "HTML");
+    form.set("show_caption_above_media", "true");
+    if (replyMarkup) form.set("reply_markup", JSON.stringify(replyMarkup));
+
+    const response = await fetch(`https://api.telegram.org/bot${b2bAssistantToken()}/sendPhoto`, {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+    });
+    const json = (await response.json()) as TelegramApiResponse<TelegramMessage>;
+    return parseTelegramApiResponse("sendPhoto", response, json);
+  } finally {
+    clearTimeout(timer);
   }
 }
 
