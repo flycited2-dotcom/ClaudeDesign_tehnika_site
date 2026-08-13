@@ -1,0 +1,25 @@
+[Unit]
+Description=Climat Simf mobile B2B Telegram assistant
+Wants=network-online.target
+After=network-online.target postgresql.service
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/climat-simf.ru
+Environment=NODE_ENV=production
+EnvironmentFile=/var/www/climat-simf.ru/.env
+ExecStart=/bin/bash /var/www/climat-simf.ru/scripts/run-b2b-assistant-bot.sh
+Restart=always
+RestartSec=5s
+# Clean restart protects a long-lived polling process from leaked resources.
+RuntimeMaxSec=12h
+TimeoutStopSec=20s
+KillMode=control-group
+StandardOutput=append:/var/log/climat-simf.ru/b2b-assistant.log
+StandardError=append:/var/log/climat-simf.ru/b2b-assistant.log
+
+[Install]
+WantedBy=multi-user.target
