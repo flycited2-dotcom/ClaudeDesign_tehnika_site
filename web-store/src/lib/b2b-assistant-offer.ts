@@ -4,6 +4,8 @@ const OFFER_PREFIX = "offer_";
 const MARKUP_CALLBACK_PREFIX = "b2ba:m:";
 const CUSTOM_MARKUP_CALLBACK_PREFIX = "b2ba:u:";
 const DEFAULT_OFFER_TTL_MINUTES = 24 * 60;
+const SHORT_OFFER_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const SHORT_OFFER_LENGTH = 6;
 
 export type ClientOffer = {
   sku: number;
@@ -39,6 +41,24 @@ function offerTtlMinutes(): number {
     throw new Error("B2B_ASSISTANT_OFFER_TTL_MINUTES должен быть положительным числом.");
   }
   return value;
+}
+
+export function clientOfferExpiresAt(now = new Date()): Date {
+  return new Date(now.getTime() + offerTtlMinutes() * 60_000);
+}
+
+export function isShortClientOfferQuery(value: string): boolean {
+  return new RegExp(`^[${SHORT_OFFER_ALPHABET}]{${SHORT_OFFER_LENGTH}}$`).test(value.trim().toUpperCase());
+}
+
+export function buildShortClientOfferCode(randomIndex: (max: number) => number): string {
+  return Array.from({ length: SHORT_OFFER_LENGTH }, () => {
+    const index = randomIndex(SHORT_OFFER_ALPHABET.length);
+    if (!Number.isSafeInteger(index) || index < 0 || index >= SHORT_OFFER_ALPHABET.length) {
+      throw new Error("Генератор короткого кода вернул некорректное значение.");
+    }
+    return SHORT_OFFER_ALPHABET[index];
+  }).join("");
 }
 
 export function calculateClientPrice(
@@ -114,7 +134,7 @@ export function createClientOfferQuery({
   if (!Number.isSafeInteger(sku) || sku <= 0 || !Number.isSafeInteger(priceCents) || priceCents <= 0) {
     throw new Error("Некорректные данные клиентского предложения.");
   }
-  const expiresAt = Math.floor((now.getTime() + offerTtlMinutes() * 60_000) / 1000);
+  const expiresAt = Math.floor(clientOfferExpiresAt(now).getTime() / 1000);
   const payload = [toBase36(sku), toBase36(priceCents), toBase36(expiresAt)].join(".");
   return `${OFFER_PREFIX}${payload}.${signature(payload, secret)}`;
 }
