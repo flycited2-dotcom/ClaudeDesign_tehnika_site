@@ -8,8 +8,16 @@ export type ItpRpcRequest = {
   data?: unknown;
   filter?: Array<{
     property: string;
-    operator?: "=" | "IN";
+    operator?: "=" | "IN" | ">" | "<" | ">=" | "<=" | "!=";
     value?: unknown;
+  }>;
+  pager?: {
+    limit: number;
+    start: number;
+  };
+  sort?: Array<{
+    direction: "ASC" | "DESC";
+    property: string;
   }>;
 };
 
@@ -47,7 +55,9 @@ export type ItpProduct = {
 export type ItpActiveProduct = {
   price: number;
   qty: "*" | "**" | "***" | "0" | string;
+  real_qty?: number;
   nearest_logistic_center_qty?: "*" | "**" | "***" | "0" | string;
+  nearest_logistic_center_real_qty?: number;
   sku: number;
   delivery_days?: number;
   multiplicity?: number;

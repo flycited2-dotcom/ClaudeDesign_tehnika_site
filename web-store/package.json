@@ -17,6 +17,7 @@
     "sync:products": "tsx scripts/sync-products.ts",
     "sync:prices": "tsx scripts/sync-prices.ts",
     "monitor:stock": "tsx scripts/monitor-stock.ts",
+    "bot:stock-orders": "tsx scripts/stock-order-bot.ts",
     "sync:images": "tsx scripts/sync-images.ts",
     "sync:attributes": "tsx scripts/sync-product-attributes.ts",
     "audit:electrical": "tsx scripts/audit-electrical-false-positives.ts",

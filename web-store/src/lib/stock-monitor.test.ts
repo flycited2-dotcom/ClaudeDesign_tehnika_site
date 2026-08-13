@@ -77,7 +77,8 @@ describe("stock monitor", () => {
     expect(messages[1].text).not.toContain("Открыть B2B");
     expect(messages[1].text).toContain("<b>SKU:</b> <code>123</code>");
     expect(messages[1].buttonRows).toEqual([
-      [{ text: "🛒 Заказать в B2B", url: "https://b2b.example.test" }],
+      [{ text: "🛒 Заказать", callback_data: "itpo:s:123" }],
+      [{ text: "🌐 Открыть B2B", url: "https://b2b.example.test" }],
       [
         {
           text: "📦 Карточка товара",
@@ -110,7 +111,7 @@ describe("stock monitor", () => {
     expect(card.text).toContain("🏭 <b>Ваш склад:</b> 🟢 мало");
     expect(card.text).not.toContain("Ближайший РЦ");
     expect(card.text).toContain("📝 <b>Описание:</b>\n1000ВА");
-    expect(card.buttonRows).toBeUndefined();
+    expect(card.buttonRows).toEqual([[{ text: "🛒 Заказать", callback_data: "itpo:s:10940837" }]]);
   });
 
   it("extracts the original supplier specification for the card description", () => {
