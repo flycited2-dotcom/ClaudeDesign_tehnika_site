@@ -16,12 +16,20 @@ export type MonitoredStock = StockMonitorProduct & {
   nearestQty?: string;
   available: boolean;
   isRestock: boolean;
+  orderUrl?: string;
 };
 
-export type StockAlertButton = {
-  text: string;
-  url: string;
-};
+export type StockAlertButton =
+  | {
+      text: string;
+      url: string;
+      callback_data?: never;
+    }
+  | {
+      text: string;
+      callback_data: string;
+      url?: never;
+    };
 
 export type StockAlertTelegramMessage = {
   text: string;
@@ -181,9 +189,13 @@ export function buildStockProductCard({
 
   const buttonRows: StockAlertButton[][] = [];
 
-  if (b2bUrl) {
-    buttonRows.push([{ text: "🛒 Заказать в B2B", url: b2bUrl }]);
-  }
+  buttonRows.push([
+    item.orderUrl
+      ? { text: "🛒 Заказать", url: item.orderUrl }
+      : { text: "🛒 Заказать", callback_data: `itpo:s:${item.sku}` },
+  ]);
+
+  if (b2bUrl) buttonRows.push([{ text: "🌐 Открыть B2B", url: b2bUrl }]);
 
   if (siteUrl && item.slug) {
     const productUrl = `${siteUrl.replace(/\/$/, "")}/product/${encodeURIComponent(item.slug)}`;

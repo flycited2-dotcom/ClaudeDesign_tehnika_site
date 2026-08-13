@@ -19,6 +19,7 @@ import {
   type StockMonitorProduct,
 } from "@/lib/stock-monitor";
 import { clampTelegramText, escapeTelegramHtml } from "@/lib/telegram";
+import { buildStockOrderLink } from "@/lib/stock-order-link";
 
 const MAX_MATCHED_PRODUCTS = 500;
 const DEFAULT_ERROR_REPEAT_MINUTES = 60;
@@ -253,6 +254,8 @@ export async function runStockMonitor({
     const watchedProducts = await resolveWatchedProducts(skus, patterns);
     const activeProducts = await fetchActiveProducts();
     const activeBySku = new Map(activeProducts.map((product) => [product.sku, product]));
+    const siteUrl = process.env.SITE_URL;
+    const orderLinksEnabled = Boolean(siteUrl && process.env.STOCK_ORDER_LINK_SECRET);
     const monitored: MonitoredStock[] = watchedProducts.map((product) => {
       const active = activeBySku.get(product.sku);
       const previous = state.items[String(product.sku)];
@@ -264,6 +267,7 @@ export async function runStockMonitor({
         nearestQty: active?.nearest_logistic_center_qty,
         available,
         isRestock: available && previous?.available !== true,
+        orderUrl: orderLinksEnabled ? buildStockOrderLink({ sku: product.sku, siteUrl: siteUrl!, now }) : undefined,
       };
     });
     const due = monitored.filter((item) => {
@@ -300,7 +304,7 @@ export async function runStockMonitor({
           items: alertItems,
           checkedAt: now,
           b2bUrl: process.env.STOCK_MONITOR_B2B_URL ?? process.env.ITP_API_BASE_URL,
-          siteUrl: process.env.SITE_URL,
+          siteUrl,
         }),
       );
       if (!result.delivered) {
