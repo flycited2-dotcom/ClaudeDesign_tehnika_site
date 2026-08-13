@@ -22,7 +22,14 @@ import {
 } from "@/lib/b2b-assistant-offer";
 import { createShortClientOffer, resolveShortClientOffer } from "@/lib/b2b-assistant-offer-store";
 import {
+  buildSearchPageCallback,
+  createSearchSession,
+  parseSearchPageCallback,
+  resolveSearchSession,
+} from "@/lib/b2b-assistant-pagination";
+import {
   findB2bProductBySku,
+  searchB2bProductPage,
   searchB2bProducts,
   type B2bAssistantProduct,
 } from "@/lib/b2b-assistant-search";
@@ -115,37 +122,78 @@ async function sendWelcome(chatId: number): Promise<void> {
   );
 }
 
-async function handleSearch(chatId: number, query: string): Promise<void> {
-  const products = await searchB2bProducts(query, b2bAssistantSearchLimit());
-  if (products.length === 0) {
+async function sendSearchPage({
+  chatId,
+  telegramUserId,
+  query,
+  offset = 0,
+  sessionCode,
+}: {
+  chatId: number;
+  telegramUserId: number;
+  query: string;
+  offset?: number;
+  sessionCode?: string;
+}): Promise<void> {
+  const pageSize = b2bAssistantSearchLimit();
+  const page = await searchB2bProductPage(query, { limit: pageSize, offset });
+  if (page.products.length === 0) {
     await sendB2bTelegramMessage(
       chatId,
-      [
-        `🔍 По запросу <b>${escapeTelegramHtml(query)}</b> ничего не найдено.`,
-        "Попробуйте сократить запрос до бренда и модели или пришлите точный артикул/SKU.",
-      ].join("\n"),
+      offset === 0
+        ? [
+            `🔍 По запросу <b>${escapeTelegramHtml(query)}</b> ничего не найдено.`,
+            "Попробуйте сократить запрос до бренда и модели или пришлите точный артикул/SKU.",
+          ].join("\n")
+        : "ℹ️ Больше товаров по этому запросу нет.",
     );
     return;
   }
 
+  const rangeStart = page.offset + 1;
+  const rangeEnd = page.offset + page.products.length;
   await sendB2bTelegramMessage(
     chatId,
-    `🔎 По запросу <b>${escapeTelegramHtml(query)}</b> найдено: <b>${products.length}</b>`,
+    [
+      offset === 0 ? `🔎 По запросу <b>${escapeTelegramHtml(query)}</b>` : "🔎 <b>Следующая страница</b>",
+      `Найдено товаров: <b>${page.total}</b>`,
+      `Показано: <b>${rangeStart}–${rangeEnd}</b>`,
+    ].join("\n"),
   );
   const presets = b2bAssistantMarkupPresets();
-  for (const [index, product] of products.entries()) {
+  for (const [index, product] of page.products.entries()) {
     await sendCard(
       chatId,
       buildManagerProductCard({
         product,
-        position: index + 1,
-        total: products.length,
+        position: page.offset + index + 1,
+        total: page.total,
         markupPresets: presets,
         orderUrl: orderUrl(product),
         productUrl: productUrl(product),
         imageUrl: absoluteUrl(productImageSrc(product.images[0])),
       }),
     );
+  }
+
+  if (page.hasMore) {
+    const code = sessionCode ?? await createSearchSession({ query, telegramUserId });
+    const nextOffset = page.offset + page.products.length;
+    const nextEnd = Math.min(nextOffset + pageSize, page.total);
+    await sendB2bTelegramMessage(
+      chatId,
+      `Показано <b>${rangeStart}–${rangeEnd}</b> из <b>${page.total}</b>.`,
+      {
+        reply_markup: {
+          inline_keyboard: [[{
+            text: `➡️ Показать ещё ${nextOffset + 1}–${nextEnd}`,
+            callback_data: buildSearchPageCallback(code, nextOffset),
+          }]],
+        },
+      },
+    );
+  } else if (offset > 0) {
+    await sendB2bTelegramMessage(chatId, `✅ Показаны все <b>${page.total}</b> товаров.`);
   }
 }
 
@@ -186,7 +234,7 @@ async function handleMessage(message: TelegramMessage): Promise<void> {
     await sendClientOffer(message.chat.id, customMarkupSku, markupPercent, message.from.id);
     return;
   }
-  await handleSearch(message.chat.id, text);
+  await sendSearchPage({ chatId: message.chat.id, telegramUserId: message.from.id, query: text });
 }
 
 function parseCustomMarkupPrompt(value: string | undefined): number | null {
@@ -278,7 +326,46 @@ async function handleCustomMarkup(query: TelegramCallbackQuery, sku: number): Pr
   );
 }
 
+async function handleSearchPage(query: TelegramCallbackQuery): Promise<void> {
+  if (!query.message || query.message.chat.type !== "private") {
+    await answerB2bCallbackQuery(query.id, "Откройте личный чат с ботом.", true);
+    return;
+  }
+  if (!userIsAllowed(query.from.id)) {
+    await answerB2bCallbackQuery(query.id, "У вас нет доступа.", true);
+    return;
+  }
+  const pagination = parseSearchPageCallback(query.data);
+  if (!pagination) {
+    await answerB2bCallbackQuery(query.id, "Кнопка устарела.", true);
+    return;
+  }
+  const session = await resolveSearchSession(pagination.code, query.from.id);
+  if (!session.query) {
+    const message = session.reason === "expired"
+      ? "Поиск устарел. Отправьте запрос боту ещё раз."
+      : "Поисковая сессия недоступна.";
+    await answerB2bCallbackQuery(query.id, message, true);
+    return;
+  }
+
+  await answerB2bCallbackQuery(query.id, "Загружаю следующие товары…");
+  await sendSearchPage({
+    chatId: query.message.chat.id,
+    telegramUserId: query.from.id,
+    query: session.query,
+    offset: pagination.offset,
+    sessionCode: pagination.code,
+  });
+  await b2bTelegramApi("editMessageReplyMarkup", {
+    chat_id: query.message.chat.id,
+    message_id: query.message.message_id,
+    reply_markup: { inline_keyboard: [] },
+  }).catch(() => undefined);
+}
+
 async function handleCallbackQuery(query: TelegramCallbackQuery): Promise<void> {
+  if (parseSearchPageCallback(query.data)) return handleSearchPage(query);
   const customSku = parseCustomMarkupCallback(query.data);
   if (customSku) return handleCustomMarkup(query, customSku);
   if (parseMarkupCallback(query.data)) return handleMarkup(query);
