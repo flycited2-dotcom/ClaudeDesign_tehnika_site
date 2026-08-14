@@ -9,11 +9,12 @@ import {
   buildOutOfStockMessage,
   buildStockAlertMessages,
   buildStockStatusMessage,
-  DEFAULT_STOCK_ALERT_REPEAT_MINUTES,
+  buildStockUnchangedMessage,
+  DEFAULT_STOCK_STATUS_REPEAT_MINUTES,
   type MonitoredStock,
   parseWatchedPatterns,
   parseWatchedSkus,
-  stockNotificationIsDue,
+  stockSnapshotHasChanged,
   type StockAlertButton,
   type StockAlertTelegramMessage,
   type StockMonitorProduct,
@@ -27,14 +28,18 @@ const DEFAULT_ERROR_REPEAT_MINUTES = 60;
 type StockItemState = {
   available: boolean;
   lastNotifiedAt?: string;
+  price?: number;
   qty?: string;
+  realQty?: number;
   nearestQty?: string;
+  nearestRealQty?: number;
 };
 
 type StockMonitorState = {
   version: 1;
   lastSuccessAt?: string;
   lastErrorNotifiedAt?: string;
+  lastStatusNotifiedAt?: string;
   items: Record<string, StockItemState>;
 };
 
@@ -147,13 +152,17 @@ async function resolveWatchedProducts(skus: number[], patterns: string[]) {
   return [...bySku.values()];
 }
 
-async function fetchActiveProducts(): Promise<ItpActiveProduct[]> {
+async function fetchActiveProducts(skus: number[]): Promise<ItpActiveProduct[]> {
   const response = await itpRpc<ActiveProductsResponse>({
     request: {
       method: "get_active_products",
       model: "client_api",
       module: "platform",
     },
+    // The unfiltered endpoint returns the supplier's entire active catalog and
+    // can take minutes or hang. One filtered request keeps all watched SKUs on
+    // the same supplier snapshot without making one request per item.
+    filter: [{ property: "sku", operator: "IN", value: skus }],
   });
 
   if (!response.success || !response.data) {
@@ -218,6 +227,18 @@ function errorNotificationIsDue(state: StockMonitorState, now: Date): boolean {
   return now.getTime() - lastTime >= repeatMinutes * 60_000;
 }
 
+function statusNotificationIsDue(state: StockMonitorState, now: Date): boolean {
+  if (!state.lastStatusNotifiedAt) return true;
+  const lastTime = Date.parse(state.lastStatusNotifiedAt);
+  if (!Number.isFinite(lastTime)) return true;
+  const repeatMinutes = positiveNumber(
+    process.env.STOCK_MONITOR_STATUS_REPEAT_MINUTES,
+    DEFAULT_STOCK_STATUS_REPEAT_MINUTES,
+    "STOCK_MONITOR_STATUS_REPEAT_MINUTES",
+  );
+  return now.getTime() - lastTime >= repeatMinutes * 60_000;
+}
+
 async function reportMonitorError(error: unknown, state: StockMonitorState, statePath: string, now: Date) {
   if (!errorNotificationIsDue(state, now)) return;
   const message = error instanceof Error ? error.message : String(error);
@@ -246,13 +267,8 @@ export async function runStockMonitor({
   try {
     const skus = parseWatchedSkus(process.env.STOCK_MONITOR_SKUS);
     const patterns = parseWatchedPatterns(process.env.STOCK_MONITOR_PATTERNS);
-    const repeatMinutes = positiveNumber(
-      process.env.STOCK_MONITOR_REPEAT_MINUTES,
-      DEFAULT_STOCK_ALERT_REPEAT_MINUTES,
-      "STOCK_MONITOR_REPEAT_MINUTES",
-    );
     const watchedProducts = await resolveWatchedProducts(skus, patterns);
-    const activeProducts = await fetchActiveProducts();
+    const activeProducts = await fetchActiveProducts(watchedProducts.map((product) => product.sku));
     const activeBySku = new Map(activeProducts.map((product) => [product.sku, product]));
     const siteUrl = process.env.SITE_URL;
     const orderLinksEnabled = Boolean(siteUrl && process.env.STOCK_ORDER_LINK_SECRET);
@@ -264,22 +280,19 @@ export async function runStockMonitor({
         ...product,
         price: active?.price,
         qty: active?.qty,
+        realQty: active?.real_qty,
         nearestQty: active?.nearest_logistic_center_qty,
+        nearestRealQty: active?.nearest_logistic_center_real_qty,
         available,
         isRestock: available && previous?.available !== true,
         orderUrl: orderLinksEnabled ? buildStockOrderLink({ sku: product.sku, siteUrl: siteUrl!, now }) : undefined,
       };
     });
-    const due = monitored.filter((item) => {
+    const changed = monitored.filter((item) => {
       const previous = state.items[String(item.sku)];
-      return stockNotificationIsDue({
-        available: item.available,
-        previouslyAvailable: previous?.available,
-        lastNotifiedAt: previous?.lastNotifiedAt,
-        now,
-        repeatMinutes,
-      });
+      return stockSnapshotHasChanged(item, previous);
     });
+    const due = changed.filter((item) => item.available);
     const becameUnavailable = monitored.filter(
       (item) => !item.available && state.items[String(item.sku)]?.available === true,
     );
@@ -289,8 +302,11 @@ export async function runStockMonitor({
       state.items[key] = {
         ...state.items[key],
         available: item.available,
+        price: item.price,
         qty: item.qty,
+        realQty: item.realQty,
         nearestQty: item.nearestQty,
+        nearestRealQty: item.nearestRealQty,
       };
     }
 
@@ -315,13 +331,21 @@ export async function runStockMonitor({
 
     if (
       becameUnavailable.length > 0 &&
-      process.env.STOCK_MONITOR_NOTIFY_OUT_OF_STOCK === "true" &&
+      process.env.STOCK_MONITOR_NOTIFY_OUT_OF_STOCK !== "false" &&
       !dryRun
     ) {
       const result = await sendStockMonitorTelegramMessage(buildOutOfStockMessage(becameUnavailable, now));
       if (!result.delivered) {
         throw new Error("Telegram не принял уведомление об окончании остатков.");
       }
+    }
+
+    if (!testMode && changed.length === 0 && statusNotificationIsDue(state, now) && !dryRun) {
+      const result = await sendStockMonitorTelegramMessage(buildStockUnchangedMessage({ items: monitored, checkedAt: now }));
+      if (!result.delivered) {
+        throw new Error("Telegram не принял краткий статус актуальности остатков.");
+      }
+      state.lastStatusNotifiedAt = now.toISOString();
     }
 
     if (testMode && alertItems.length === 0 && !dryRun) {
@@ -341,6 +365,7 @@ export async function runStockMonitor({
       checked: monitored.length,
       available: monitored.filter((item) => item.available).length,
       notified: alertItems.length,
+      changed: changed.length,
       testMode,
       dryRun,
       availableSkus: monitored.filter((item) => item.available).map((item) => item.sku),

@@ -55,4 +55,13 @@ describe("B2B assistant cards", () => {
     expect(card.text).not.toContain("10539750");
     expect(card.buttonRows?.[0]?.[0]?.switch_inline_query).toBe("offer_signed");
   });
+
+  it("hides a supplier warranty value of zero instead of promising a made-up term", () => {
+    const card = buildClientProductCard({
+      product: { ...product, warranty: "0" },
+      clientPrice: 15_300,
+    });
+
+    expect(card.text).not.toContain("Гарантия");
+  });
 });

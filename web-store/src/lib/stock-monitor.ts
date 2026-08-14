@@ -1,6 +1,7 @@
 import type { ItpActiveProduct } from "@/lib/itp/types";
 
 export const DEFAULT_STOCK_ALERT_REPEAT_MINUTES = 15;
+export const DEFAULT_STOCK_STATUS_REPEAT_MINUTES = 60;
 
 export type StockMonitorProduct = {
   sku: number;
@@ -13,11 +14,18 @@ export type StockMonitorProduct = {
 export type MonitoredStock = StockMonitorProduct & {
   price?: number;
   qty?: string;
+  realQty?: number;
   nearestQty?: string;
+  nearestRealQty?: number;
   available: boolean;
   isRestock: boolean;
   orderUrl?: string;
 };
+
+export type StockSnapshot = Pick<
+  MonitoredStock,
+  "available" | "price" | "qty" | "realQty" | "nearestQty" | "nearestRealQty"
+>;
 
 export type StockAlertButton =
   | {
@@ -113,6 +121,24 @@ export function stockNotificationIsDue({
   return now.getTime() - lastNotificationTime >= repeatMinutes * 60_000;
 }
 
+export function stockSnapshotHasChanged(
+  current: StockSnapshot,
+  previous: Partial<StockSnapshot> | undefined,
+): boolean {
+  if (!previous) return true;
+  return (
+    current.available !== previous.available ||
+    current.qty !== previous.qty ||
+    current.nearestQty !== previous.nearestQty ||
+    // Older state files do not have exact quantity and price fields. Treat
+    // those missing fields as an unknown baseline, persist today's values and
+    // start comparing them on the following run without a one-off false alert.
+    (previous.price !== undefined && current.price !== previous.price) ||
+    (previous.realQty !== undefined && current.realQty !== previous.realQty) ||
+    (previous.nearestRealQty !== undefined && current.nearestRealQty !== previous.nearestRealQty)
+  );
+}
+
 function escapeTelegramHtml(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -148,11 +174,16 @@ function stockCardQty(value: string | null | undefined): string {
   return label === "нет" ? `⚪ ${label}` : `🟢 ${label}`;
 }
 
+function stockCardQuantity(value: string | null | undefined, realValue: number | undefined): string {
+  if (Number.isFinite(realValue) && realValue! > 0) return `🟢 ${realValue} шт.`;
+  return stockCardQty(value);
+}
+
 export function buildStockAlertHeader(items: MonitoredStock[], checkedAt: Date): string {
   const hasRestock = items.some((item) => item.isRestock);
   const header = hasRestock
     ? "🚨 <b>ВАЖНО: ПОСТУПИЛИ СТАБИЛИЗАТОРЫ</b>"
-    : "🔁 <b>СТАБИЛИЗАТОРЫ ЕЩЁ В НАЛИЧИИ</b>";
+    : "🔄 <b>ИЗМЕНИЛИСЬ ОСТАТКИ ИЛИ ЦЕНЫ</b>";
 
   return [
     header,
@@ -182,7 +213,7 @@ export function buildStockProductCard({
     item.part ? `🏷 <b>Артикул:</b> <code>${e(item.part)}</code>` : null,
     formatPrice(item.price) ? `💰 <b>Цена поставщика:</b> ${formatPrice(item.price)}` : null,
     "",
-    `🏭 <b>Ваш склад:</b> ${e(stockCardQty(item.qty))}`,
+    `🏭 <b>Ваш склад:</b> ${e(stockCardQuantity(item.qty, item.realQty))}`,
     description ? "" : null,
     description ? `📝 <b>Описание:</b>\n${e(description)}` : null,
   ];
@@ -241,6 +272,21 @@ export function buildStockStatusMessage({
   ];
 
   return lines.join("\n");
+}
+
+export function buildStockUnchangedMessage({
+  items,
+  checkedAt,
+}: {
+  items: MonitoredStock[];
+  checkedAt: Date;
+}): string {
+  const available = items.filter((item) => item.available);
+  return [
+    "✅ <b>Остатки актуальны — изменений нет</b>",
+    `В наличии: <b>${available.length}</b> из <b>${items.length}</b> отслеживаемых моделей.`,
+    `Проверено: ${escapeTelegramHtml(checkedAt.toLocaleString("ru-RU", { timeZone: "Europe/Moscow" }))} МСК`,
+  ].join("\n");
 }
 
 export function buildOutOfStockMessage(items: MonitoredStock[], checkedAt: Date): string {
