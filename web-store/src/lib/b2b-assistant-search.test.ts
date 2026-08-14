@@ -52,4 +52,18 @@ describe("B2B assistant search", () => {
       rankB2bSearchProduct(product({ id: "p2", isAvailable: false }), "ExeGate AVS-8000"),
     );
   });
+
+  it("puts voltage stabilizers above phone gimbals for a bare stabilizer query", () => {
+    const voltage = product();
+    const phoneGimbal = product({
+      id: "p2",
+      sku: 2,
+      supplierName: "Стабилизатор для смартфона с селфи-палкой",
+      category: { name: "Стабилизаторы для телефонов" },
+    });
+
+    expect(rankB2bSearchProduct(voltage, "стабилизатор")).toBeGreaterThan(
+      rankB2bSearchProduct(phoneGimbal, "стабилизатор"),
+    );
+  });
 });

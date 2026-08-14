@@ -1,6 +1,7 @@
 import type { B2bAssistantProduct } from "@/lib/b2b-assistant-search";
 import { buildCustomMarkupCallback, buildMarkupCallback } from "@/lib/b2b-assistant-offer";
 import { formatRub } from "@/lib/format";
+import { warrantyLabel } from "@/lib/product-display";
 import { stockProductDescription } from "@/lib/stock-monitor";
 import { stockLabel } from "@/lib/stock";
 import { escapeTelegramHtml } from "@/lib/telegram";
@@ -140,6 +141,7 @@ export function buildClientProductCard({
 }): B2bAssistantCard {
   const e = escapeTelegramHtml;
   const description = productDescription(product, 450);
+  const warranty = warrantyLabel(product.warranty);
   const buttonRows: B2bAssistantButton[][] = [];
   if (shareQuery) buttonRows.push([{ text: "📤 Отправить клиенту", switch_inline_query: shareQuery }]);
   if (productUrl) buttonRows.push([{ text: "📦 Подробнее о товаре", url: productUrl }]);
@@ -152,7 +154,7 @@ export function buildClientProductCard({
       "━━━━━━━━━━━━━━━━",
       product.isAvailable ? "✅ <b>В наличии</b>" : "⚪ <b>Наличие уточняется</b>",
       product.deliveryDays > 0 ? `🚚 Срок поставки: ${product.deliveryDays} дн.` : null,
-      product.warranty ? `🛡 Гарантия: ${e(product.warranty)}` : null,
+      warranty ? `🛡 Гарантия: ${e(warranty)}` : null,
       `💳 <b>Цена: ${formatRub(clientPrice)}</b>`,
       validUntil ? `🕐 Цена актуальна до ${e(formatMoscowDate(validUntil))} МСК` : null,
       description ? "" : null,

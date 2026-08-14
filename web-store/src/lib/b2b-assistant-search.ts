@@ -42,6 +42,8 @@ export type B2bAssistantSearchPage = {
   hasMore: boolean;
 };
 
+const MAX_RANKED_SEARCH_CANDIDATES = 500;
+
 export function normalizeB2bSearchQuery(rawQuery: string): string | null {
   const normalized = normalizeSearchQuery(rawQuery).replace(/\s+/g, " ").trim();
   if (/^\d+$/.test(normalized)) return normalized;
@@ -77,6 +79,8 @@ export function rankB2bSearchProduct(product: B2bAssistantProduct, query: string
   const barcodes = normalizedValue(product.barcodes);
   const category = normalizedValue(product.category?.name);
   const sku = String(product.sku);
+  const searchableText = [name, supplierName, category].join(" ");
+  const isBareStabilizerQuery = /^(?:стабилизатор|стабилизаторы)$/.test(normalizedQuery);
   let score = 0;
 
   if (sku === normalizedQuery) score += 100_000;
@@ -96,6 +100,19 @@ export function rankB2bSearchProduct(product: B2bAssistantProduct, query: string
     if (category.includes(token)) score += 200;
   }
 
+  // A bare Russian query for a "стабилизатор" is ambiguous: the catalog also
+  // contains phone/camera gimbals. For a B2B electrical catalog, voltage
+  // stabilizers are the useful default, while the other products remain
+  // searchable by their model, brand and more specific wording.
+  if (isBareStabilizerQuery) {
+    if (searchableText.includes("стабилизатор напряжения") || searchableText.includes("напряжен")) {
+      score += 20_000;
+    }
+    if (/(?:смартфон|телефон|селфи|монопод|gimbal|экшн.?камер|видеосъем)/.test(searchableText)) {
+      score -= 20_000;
+    }
+  }
+
   if (product.isAvailable) score += 1_000;
   if (product.supplierPrice) score += 100;
   if (product.images.length > 0) score += 25;
@@ -109,10 +126,10 @@ export async function findB2bProductBySku(sku: number): Promise<B2bAssistantProd
 
 export async function searchB2bProductPage(
   rawQuery: string,
-  { limit = 5, offset = 0 }: { limit?: number; offset?: number } = {},
+  { limit = 20, offset = 0 }: { limit?: number; offset?: number } = {},
 ): Promise<B2bAssistantSearchPage> {
   const query = normalizeB2bSearchQuery(rawQuery);
-  const pageSize = Math.max(1, Math.min(Math.trunc(limit), 10));
+  const pageSize = Math.max(1, Math.min(Math.trunc(limit), 20));
   const safeOffset = Math.max(0, Math.min(Math.trunc(offset), 100_000));
   if (!query) return { query: "", products: [], total: 0, offset: safeOffset, hasMore: false };
   const tokens = buildProductSearchTokens(query);
@@ -150,15 +167,19 @@ export async function searchB2bProductPage(
     products.push(...rankedExact.slice(safeOffset, safeOffset + pageSize));
   }
 
-  const remaining = pageSize - products.length;
-  if (remaining > 0) {
-    const generalSkip = Math.max(0, safeOffset - rankedExact.length);
-    const generalProducts = await prisma.product.findMany({
+  let remaining = pageSize - products.length;
+  const generalSkip = Math.max(0, safeOffset - rankedExact.length);
+  const generalWhereWithoutExact: Prisma.ProductWhereInput = {
+    AND: [
+      generalWhere,
+      ...(rankedExact.length > 0 ? [{ id: { notIn: rankedExact.map((product) => product.id) } }] : []),
+    ],
+  };
+
+  if (remaining > 0 && generalSkip < MAX_RANKED_SEARCH_CANDIDATES) {
+    const candidates = await prisma.product.findMany({
       where: {
-        AND: [
-          generalWhere,
-          ...(rankedExact.length > 0 ? [{ id: { notIn: rankedExact.map((product) => product.id) } }] : []),
-        ],
+        ...generalWhereWithoutExact,
       },
       select: b2bAssistantProductSelect,
       orderBy: [
@@ -167,10 +188,32 @@ export async function searchB2bProductPage(
         { updatedAt: "desc" },
         { sku: "asc" },
       ],
-      skip: generalSkip,
+      take: MAX_RANKED_SEARCH_CANDIDATES,
+    });
+    candidates.sort((left, right) => {
+      const scoreDifference = rankB2bSearchProduct(right, query) - rankB2bSearchProduct(left, query);
+      return scoreDifference || left.sku - right.sku;
+    });
+    const rankedSlice = candidates.slice(generalSkip, generalSkip + remaining);
+    products.push(...rankedSlice);
+    remaining -= rankedSlice.length;
+  }
+
+  if (remaining > 0) {
+    const fallbackSkip = Math.max(generalSkip, MAX_RANKED_SEARCH_CANDIDATES);
+    const fallbackProducts = await prisma.product.findMany({
+      where: generalWhereWithoutExact,
+      select: b2bAssistantProductSelect,
+      orderBy: [
+        { isAvailable: "desc" },
+        { hasImage: "desc" },
+        { updatedAt: "desc" },
+        { sku: "asc" },
+      ],
+      skip: fallbackSkip,
       take: remaining,
     });
-    products.push(...generalProducts);
+    products.push(...fallbackProducts);
   }
 
   return {
@@ -182,6 +225,6 @@ export async function searchB2bProductPage(
   };
 }
 
-export async function searchB2bProducts(rawQuery: string, limit = 5): Promise<B2bAssistantProduct[]> {
+export async function searchB2bProducts(rawQuery: string, limit = 20): Promise<B2bAssistantProduct[]> {
   return (await searchB2bProductPage(rawQuery, { limit })).products;
 }

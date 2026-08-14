@@ -3,10 +3,12 @@ import {
   activeProductIsAvailable,
   buildStockAlertMessages,
   buildStockProductCard,
+  buildStockUnchangedMessage,
   compactStockProductName,
   parseWatchedPatterns,
   parseWatchedSkus,
   stockNotificationIsDue,
+  stockSnapshotHasChanged,
   stockProductDescription,
   supplierQtyLabel,
 } from "@/lib/stock-monitor";
@@ -48,6 +50,31 @@ describe("stock monitor", () => {
     ).toBe(true);
   });
 
+  it("detects actual stock and price changes without repeating identical cards", () => {
+    const current = {
+      available: true,
+      price: 12_500,
+      qty: "*",
+      realQty: 4,
+      nearestQty: "0",
+      nearestRealQty: 0,
+    };
+    expect(stockSnapshotHasChanged(current, undefined)).toBe(true);
+    expect(stockSnapshotHasChanged(current, current)).toBe(false);
+    expect(stockSnapshotHasChanged({ ...current, realQty: 3 }, current)).toBe(true);
+    expect(stockSnapshotHasChanged({ ...current, price: 12_700 }, current)).toBe(true);
+  });
+
+  it("builds one compact unchanged-stock heartbeat", () => {
+    const text = buildStockUnchangedMessage({
+      items: [{ sku: 1, name: "AVS-1000", available: true, isRestock: false }],
+      checkedAt: new Date("2026-08-14T08:00:00.000Z"),
+    });
+    expect(text).toContain("изменений нет");
+    expect(text).toContain("1</b> из <b>1");
+    expect(text).not.toContain("SKU");
+  });
+
   it("builds a short header and a separate actionable product card", () => {
     const messages = buildStockAlertMessages({
       items: [
@@ -58,6 +85,7 @@ describe("stock monitor", () => {
           slug: "exegate-power-123",
           price: 12500,
           qty: "*",
+          realQty: 4,
           nearestQty: "***",
           available: true,
           isRestock: true,
@@ -74,6 +102,7 @@ describe("stock monitor", () => {
     expect(messages[0].buttonRows).toBeUndefined();
     expect(messages[1].text).toContain("ExeGate &lt;Power&gt;-1000");
     expect(messages[1].text).toContain("📝 <b>Описание:</b>\n1000ВА, много характеристик");
+    expect(messages[1].text).toContain("🏭 <b>Ваш склад:</b> 🟢 4 шт.");
     expect(messages[1].text).not.toContain("Открыть B2B");
     expect(messages[1].text).toContain("<b>SKU:</b> <code>123</code>");
     expect(messages[1].buttonRows).toEqual([

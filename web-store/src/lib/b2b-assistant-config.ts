@@ -1,5 +1,5 @@
 const DEFAULT_MARKUP_PRESETS = [10, 15, 20, 25];
-const DEFAULT_SEARCH_LIMIT = 5;
+const DEFAULT_SEARCH_LIMIT = 20;
 
 function splitValues(value: string | undefined): string[] {
   return (value ?? "")
@@ -66,8 +66,8 @@ export function b2bAssistantRoundingStep(): number {
 export function b2bAssistantSearchLimit(): number {
   const raw = process.env.B2B_ASSISTANT_SEARCH_LIMIT;
   const value = raw ? Number(raw) : DEFAULT_SEARCH_LIMIT;
-  if (!Number.isSafeInteger(value) || value < 1 || value > 10) {
-    throw new Error("B2B_ASSISTANT_SEARCH_LIMIT должен быть целым числом от 1 до 10.");
+  if (!Number.isSafeInteger(value) || value < 1 || value > 20) {
+    throw new Error("B2B_ASSISTANT_SEARCH_LIMIT должен быть целым числом от 1 до 20.");
   }
   return value;
 }
