@@ -82,14 +82,22 @@ export function QuickOrderForm({
           style={{ marginTop: 2, accentColor: "var(--accent)" }}
         />
         <span>
-          Согласен на обработку данных.{" "}
+          Даю{" "}
+          <Link
+            href="/personal-data-consent"
+            target="_blank"
+            style={{ fontWeight: 700, color: "var(--accent-2)" }}
+          >
+            согласие на обработку персональных данных
+          </Link>{" "}
+          и ознакомлен с{" "}
           <Link
             href="/privacy"
             target="_blank"
             style={{ fontWeight: 700, color: "var(--accent-2)" }}
           >
-            Политика
-          </Link>
+            Политикой
+          </Link>.
         </span>
       </label>
       {state.error ? (

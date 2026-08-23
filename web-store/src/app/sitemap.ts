@@ -72,6 +72,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "yearly",
       priority: 0.3,
     },
+    {
+      url: `${storefront.siteUrl}/personal-data-consent`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
+    {
+      url: `${storefront.siteUrl}/purchase-terms`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.3,
+    },
     ...listCatalogFilterLandings().map((landing) => ({
       url: `${storefront.siteUrl}/podborki/${landing.slug}`,
       lastModified: now,

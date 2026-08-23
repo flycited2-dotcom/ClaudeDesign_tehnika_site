@@ -130,14 +130,22 @@ export function CheckoutClient() {
             style={{ marginTop: 3, accentColor: "var(--accent)" }}
           />
           <span>
-            Я согласен на обработку персональных данных для оформления заказа и связи со мной.{" "}
+            Я даю{" "}
+            <Link
+              href="/personal-data-consent"
+              style={{ fontWeight: 700, color: "var(--accent-2)" }}
+              target="_blank"
+            >
+              согласие на обработку персональных данных
+            </Link>{" "}
+            для обработки заявки и связи со мной и ознакомлен с{" "}
             <Link
               href="/privacy"
               style={{ fontWeight: 700, color: "var(--accent-2)" }}
               target="_blank"
             >
-              Политика обработки персональных данных
-            </Link>
+              Политикой обработки персональных данных
+            </Link>.
           </span>
         </label>
         {state.error ? (

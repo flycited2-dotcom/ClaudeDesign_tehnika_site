@@ -10,6 +10,8 @@ ${storefront.brand} - розничный интернет-магазин быт�
 Основной сайт: ${storefront.siteUrl}
 Каталог: ${storefront.siteUrl}/catalog
 Политика обработки персональных данных: ${storefront.siteUrl}/privacy
+Согласие на обработку персональных данных: ${storefront.siteUrl}/personal-data-consent
+Условия заявки, доставки, оплаты, гарантии и возврата: ${storefront.siteUrl}/purchase-terms
 
 Основные категории:
 ${storefrontCategories.map((category) => `- ${category}`).join("\n")}

@@ -9,7 +9,9 @@ const FOOTER_LINKS = [
   ["/gov", "Госзакупки"],
   ["/service", "Сервис"],
   ["/#contacts", "Контакты"],
-  ["/privacy", "Персональные данные"],
+  ["/privacy", "Политика данных"],
+  ["/personal-data-consent", "Согласие на обработку данных"],
+  ["/purchase-terms", "Доставка, оплата и возврат"],
 ] as const;
 
 export function SiteFooter() {
