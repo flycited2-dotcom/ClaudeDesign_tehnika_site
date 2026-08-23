@@ -184,12 +184,14 @@ class DeployVpsTests(unittest.TestCase):
         kwargs = build_connect_kwargs(
             host="212.116.115.150",
             user="root",
+            port=2222,
             key_path="C:/Users/user/.ssh/climat_simf_deploy",
             password=None,
         )
 
         self.assertEqual(kwargs["hostname"], "212.116.115.150")
         self.assertEqual(kwargs["username"], "root")
+        self.assertEqual(kwargs["port"], 2222)
         self.assertEqual(kwargs["key_filename"], "C:/Users/user/.ssh/climat_simf_deploy")
         self.assertNotIn("password", kwargs)
 

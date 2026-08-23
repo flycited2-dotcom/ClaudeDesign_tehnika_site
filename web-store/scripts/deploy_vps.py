@@ -204,10 +204,18 @@ def public_healthcheck(
                 time.sleep(delay)
 
 
-def build_connect_kwargs(*, host: str, user: str, key_path: str | None, password: str | None) -> dict[str, object]:
+def build_connect_kwargs(
+    *,
+    host: str,
+    user: str,
+    port: int = 22,
+    key_path: str | None,
+    password: str | None,
+) -> dict[str, object]:
     kwargs: dict[str, object] = {
         "hostname": host,
         "username": user,
+        "port": port,
         "timeout": 20,
         "banner_timeout": 20,
         "auth_timeout": 20,
@@ -256,6 +264,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Deploy web-store to the production VPS with backup, build, restart and healthchecks.")
     parser.add_argument("--host", default=os.getenv("WEB_STORE_VPS_HOST") or "212.116.115.150")
     parser.add_argument("--user", default=os.getenv("WEB_STORE_VPS_USER") or "root")
+    parser.add_argument("--port", type=int, default=int(os.getenv("WEB_STORE_VPS_PORT") or "22"))
     parser.add_argument("--remote-root", default=os.getenv("WEB_STORE_VPS_REMOTE_ROOT") or REMOTE_ROOT)
     parser.add_argument("--process-name", default=os.getenv("WEB_STORE_PM2_PROCESS") or PROCESS_NAME)
     parser.add_argument("--public-url", default=os.getenv("WEB_STORE_PUBLIC_URL") or PUBLIC_URL)
@@ -306,7 +315,13 @@ def main() -> int:
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(**build_connect_kwargs(host=args.host, user=args.user, key_path=args.key_path, password=password))
+    client.connect(**build_connect_kwargs(
+        host=args.host,
+        user=args.user,
+        port=args.port,
+        key_path=args.key_path,
+        password=password,
+    ))
     # --sync-attributes/--run-audit can run silently (no stdout) for minutes at a
     # time (a single bulk DELETE + a 250k-product scan) — without a keepalive an
     # idle NAT/firewall/sshd timeout can drop the connection mid-command with no
