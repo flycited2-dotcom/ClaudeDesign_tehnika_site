@@ -5,6 +5,7 @@ import getpass
 import os
 import posixpath
 import shlex
+import socket
 import sys
 import tarfile
 import tempfile
@@ -211,6 +212,7 @@ def build_connect_kwargs(
     port: int = 22,
     key_path: str | None,
     password: str | None,
+    sock: socket.socket | None = None,
 ) -> dict[str, object]:
     kwargs: dict[str, object] = {
         "hostname": host,
@@ -224,6 +226,8 @@ def build_connect_kwargs(
         kwargs["key_filename"] = key_path
     if password:
         kwargs["password"] = password
+    if sock is not None:
+        kwargs["sock"] = sock
     return kwargs
 
 
@@ -265,6 +269,7 @@ def main() -> int:
     parser.add_argument("--host", default=os.getenv("WEB_STORE_VPS_HOST") or "212.116.115.150")
     parser.add_argument("--user", default=os.getenv("WEB_STORE_VPS_USER") or "root")
     parser.add_argument("--port", type=int, default=int(os.getenv("WEB_STORE_VPS_PORT") or "22"))
+    parser.add_argument("--bind-address", default=os.getenv("WEB_STORE_VPS_BIND_ADDRESS"))
     parser.add_argument("--remote-root", default=os.getenv("WEB_STORE_VPS_REMOTE_ROOT") or REMOTE_ROOT)
     parser.add_argument("--process-name", default=os.getenv("WEB_STORE_PM2_PROCESS") or PROCESS_NAME)
     parser.add_argument("--public-url", default=os.getenv("WEB_STORE_PUBLIC_URL") or PUBLIC_URL)
@@ -315,12 +320,20 @@ def main() -> int:
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    bound_socket = None
+    if args.bind_address:
+        bound_socket = socket.create_connection(
+            (args.host, args.port),
+            timeout=20,
+            source_address=(args.bind_address, 0),
+        )
     client.connect(**build_connect_kwargs(
         host=args.host,
         user=args.user,
         port=args.port,
         key_path=args.key_path,
         password=password,
+        sock=bound_socket,
     ))
     # --sync-attributes/--run-audit can run silently (no stdout) for minutes at a
     # time (a single bulk DELETE + a 250k-product scan) — without a keepalive an

@@ -194,6 +194,7 @@ class DeployVpsTests(unittest.TestCase):
         self.assertEqual(kwargs["port"], 2222)
         self.assertEqual(kwargs["key_filename"], "C:/Users/user/.ssh/climat_simf_deploy")
         self.assertNotIn("password", kwargs)
+        self.assertNotIn("sock", kwargs)
 
     def test_remote_command_does_not_use_channel_read_timeout(self):
         client = _FakeClient()
