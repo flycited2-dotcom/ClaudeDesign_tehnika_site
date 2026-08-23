@@ -30,6 +30,8 @@
 .DS_Store
 *.pem
 .superpowers/
+__pycache__/
+*.pyc
 
 # debug
 npm-debug.log*
