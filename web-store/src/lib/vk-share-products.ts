@@ -53,3 +53,12 @@ export function buildVkShareComment(product: VkShareProduct): string {
     "📞 +7 978 579-29-95",
   ].join("\n");
 }
+
+export function buildVkShareUrl(product: VkShareProduct): string {
+  const productUrl = `https://climat-simf.ru/share/vk/${product.slug}`;
+  const params = new URLSearchParams({
+    url: productUrl,
+    comment: buildVkShareComment(product),
+  });
+  return `https://vk.com/share.php?${params.toString()}`;
+}
