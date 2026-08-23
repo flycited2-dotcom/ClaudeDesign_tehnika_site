@@ -51,7 +51,7 @@ export function buildVkShareComment(product: VkShareProduct): string {
     "",
     product.cta,
     "📞 +7 978 579-29-95",
-  ].join("\n");
+  ].join("\r\n");
 }
 
 export function buildVkShareUrl(product: VkShareProduct): string {
