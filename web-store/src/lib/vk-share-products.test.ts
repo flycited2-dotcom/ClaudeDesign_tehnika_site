@@ -36,10 +36,10 @@ describe("VK share product", () => {
   });
 
   it.each([
-    ["shtil-is3000rt", "36 300 ₽", "3000 ВА", "/static/cf-cards/shtil-is3000rt.png"],
-    ["powerman-avs-2000s", "5 950 ₽", "2000 ВА", "/static/cf-cards/powerman-avs-2000s.png"],
-    ["powerman-back-pro-1050", "9 450 ₽", "1050 ВА", "/static/cf-cards/powerman-back-pro-1050.png"],
-  ])("builds a public customer-safe post for %s", (slug, price, power, imageUrl) => {
+    ["shtil-is3000rt", "36 300 ₽", "3000 ВА", "165–310 В", "/static/cf-cards/shtil-is3000rt.png"],
+    ["powerman-avs-2000s", "5 950 ₽", "2000 ВА", "140–260 В", "/static/cf-cards/powerman-avs-2000s.png"],
+    ["powerman-back-pro-1050", "9 450 ₽", "1050 ВА", "", "/static/cf-cards/powerman-back-pro-1050.png"],
+  ])("builds a public customer-safe post for %s", (slug, price, power, voltageRange, imageUrl) => {
     const product = getVkShareProduct(slug);
     expect(product).toBeDefined();
     expect(product?.imageUrl).toBe(imageUrl);
@@ -47,6 +47,7 @@ describe("VK share product", () => {
     const comment = buildVkShareComment(product!);
     expect(comment).toContain(price);
     expect(comment).toContain(power);
+    if (voltageRange) expect(comment).toContain(voltageRange);
     expect(comment).toContain("Почему стоит выбрать:");
     expect(comment).not.toContain("Доставка");
     expect(comment).not.toContain("Запорож");
