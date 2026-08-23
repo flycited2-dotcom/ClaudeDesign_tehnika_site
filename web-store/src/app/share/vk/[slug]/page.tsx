@@ -92,9 +92,6 @@ export default async function VkShareProductPage({ params }: Props) {
             </ul>
             <p style={{ marginTop: 22, fontWeight: 700, lineHeight: 1.5 }}>{product.cta}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 24 }}>
-              <Link className="btn btn-primary" href={`/share/vk/${product.slug}/publish`}>
-                Открыть предпросмотр VK
-              </Link>
               <Link className="btn btn-primary" href="tel:+79785792995">Позвонить</Link>
               <Link className="btn btn-ghost" href="/checkout">Оставить заявку</Link>
             </div>
