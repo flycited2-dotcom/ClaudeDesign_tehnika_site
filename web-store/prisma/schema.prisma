@@ -278,6 +278,49 @@ model Address {
   updatedAt  DateTime @updatedAt
 }
 
+/// Internal idempotency record for orders initiated from a signed Telegram
+/// link or bot callback. Technical markers stay here and are never exposed in
+/// the supplier-facing B2B order comment.
+model SupplierOrderAttempt {
+  nonce           String   @id
+  sku             Int
+  quantity        Int
+  supplierOrderId Int?     @unique
+  status          String   @default("creating")
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+
+/// Short-lived client price prepared by an allowed Telegram manager. The
+/// random code is shown in inline mode; it contains no SKU, price or secrets.
+model TelegramClientOffer {
+  code              String   @id @db.VarChar(8)
+  sku               Int
+  priceCents        Int
+  telegramUserId    String
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+
+  @@index([telegramUserId, expiresAt])
+  @@index([expiresAt])
+}
+
+/// Short-lived catalog query used by Telegram pagination callbacks. Keeping
+/// the query server-side avoids callback_data length limits and stale buttons.
+model TelegramSearchSession {
+  code              String   @id @db.VarChar(8)
+  query             String   @db.VarChar(500)
+  telegramUserId    String
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+
+  @@index([telegramUserId, expiresAt])
+  @@index([expiresAt])
+}
+
 enum LeadType {
   CALLBACK     @map("callback")
   QUOTE        @map("quote")

@@ -19,6 +19,15 @@
 
 ## История деплоев glass-редизайна
 
+### 2026-08-24 — Hotfix: восстановлены B2B-ассистент и монитор остатков ✅
+
+- **Ветка:** `codex/restore-b2b-agents`. **Код защиты деплоя:** `57263bc`. **Production backup:** `/var/www/climat-simf.ru.source-backup-20260824115339.tar.gz`. Дополнительный страховочный архив состояния до ручного восстановления: `/var/www/climat-simf.ru.pre-agent-recovery-20260824114716.tar.gz`.
+- Причина отсутствия свежих Telegram-данных: deploy `main` от 23.08 содержал сайт, но не содержал Telegram-модули. На VPS исчезли `scripts/run-b2b-assistant-bot.sh`, `scripts/monitor-stock.sh` и зависимые `src/lib/*` файлы; сохранённые systemd units уходили в exit `127` и исчерпывали `StartLimitBurst`. B2B-бот был `failed` с 14 рестартами, последний успешный monitor run — 23.08 21:00 МСК.
+- Рабочий административный SSH endpoint — `212.116.115.150:2222` (`Host sprintbox-itp`). Порт 22 принимает TCP, но не отдаёт SSH banner; это не связано с I-T-P API и Telegram.
+- Telegram-контур хирургически восстановлен из преддеплойного backup `/var/www/climat-simf.ru.source-backup-20260823205426.tar.gz`, без отката свежего storefront/VK-кода. Возвращены B2B search/inline offers, stock monitor, order flow/route, три Prisma-модели и package scripts. Затем изменения перенесены поверх актуального `origin/main` отдельной интеграционной веткой и штатно задеплоены.
+- `deploy_vps.py` теперь до Prisma/build проверяет шесть обязательных entrypoint/source файлов. После website healthcheck он перезапускает и проверяет enabled B2B service, затем запускает monitor service и проверяет timer. Деплой неполной site-only ветки больше не может тихо оставить systemd units без исходников.
+- **Проверено:** 41 профильный тест Telegram/order/monitor, 13 тестов deploy script, production build с `/stock-order/[sku]`; сайт HTTP 200, PM2 `online`, B2B service `active/running`, `NRestarts=0`, Telegram Bot API для обоих ботов отвечает, webhook пуст, pending updates 0. Monitor `Result=success`, проверил 21 SKU и после восстановления отправил одну изменившуюся карточку: доступно SKU `10530298` (5 шт.) и `10751620` (2 шт.). Автоматический timer run в 12:00 МСК также завершился успешно (`changed=0`, `notified=0`, `lastSuccessAt=12:00:02`); следующий запуск назначен на 12:15.
+
 ### 2026-07-01 — Iter 75: code-review `/admin` (без логина) + закрытие 2 блокеров из Iter 74 ✅
 
 - **Commit:** `533008c`. **Backup:** `/var/www/climat-simf.ru.source-backup-20260701183401.tar.gz`.

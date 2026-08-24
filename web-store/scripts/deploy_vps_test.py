@@ -85,16 +85,41 @@ class DeployVpsTests(unittest.TestCase):
         manifest_index = script.index(".next/prerender-manifest.json")
         restart_index = script.index("pm2 delete climat-simf-store")
         health_index = script.index("curl -fsS -m 30 http://127.0.0.1:3001/")
+        agent_guard_index = script.index("Missing required Telegram agent file")
+        agent_restart_index = script.index("systemctl restart climat-simf-b2b-assistant.service")
+        monitor_start_index = script.index("systemctl start climat-simf-stock-monitor.service")
 
+        self.assertLess(agent_guard_index, generate_index)
         self.assertLess(generate_index, build_index)
         self.assertLess(build_index, manifest_index)
         self.assertLess(manifest_index, restart_index)
         self.assertLess(restart_index, health_index)
+        self.assertLess(health_index, agent_restart_index)
+        self.assertLess(health_index, monitor_start_index)
         self.assertIn("set -euo pipefail", script)
         self.assertIn("for attempt in 1 2 3 4 5 6 7 8 9 10 11 12", script)
         self.assertIn("rm -rf .next/cache", script)
         self.assertNotIn("rm -rf .next\n", script)
         self.assertNotIn("sync:attributes", script)
+
+    def test_remote_script_guards_every_agent_entrypoint(self):
+        script = build_remote_deploy_script(
+            remote_root="/var/www/climat-simf.ru",
+            process_name="climat-simf-store",
+            build_log="/tmp/climat-build.log",
+            run_install=False,
+        )
+
+        for path in [
+            "scripts/run-b2b-assistant-bot.sh",
+            "scripts/b2b-assistant-bot.ts",
+            "scripts/monitor-stock.sh",
+            "scripts/monitor-stock.ts",
+            "src/lib/b2b-assistant-bot.ts",
+            "src/lib/stock-monitor-runner.ts",
+        ]:
+            with self.subTest(path=path):
+                self.assertIn(path, script)
 
     def test_sync_attributes_runs_synchronously_after_healthcheck(self):
         script = build_remote_deploy_script(
