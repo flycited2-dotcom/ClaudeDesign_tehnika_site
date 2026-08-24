@@ -83,6 +83,15 @@ def build_remote_deploy_script(
     steps = [
         "set -euo pipefail",
         f"cd {quoted_root}",
+        # The storefront and Telegram integrations share one deployment root.
+        # A site-only archive once removed the agent sources while leaving
+        # their systemd units enabled, causing an endless exit-127 restart
+        # loop. Fail before the build/restart if an integration is incomplete.
+        "for required in scripts/run-b2b-assistant-bot.sh scripts/b2b-assistant-bot.ts "
+        "scripts/monitor-stock.sh scripts/monitor-stock.ts "
+        "src/lib/b2b-assistant-bot.ts src/lib/stock-monitor-runner.ts; do",
+        "  test -f \"$required\" || { echo \"Missing required Telegram agent file: $required\" >&2; exit 1; }",
+        "done",
         install.rstrip(),
         "npx prisma generate",
         "npx prisma db push --skip-generate",
@@ -115,6 +124,20 @@ def build_remote_deploy_script(
         "  fi",
         "  sleep 5",
         "done",
+        # Reload long-running agents only after the website and generated
+        # Prisma client are healthy. The monitor is oneshot, so starting it is
+        # also an immediate end-to-end supplier/Telegram verification.
+        "if systemctl is-enabled --quiet climat-simf-b2b-assistant.service 2>/dev/null; then",
+        "  systemctl reset-failed climat-simf-b2b-assistant.service || true",
+        "  systemctl restart climat-simf-b2b-assistant.service",
+        "  systemctl is-active --quiet climat-simf-b2b-assistant.service",
+        "fi",
+        "if systemctl is-enabled --quiet climat-simf-stock-monitor.timer 2>/dev/null; then",
+        "  systemctl reset-failed climat-simf-stock-monitor.service || true",
+        "  systemctl restart climat-simf-stock-monitor.timer",
+        "  systemctl start climat-simf-stock-monitor.service",
+        "  systemctl is-active --quiet climat-simf-stock-monitor.timer",
+        "fi",
         # Warm the cache right after restart so the post-deploy window (the
         # .next/cache was just cleared) doesn't make the first real users
         # eat a ~10s cold render. Hot routes synchronously, full category
