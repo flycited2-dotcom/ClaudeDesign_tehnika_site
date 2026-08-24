@@ -2,6 +2,7 @@ import type { ItpActiveProduct } from "@/lib/itp/types";
 
 export const DEFAULT_STOCK_ALERT_REPEAT_MINUTES = 15;
 export const DEFAULT_STOCK_STATUS_REPEAT_MINUTES = 60;
+export const DEFAULT_STOCK_UNAVAILABLE_CONFIRMATIONS = 2;
 
 export type StockMonitorProduct = {
   sku: number;
@@ -97,6 +98,34 @@ export function activeProductIsAvailable(product: ItpActiveProduct | undefined):
     product &&
       (isSupplierQtyAvailable(product.qty) || isSupplierQtyAvailable(product.nearest_logistic_center_qty)),
   );
+}
+
+export function confirmStockAvailability({
+  supplierAvailable,
+  previouslyAvailable,
+  consecutiveUnavailableChecks = 0,
+  requiredUnavailableConfirmations = DEFAULT_STOCK_UNAVAILABLE_CONFIRMATIONS,
+}: {
+  supplierAvailable: boolean;
+  previouslyAvailable?: boolean;
+  consecutiveUnavailableChecks?: number;
+  requiredUnavailableConfirmations?: number;
+}): { available: boolean; consecutiveUnavailableChecks: number; preservePreviousSnapshot: boolean } {
+  if (supplierAvailable) {
+    return { available: true, consecutiveUnavailableChecks: 0, preservePreviousSnapshot: false };
+  }
+
+  if (previouslyAvailable !== true) {
+    return { available: false, consecutiveUnavailableChecks: 0, preservePreviousSnapshot: false };
+  }
+
+  const nextCount = consecutiveUnavailableChecks + 1;
+  const confirmed = nextCount >= requiredUnavailableConfirmations;
+  return {
+    available: !confirmed,
+    consecutiveUnavailableChecks: nextCount,
+    preservePreviousSnapshot: !confirmed,
+  };
 }
 
 export function stockNotificationIsDue({
