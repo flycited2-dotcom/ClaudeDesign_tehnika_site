@@ -10,6 +10,8 @@ import {
   buildStockAlertMessages,
   buildStockStatusMessage,
   buildStockUnchangedMessage,
+  confirmStockAvailability,
+  DEFAULT_STOCK_UNAVAILABLE_CONFIRMATIONS,
   DEFAULT_STOCK_STATUS_REPEAT_MINUTES,
   type MonitoredStock,
   parseWatchedPatterns,
@@ -27,6 +29,7 @@ const DEFAULT_ERROR_REPEAT_MINUTES = 60;
 
 type StockItemState = {
   available: boolean;
+  consecutiveUnavailableChecks?: number;
   lastNotifiedAt?: string;
   price?: number;
   qty?: string;
@@ -43,6 +46,10 @@ type StockMonitorState = {
   items: Record<string, StockItemState>;
 };
 
+type ResolvedMonitoredStock = MonitoredStock & {
+  consecutiveUnavailableChecks: number;
+};
+
 type ActiveProductsResponse = {
   products: ItpActiveProduct[];
   total: number;
@@ -54,6 +61,12 @@ function positiveNumber(value: string | undefined, fallback: number, name: strin
   if (!Number.isFinite(parsed) || parsed <= 0) {
     throw new Error(`${name} должен быть положительным числом.`);
   }
+  return parsed;
+}
+
+function positiveInteger(value: string | undefined, fallback: number, name: string): number {
+  const parsed = positiveNumber(value, fallback, name);
+  if (!Number.isSafeInteger(parsed)) throw new Error(`${name} должен быть целым числом.`);
   return parsed;
 }
 
@@ -262,6 +275,7 @@ export async function runStockMonitor({
 }: { testMode?: boolean; dryRun?: boolean } = {}) {
   const statePath = monitorStatePath();
   const state = await loadState(statePath);
+  const nextState: StockMonitorState = { ...state, items: { ...state.items } };
   const now = new Date();
 
   try {
@@ -272,20 +286,32 @@ export async function runStockMonitor({
     const activeBySku = new Map(activeProducts.map((product) => [product.sku, product]));
     const siteUrl = process.env.SITE_URL;
     const orderLinksEnabled = Boolean(siteUrl && process.env.STOCK_ORDER_LINK_SECRET);
-    const monitored: MonitoredStock[] = watchedProducts.map((product) => {
+    const unavailableConfirmations = positiveInteger(
+      process.env.STOCK_MONITOR_UNAVAILABLE_CONFIRMATIONS,
+      DEFAULT_STOCK_UNAVAILABLE_CONFIRMATIONS,
+      "STOCK_MONITOR_UNAVAILABLE_CONFIRMATIONS",
+    );
+    const monitored: ResolvedMonitoredStock[] = watchedProducts.map((product) => {
       const active = activeBySku.get(product.sku);
       const previous = state.items[String(product.sku)];
-      const available = activeProductIsAvailable(active);
+      const availability = confirmStockAvailability({
+        supplierAvailable: activeProductIsAvailable(active),
+        previouslyAvailable: previous?.available,
+        consecutiveUnavailableChecks: previous?.consecutiveUnavailableChecks,
+        requiredUnavailableConfirmations: unavailableConfirmations,
+      });
+      const snapshot = availability.preservePreviousSnapshot ? previous : undefined;
       return {
         ...product,
-        price: active?.price,
-        qty: active?.qty,
-        realQty: active?.real_qty,
-        nearestQty: active?.nearest_logistic_center_qty,
-        nearestRealQty: active?.nearest_logistic_center_real_qty,
-        available,
-        isRestock: available && previous?.available !== true,
+        price: snapshot?.price ?? active?.price,
+        qty: snapshot?.qty ?? active?.qty,
+        realQty: snapshot?.realQty ?? active?.real_qty,
+        nearestQty: snapshot?.nearestQty ?? active?.nearest_logistic_center_qty,
+        nearestRealQty: snapshot?.nearestRealQty ?? active?.nearest_logistic_center_real_qty,
+        available: availability.available,
+        isRestock: availability.available && previous?.available !== true,
         orderUrl: orderLinksEnabled ? buildStockOrderLink({ sku: product.sku, siteUrl: siteUrl!, now }) : undefined,
+        consecutiveUnavailableChecks: availability.consecutiveUnavailableChecks,
       };
     });
     const changed = monitored.filter((item) => {
@@ -299,9 +325,10 @@ export async function runStockMonitor({
 
     for (const item of monitored) {
       const key = String(item.sku);
-      state.items[key] = {
+      nextState.items[key] = {
         ...state.items[key],
         available: item.available,
+        consecutiveUnavailableChecks: item.consecutiveUnavailableChecks,
         price: item.price,
         qty: item.qty,
         realQty: item.realQty,
@@ -326,7 +353,7 @@ export async function runStockMonitor({
       if (!result.delivered) {
         throw new Error("Telegram не принял уведомление. Проверьте TELEGRAM_BOT_TOKEN и TELEGRAM_MANAGER_CHAT_ID.");
       }
-      for (const item of alertItems) state.items[String(item.sku)].lastNotifiedAt = now.toISOString();
+      for (const item of alertItems) nextState.items[String(item.sku)].lastNotifiedAt = now.toISOString();
     }
 
     if (
@@ -342,10 +369,14 @@ export async function runStockMonitor({
 
     if (!testMode && changed.length === 0 && statusNotificationIsDue(state, now) && !dryRun) {
       const result = await sendStockMonitorTelegramMessage(buildStockUnchangedMessage({ items: monitored, checkedAt: now }));
-      if (!result.delivered) {
-        throw new Error("Telegram не принял краткий статус актуальности остатков.");
+      if (result.delivered) {
+        nextState.lastStatusNotifiedAt = now.toISOString();
+      } else {
+        // A heartbeat is informational. Do not turn a successful supplier
+        // check into a failed systemd run (and a second message one minute
+        // later) just because Telegram briefly rejected this compact status.
+        console.warn("Telegram не принял краткий статус актуальности остатков; повторим по расписанию.");
       }
-      state.lastStatusNotifiedAt = now.toISOString();
     }
 
     if (testMode && alertItems.length === 0 && !dryRun) {
@@ -356,9 +387,9 @@ export async function runStockMonitor({
     }
 
     if (!dryRun) {
-      state.lastSuccessAt = now.toISOString();
-      state.lastErrorNotifiedAt = undefined;
-      await saveState(statePath, state);
+      nextState.lastSuccessAt = now.toISOString();
+      nextState.lastErrorNotifiedAt = undefined;
+      await saveState(statePath, nextState);
     }
 
     return {

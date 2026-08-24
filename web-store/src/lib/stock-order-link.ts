@@ -1,6 +1,9 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-const DEFAULT_LINK_TTL_MINUTES = 60;
+// Telegram cards remain in chat long after a monitor run. Keep their signed
+// order action usable for a week; the order route still re-checks the live
+// supplier quantity, price and multiplicity immediately before creating it.
+const DEFAULT_LINK_TTL_MINUTES = 7 * 24 * 60;
 
 export type StockOrderLinkToken = {
   sku: number;

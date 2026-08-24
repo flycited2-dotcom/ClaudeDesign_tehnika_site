@@ -5,6 +5,7 @@ import {
   buildStockProductCard,
   buildStockUnchangedMessage,
   compactStockProductName,
+  confirmStockAvailability,
   parseWatchedPatterns,
   parseWatchedSkus,
   stockNotificationIsDue,
@@ -25,6 +26,42 @@ describe("stock monitor", () => {
     expect(activeProductIsAvailable({ sku: 1, price: 100, qty: "3" })).toBe(true);
     expect(activeProductIsAvailable({ sku: 1, price: 100, qty: "0" })).toBe(false);
     expect(supplierQtyLabel("***")).toBe("много");
+  });
+
+  it("requires two consecutive supplier misses before marking an available item out of stock", () => {
+    const firstMiss = confirmStockAvailability({
+      supplierAvailable: false,
+      previouslyAvailable: true,
+    });
+    expect(firstMiss).toEqual({
+      available: true,
+      consecutiveUnavailableChecks: 1,
+      preservePreviousSnapshot: true,
+    });
+
+    expect(
+      confirmStockAvailability({
+        supplierAvailable: false,
+        previouslyAvailable: true,
+        consecutiveUnavailableChecks: firstMiss.consecutiveUnavailableChecks,
+      }),
+    ).toEqual({
+      available: false,
+      consecutiveUnavailableChecks: 2,
+      preservePreviousSnapshot: false,
+    });
+
+    expect(
+      confirmStockAvailability({
+        supplierAvailable: true,
+        previouslyAvailable: true,
+        consecutiveUnavailableChecks: 1,
+      }),
+    ).toEqual({
+      available: true,
+      consecutiveUnavailableChecks: 0,
+      preservePreviousSnapshot: false,
+    });
   });
 
   it("alerts on appearance and then at the configured repeat interval", () => {
