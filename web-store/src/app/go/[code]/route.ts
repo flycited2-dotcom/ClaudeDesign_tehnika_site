@@ -1,20 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { buildVkCampaignDestination } from "@/lib/vk-campaign-redirect";
+import { storefront } from "@/lib/storefront";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
-  const publicUrl = new URL(request.url);
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto");
-  if (forwardedHost) {
-    const host = forwardedHost.split(",", 1)[0].trim().replace(/:\d+$/, "");
-    publicUrl.host = host;
-  }
-  if (forwardedProto) publicUrl.protocol = `${forwardedProto.split(",", 1)[0].trim()}:`;
-  const destination = buildVkCampaignDestination(code, publicUrl.toString());
+  // The application runs behind nginx on an internal :3001 port.  Build
+  // campaign redirects from the canonical storefront origin so that proxy
+  // headers can never leak that internal address to visitors.
+  const destination = buildVkCampaignDestination(code, storefront.siteUrl);
 
   if (!destination) {
     return new NextResponse("Not found", { status: 404 });
