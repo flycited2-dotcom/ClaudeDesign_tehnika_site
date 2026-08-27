@@ -6,7 +6,12 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
-  const destination = buildVkCampaignDestination(code, request.url);
+  const publicUrl = new URL(request.url);
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedHost) publicUrl.host = forwardedHost.split(",", 1)[0].trim();
+  if (forwardedProto) publicUrl.protocol = `${forwardedProto.split(",", 1)[0].trim()}:`;
+  const destination = buildVkCampaignDestination(code, publicUrl.toString());
 
   if (!destination) {
     return new NextResponse("Not found", { status: 404 });
