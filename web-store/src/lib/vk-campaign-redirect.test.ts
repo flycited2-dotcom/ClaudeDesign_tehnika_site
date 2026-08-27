@@ -15,6 +15,28 @@ describe("buildVkCampaignDestination", () => {
     expect(url?.searchParams.get("utm_content")).toBe("vkp_13");
   });
 
+  it("expands compact service codes", () => {
+    const url = buildVkCampaignDestination("svc14", "https://splithome.ru/go/svc14");
+    expect(url?.pathname).toBe("/service");
+    expect(url?.searchParams.get("utm_content")).toBe("vkp_14");
+  });
+
+  it("opens the relevant catalog assortment with one compact link", () => {
+    const url = buildVkCampaignDestination("st26", "https://splithome.ru/go/st26");
+    expect(url?.pathname).toBe("/search");
+    expect(url?.searchParams.get("q")).toBe("стабилизатор");
+    expect(url?.searchParams.get("utm_content")).toBe("vkp_26");
+  });
+
+  it("keeps previously issued service links working", () => {
+    const url = buildVkCampaignDestination(
+      "svc_vkp_14",
+      "https://splithome.ru/go/svc_vkp_14",
+    );
+    expect(url?.pathname).toBe("/service");
+    expect(url?.searchParams.get("utm_content")).toBe("vkp_14");
+  });
+
   it("rejects unknown codes instead of becoming an open redirect", () => {
     expect(
       buildVkCampaignDestination("https://evil.example", "https://splithome.ru/go/x"),
