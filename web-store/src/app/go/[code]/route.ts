@@ -9,7 +9,10 @@ export async function GET(
   const publicUrl = new URL(request.url);
   const forwardedHost = request.headers.get("x-forwarded-host");
   const forwardedProto = request.headers.get("x-forwarded-proto");
-  if (forwardedHost) publicUrl.host = forwardedHost.split(",", 1)[0].trim();
+  if (forwardedHost) {
+    const host = forwardedHost.split(",", 1)[0].trim().replace(/:\d+$/, "");
+    publicUrl.host = host;
+  }
   if (forwardedProto) publicUrl.protocol = `${forwardedProto.split(",", 1)[0].trim()}:`;
   const destination = buildVkCampaignDestination(code, publicUrl.toString());
 
