@@ -49,7 +49,32 @@ const CATEGORY_ART_BY_SLUG: Record<string, string> = {
   "dosug-i-razvlecheniya-11714": "/static/category-cards/dosug-i-razvlecheniya.png",
   "zapchasti-12719": "/static/category-cards/zapchasti.png",
   "kompyuternaya-tehnika-9975": "/static/category-cards/kompyuternaya-tehnika.png",
+  "stroitelstvo-i-remont-10118": "/static/category-cards/stroitelstvo-i-remont.png",
+  "tovary-dlya-doma-10754": "/static/category-cards/tovary-dlya-doma.png",
+  "tovary-dlya-avto-i-moto-9629": "/static/category-cards/tovary-dlya-avto-i-moto.png",
+  "elektronika-9756": "/static/category-cards/elektronika.png",
+  "televizory-9758": "/static/category-cards/televizory.png",
+  "oborudovanie-13597": "/static/category-cards/oborudovanie.png",
 };
+
+const SECOND_CATEGORY_ROW_SLUGS = [
+  "stroitelstvo-i-remont-10118",
+  "tovary-dlya-doma-10754",
+  "tovary-dlya-avto-i-moto-9629",
+  "elektronika-9756",
+  "televizory-9758",
+  "oborudovanie-13597",
+] as const;
+
+type HomeCategory = Awaited<ReturnType<typeof getHomeSnapshot>>["categories"][number];
+
+function findCategoryBySlug(categories: HomeCategory[], slug: string): HomeCategory | undefined {
+  for (const category of categories) {
+    if (category.slug === slug) return category;
+    const nested = findCategoryBySlug(category.children, slug);
+    if (nested) return nested;
+  }
+}
 
 // getHomeSnapshot returns a wide, category-balanced pool. This page is
 // force-dynamic, so it runs per request — rotate a random window of products
@@ -65,7 +90,12 @@ function pickRecommended<T>(pool: T[], count: number): T[] {
 
 export default async function Home() {
   const { categories, products } = await loadHome();
-  const featuredCategories = categories.slice(0, 6);
+  const featuredCategories = [
+    ...categories.slice(0, 6),
+    ...SECOND_CATEGORY_ROW_SLUGS.map((slug) => findCategoryBySlug(categories, slug)).filter(
+      (category): category is HomeCategory => Boolean(category),
+    ),
+  ];
   const recommendedProducts = pickRecommended(products, RECOMMENDED_COUNT);
 
   return (
