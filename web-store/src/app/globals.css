@@ -205,6 +205,7 @@ body.app {
   bottom: 10px;
   width: 88%;
   height: 185px;
+  overflow: hidden;
   border: 0;
   background:
     radial-gradient(80% 80% at 72% 32%, rgba(79, 125, 255, 0.14), transparent 70%),
