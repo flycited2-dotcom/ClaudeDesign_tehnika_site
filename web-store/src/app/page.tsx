@@ -44,7 +44,7 @@ const RECOMMENDED_COUNT = 8;
 
 const CATEGORY_ART_BY_SLUG: Record<string, string> = {
   "bytovaya-tehnika-9839": "/static/category-cards/bytovaya-tehnika.png",
-  "dacha-sad-i-ogorod-11038": "/static/category-cards/dacha-sad-i-ogorod.png",
+  "dacha-sad-i-ogorod-11038": "/static/category-cards/dacha-sad-i-ogorod.png?v=2",
   "detskie-tovary-11173": "/static/category-cards/detskie-tovary.png",
   "dosug-i-razvlecheniya-11714": "/static/category-cards/dosug-i-razvlecheniya.png",
   "zapchasti-12719": "/static/category-cards/zapchasti.png",
