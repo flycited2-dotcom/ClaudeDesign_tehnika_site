@@ -19,6 +19,14 @@
 
 ## История деплоев glass-редизайна
 
+### 2026-08-29 — Фотореалистичные карточки категорий и hero главной ✅
+
+- **Commits:** `db9a8eb` (6 карточек категорий) + `85a33be` (hero с холодильником и кофемашиной). **Production backup:** `/var/www/climat-simf.ru.source-backup-20260829231234.tar.gz`. **BUILD_ID:** `2zt61sSvAkdLSsUeGdmD5`.
+- На главной буквенные заглушки первых шести категорий заменены согласованными фотореалистичными PNG; неизвестные категории сохраняют буквенный fallback. В hero вместо векторного холодильника установлен согласованный фотореалистичный кадр холодильника и кофемашины через Next Image с отдельным мобильным кадрированием.
+- Деплой выполнен штатным `deploy_vps.py --full-clean`: production build успешен, PM2 `climat-simf-store` online, `/`, `/catalog?available=1&photo=1`, `/robots.txt` и `/static/home/hero-fridge-coffee.png` возвращают 200; B2B assistant active, stock monitor timer active, последний monitor Result=success. Визуально проверены desktop 1440x900 и mobile 390x844; hero загружен, шесть category images присутствуют.
+- **Hotfix прогрева:** после успешного деплоя обнаружено, что `warm_cache.sh`/`warm_all.sh` попали на VPS с CRLF из старого Windows checkout, несмотря на `*.sh eol=lf`; сайт не пострадал, но необязательный post-deploy warm не стартовал. Скрипты на VPS нормализованы в LF и прогрев повторён. В `deploy_vps.py` добавлена обязательная нормализация всех `scripts/*.sh` после распаковки, покрытая deploy-тестом.
+- **Проверено локально:** lint, production build и 13 тестов deploy script. После прогрева `/` отвечает примерно за 0.47 с, каталог — за 0.74 с.
+
 ### 2026-08-24 — Hotfix: восстановлены B2B-ассистент и монитор остатков ✅
 
 - **Ветка:** `codex/restore-b2b-agents`. **Код защиты деплоя:** `57263bc`. **Production backup:** `/var/www/climat-simf.ru.source-backup-20260824115339.tar.gz`. Дополнительный страховочный архив состояния до ручного восстановления: `/var/www/climat-simf.ru.pre-agent-recovery-20260824114716.tar.gz`.

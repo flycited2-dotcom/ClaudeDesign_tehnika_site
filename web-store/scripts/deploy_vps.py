@@ -83,6 +83,11 @@ def build_remote_deploy_script(
     steps = [
         "set -euo pipefail",
         f"cd {quoted_root}",
+        # Git attributes require LF for shell scripts, but an older Windows
+        # checkout can still leave CRLF bytes in the working tree that is
+        # archived. Normalize after extraction so Linux warmers and agents
+        # remain executable regardless of the deploy machine's checkout state.
+        "find scripts -type f -name '*.sh' -exec sed -i 's/\\r$//' {} +",
         # The storefront and Telegram integrations share one deployment root.
         # A site-only archive once removed the agent sources while leaving
         # their systemd units enabled, causing an endless exit-127 restart

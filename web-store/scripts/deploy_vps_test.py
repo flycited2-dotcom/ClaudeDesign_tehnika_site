@@ -86,9 +86,11 @@ class DeployVpsTests(unittest.TestCase):
         restart_index = script.index("pm2 delete climat-simf-store")
         health_index = script.index("curl -fsS -m 30 http://127.0.0.1:3001/")
         agent_guard_index = script.index("Missing required Telegram agent file")
+        shell_normalize_index = script.index("find scripts -type f -name '*.sh'")
         agent_restart_index = script.index("systemctl restart climat-simf-b2b-assistant.service")
         monitor_start_index = script.index("systemctl start climat-simf-stock-monitor.service")
 
+        self.assertLess(shell_normalize_index, agent_guard_index)
         self.assertLess(agent_guard_index, generate_index)
         self.assertLess(generate_index, build_index)
         self.assertLess(build_index, manifest_index)
@@ -99,6 +101,7 @@ class DeployVpsTests(unittest.TestCase):
         self.assertIn("set -euo pipefail", script)
         self.assertIn("for attempt in 1 2 3 4 5 6 7 8 9 10 11 12", script)
         self.assertIn("rm -rf .next/cache", script)
+        self.assertIn("sed -i 's/\\r$//'", script)
         self.assertNotIn("rm -rf .next\n", script)
         self.assertNotIn("sync:attributes", script)
 
