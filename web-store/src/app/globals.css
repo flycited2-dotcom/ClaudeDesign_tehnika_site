@@ -201,6 +201,10 @@ body.app {
   object-position: center;
 }
 .cat-art {
+  right: 4px;
+  bottom: 10px;
+  width: 88%;
+  height: 185px;
   border: 0;
   background:
     radial-gradient(80% 80% at 72% 32%, rgba(79, 125, 255, 0.14), transparent 70%),
@@ -215,8 +219,12 @@ body.app {
 }
 .cat-art .cat-art-image {
   object-fit: contain;
-  padding: 4px;
+  padding: 0;
   filter: drop-shadow(0 14px 18px rgba(60, 86, 142, 0.14));
+}
+.cat-card .circle-arrow {
+  position: relative;
+  z-index: 2;
 }
 
 /* Hero "feature-float" cards are decorative and absolutely positioned for a wide
@@ -225,6 +233,11 @@ body.app {
 @media (max-width: 760px) {
   .hero-product {
     min-height: 240px;
+  }
+  .cat-art {
+    right: 2px;
+    width: 92%;
+    height: 190px;
   }
   .feature-float {
     display: none;
