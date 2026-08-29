@@ -19,6 +19,13 @@
 
 ## История деплоев glass-редизайна
 
+### 2026-08-30 — Hotfix прозрачности карточки «Дача, сад и огород» ✅
+
+- **Commits:** `a53f2e9` (альфа-канал и скруглённое clipping), `3b8cf58` (дочистка замкнутой области фона), `4e6a679` (безопасное версионирование статического файла). **Production backup:** `/var/www/climat-simf.ru.source-backup-20260830001728.tar.gz`. **BUILD_ID:** `6it4C0xzoMf5qZWO-BCz0`.
+- У PNG удалён встроенный шахматный фон, включая замкнутую область внутри ручки газонокосилки; объект сохранён непрозрачным, четыре угла и фон имеют alpha `0`. `.cat-art` получил `overflow: hidden` и радиус `18px`, а новый файл `dacha-sad-i-ogorod-v2.png` исключает старый кэш Next Image.
+- **Hotfix:** промежуточный commit `3b8cf58` использовал `?v=2` в локальном `Image src`; production Next.js запретил query string без `images.localPatterns`, и главная временно отвечала `500` (backup `/var/www/climat-simf.ru.source-backup-20260830001407.tar.gz`, BUILD_ID `WyxfOwpwm0vcmk8gq47W`). Исправлено отдельным статическим именем в `4e6a679` и немедленно передеплоено.
+- Проверено после hotfix: production `/` и локальный порт приложения возвращают `200`, PM2 online, B2B assistant active, stock monitor timer active и последний monitor Result=success. Живой desktop-скриншот загружает `dacha-sad-i-ogorod-v2.png`; прямоугольной подложки нет. Локально пройдены lint, production build и 13 deploy-тестов.
+
 ### 2026-08-29 — Увеличены изображения в карточках категорий ✅
 
 - **Commit:** `70826b7`. **Production backup:** `/var/www/climat-simf.ru.source-backup-20260829232915.tar.gz`. **BUILD_ID:** `zAlrCs2z-PkvtAmMZWRFj`.
