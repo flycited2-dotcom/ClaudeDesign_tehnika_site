@@ -17,7 +17,6 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { Coffee } from "@/components/art/coffee";
-import { Fridge } from "@/components/art/fridge";
 import { CallbackButton } from "@/components/callback-button";
 import { GlassProductCard } from "@/components/glass-product-card";
 import { getHomeSnapshot } from "@/lib/catalog";
@@ -103,7 +102,14 @@ export default async function Home() {
 
         <div className="hero-product">
           <div className="hero-stage">
-            <Fridge size={300} />
+            <Image
+              className="hero-stage-image"
+              src="/static/home/hero-fridge-coffee.png"
+              alt="Современный холодильник и автоматическая кофемашина в светлой кухне"
+              fill
+              preload
+              sizes="(max-width: 760px) calc(100vw - 72px), (max-width: 1180px) calc(100vw - 120px), 52vw"
+            />
           </div>
 
           <div className="feature-float float-1">
