@@ -3,7 +3,7 @@ import { extractProductNameAttributes } from "@/lib/product-attributes";
 export type ProductAttributeBackfillProduct = {
   productId: string;
   name?: string | null;
-  supplierName: string;
+  supplierName: string | null;
   categoryName?: string | null;
 };
 
@@ -19,7 +19,7 @@ export type ProductAttributeBackfillRow = {
 };
 
 export function buildProductAttributeRows(product: ProductAttributeBackfillProduct): ProductAttributeBackfillRow[] {
-  const title = product.name?.trim() || product.supplierName;
+  const title = product.name?.trim() || product.supplierName || "";
 
   return extractProductNameAttributes(title, product.categoryName).map((attribute) => ({
     productId: product.productId,

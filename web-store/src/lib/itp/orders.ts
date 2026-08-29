@@ -27,7 +27,7 @@ export type ItpOrderItem = {
   price_discount?: number;
 };
 
-type ItpRpc = <T>(payload: Omit<ItpRpcRequest, "session">) => Promise<ItpRpcResponse<T>>;
+export type ItpRpc = <T>(payload: Omit<ItpRpcRequest, "session">) => Promise<ItpRpcResponse<T>>;
 
 type OrdersResponse = {
   orders: ItpOrder[];

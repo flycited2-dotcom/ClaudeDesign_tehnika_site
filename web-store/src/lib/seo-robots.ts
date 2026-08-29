@@ -13,9 +13,9 @@ export type CatalogRobotsFilters = {
   maxPrice?: number;
   page: number;
   sort: CatalogSort;
-  specFilters: CatalogSpecFilterValue[];
-  attributeFilters?: CatalogAttributeFilter[];
-  attributeRangeFilters?: CatalogAttributeRangeFilter[];
+  specFilters: readonly CatalogSpecFilterValue[];
+  attributeFilters?: readonly CatalogAttributeFilter[];
+  attributeRangeFilters?: readonly CatalogAttributeRangeFilter[];
 };
 
 export function isIndexableCatalogFilters(filters: CatalogRobotsFilters): boolean {

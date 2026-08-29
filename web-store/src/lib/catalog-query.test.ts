@@ -88,15 +88,17 @@ describe("hasCatalogFacetContext", () => {
   it("keeps the root catalog lightweight until the customer narrows the catalog", () => {
     expect(hasCatalogFacetContext({})).toBe(false);
     expect(
-      hasCatalogFacetContext({
-        page: 2,
-        sort: "price_asc",
-        available: true,
-        withPhoto: true,
-        brands: ["ATLANT"],
-        minPrice: 1000,
-        maxPrice: 5000,
-      }),
+      hasCatalogFacetContext(
+        parseCatalogSearchParams({
+          page: "2",
+          sort: "price_asc",
+          available: "1",
+          photo: "1",
+          brand: "ATLANT",
+          minPrice: "1000",
+          maxPrice: "5000",
+        }),
+      ),
     ).toBe(false);
     expect(hasCatalogFacetContext({ categorySlug: "bytovaya-tehnika-9839" })).toBe(true);
     expect(hasCatalogFacetContext({ query: "ssd" })).toBe(true);

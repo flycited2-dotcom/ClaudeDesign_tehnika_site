@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createOrUpdateTelegramItpOrder, getItpActiveProduct } from "@/lib/itp/orders";
+import { createOrUpdateTelegramItpOrder, getItpActiveProduct, type ItpRpc } from "@/lib/itp/orders";
 
 afterEach(() => {
   delete process.env.STOCK_ORDER_LOGISTIC_CENTER_ID;
@@ -8,15 +8,16 @@ afterEach(() => {
 
 describe("I-T-P orders", () => {
   it("requests a single current product by SKU", async () => {
-    const rpc = vi.fn(async () => ({
+    const rpcMock = vi.fn(async () => ({
       success: true,
       data: { products: [{ sku: 123, price: 100, qty: "*" }], total: 1 },
     }));
+    const rpc = rpcMock as unknown as ItpRpc;
 
     const product = await getItpActiveProduct(123, rpc);
 
     expect(product?.sku).toBe(123);
-    expect(rpc).toHaveBeenCalledWith(
+    expect(rpcMock).toHaveBeenCalledWith(
       expect.objectContaining({ filter: [{ property: "sku", operator: "=", value: 123 }] }),
     );
   });
@@ -26,7 +27,7 @@ describe("I-T-P orders", () => {
     process.env.STOCK_ORDER_DELIVERY_ADDRESS_ID = "221892";
     const requests: Array<Record<string, unknown>> = [];
     let itemAdded = false;
-    const rpc = vi.fn(async (payload: Record<string, unknown>) => {
+    const rpcMock = vi.fn(async (payload: Record<string, unknown>) => {
       requests.push(payload);
       const request = payload.request as { method: string; model: string };
       if (request.model === "orders" && request.method === "read") {
@@ -63,6 +64,7 @@ describe("I-T-P orders", () => {
       }
       throw new Error("unexpected request");
     });
+    const rpc = rpcMock as unknown as ItpRpc;
 
     const result = await createOrUpdateTelegramItpOrder({
       sku: 123,
@@ -99,7 +101,7 @@ describe("I-T-P orders", () => {
   });
 
   it("reuses an existing order ID stored in the local idempotency table", async () => {
-    const rpc = vi.fn(async (payload: Record<string, unknown>) => {
+    const rpcMock = vi.fn(async (payload: Record<string, unknown>) => {
       const request = payload.request as { method: string; model: string };
       if (request.model === "orders") {
         return {
@@ -123,6 +125,7 @@ describe("I-T-P orders", () => {
       }
       throw new Error("unexpected mutation");
     });
+    const rpc = rpcMock as unknown as ItpRpc;
 
     const result = await createOrUpdateTelegramItpOrder({
       sku: 123,
@@ -134,7 +137,11 @@ describe("I-T-P orders", () => {
 
     expect(result.created).toBe(false);
     expect(result.duplicatePrevented).toBe(true);
-    expect(rpc.mock.calls.some(([payload]) => payload.request.method === "create")).toBe(false);
-    expect(rpc.mock.calls.some(([payload]) => payload.request.method === "client_update")).toBe(false);
+    expect(
+      rpcMock.mock.calls.some(([payload]) => (payload.request as { method: string }).method === "create"),
+    ).toBe(false);
+    expect(
+      rpcMock.mock.calls.some(([payload]) => (payload.request as { method: string }).method === "client_update"),
+    ).toBe(false);
   });
 });
