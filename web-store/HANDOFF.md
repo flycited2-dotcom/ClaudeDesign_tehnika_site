@@ -19,6 +19,13 @@
 
 ## История деплоев glass-редизайна
 
+### 2026-08-29 — Увеличены изображения в карточках категорий ✅
+
+- **Commit:** `70826b7`. **Production backup:** `/var/www/climat-simf.ru.source-backup-20260829232915.tar.gz`. **BUILD_ID:** `zAlrCs2z-PkvtAmMZWRFj`.
+- На главной `.cat-art` расширен с 64% до 88% ширины карточки, на mobile — до 92%; высота увеличена до 185/190px, внутренний padding PNG убран, стрелка поднята над изображением через z-index.
+- Mobile 390x844 проверен на production: фактическая ширина области изображения первой карточки выросла примерно с 89 до 126 CSS px (+42%), названия и счётчики не перекрываются. `/` и `/catalog` возвращают 200; PM2 online, B2B assistant active, stock monitor timer active; shell-скрипты после новой deploy-нормализации без CRLF.
+- Локально пройдены lint, production build и 13 deploy-тестов; деплой выполнен через `deploy_vps.py --full-clean`.
+
 ### 2026-08-29 — Фотореалистичные карточки категорий и hero главной ✅
 
 - **Commits:** `db9a8eb` (6 карточек категорий) + `85a33be` (hero с холодильником и кофемашиной). **Production backup:** `/var/www/climat-simf.ru.source-backup-20260829231234.tar.gz`. **BUILD_ID:** `2zt61sSvAkdLSsUeGdmD5`.
