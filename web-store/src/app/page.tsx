@@ -14,6 +14,7 @@ import {
   Truck,
   Wrench,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { Coffee } from "@/components/art/coffee";
 import { Fridge } from "@/components/art/fridge";
@@ -41,6 +42,15 @@ async function loadHome() {
 const RU_NUMBER = new Intl.NumberFormat("ru-RU");
 
 const RECOMMENDED_COUNT = 8;
+
+const CATEGORY_ART_BY_SLUG: Record<string, string> = {
+  "bytovaya-tehnika-9839": "/static/category-cards/bytovaya-tehnika.png",
+  "dacha-sad-i-ogorod-11038": "/static/category-cards/dacha-sad-i-ogorod.png",
+  "detskie-tovary-11173": "/static/category-cards/detskie-tovary.png",
+  "dosug-i-razvlecheniya-11714": "/static/category-cards/dosug-i-razvlecheniya.png",
+  "zapchasti-12719": "/static/category-cards/zapchasti.png",
+  "kompyuternaya-tehnika-9975": "/static/category-cards/kompyuternaya-tehnika.png",
+};
 
 // getHomeSnapshot returns a wide, category-balanced pool. This page is
 // force-dynamic, so it runs per request — rotate a random window of products
@@ -145,7 +155,17 @@ export default async function Home() {
               </div>
             </div>
             <div className="cat-art" aria-hidden>
-              <span className="cat-art-mono">{category.name.charAt(0).toUpperCase()}</span>
+              {CATEGORY_ART_BY_SLUG[category.slug] ? (
+                <Image
+                  className="cat-art-image"
+                  src={CATEGORY_ART_BY_SLUG[category.slug]}
+                  alt=""
+                  fill
+                  sizes="(max-width: 760px) 42vw, (max-width: 1180px) 20vw, 10vw"
+                />
+              ) : (
+                <span className="cat-art-mono">{category.name.charAt(0).toUpperCase()}</span>
+              )}
             </div>
             <div className="circle-arrow">
               <ArrowRight size={16} aria-hidden />

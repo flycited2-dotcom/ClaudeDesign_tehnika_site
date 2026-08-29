@@ -207,6 +207,11 @@ body.app {
   letter-spacing: -0.05em;
   color: rgba(79, 125, 255, 0.16);
 }
+.cat-art .cat-art-image {
+  object-fit: contain;
+  padding: 4px;
+  filter: drop-shadow(0 14px 18px rgba(60, 86, 142, 0.14));
+}
 
 /* Hero "feature-float" cards are decorative and absolutely positioned for a wide
    hero — on phones they collide/overlap. Hide them on mobile (the trust section
