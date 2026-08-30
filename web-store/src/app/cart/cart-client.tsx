@@ -3,6 +3,7 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { IllustratedEmptyState } from "@/components/illustrated-empty-state";
 import { writeCart } from "@/lib/cart-storage";
 import { publicFulfillmentText } from "@/lib/fulfillment";
 import { formatRub } from "@/lib/format";
@@ -87,18 +88,14 @@ export function CartClient() {
           <span>›</span>
           <span>Корзина</span>
         </div>
-        <div
-          className="glass"
-          style={{ padding: 48, textAlign: "center", borderRadius: 28, marginTop: 16 }}
-        >
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text)" }}>Корзина пустая</h1>
-          <p style={{ marginTop: 12, color: "var(--text-mute)", maxWidth: 480, margin: "12px auto 0" }}>
-            Выберите товары в каталоге, добавьте их в корзину и оставьте контакты для подтверждения заказа.
-          </p>
-          <Link href="/catalog" className="btn btn-primary" style={{ marginTop: 24, display: "inline-flex" }}>
-            В каталог
-          </Link>
-        </div>
+        <IllustratedEmptyState
+          imageSrc="/static/section-visuals/empty-cart.png"
+          imageAlt="Пустая покупательская корзина"
+          title="Корзина пустая"
+          subtitle="Выберите товары в каталоге, добавьте их в корзину и оставьте контакты для подтверждения заказа."
+          ctaLabel="В каталог"
+          ctaHref="/catalog"
+        />
       </>
     );
   }

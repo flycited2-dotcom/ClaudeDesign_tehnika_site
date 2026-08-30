@@ -4,6 +4,7 @@ import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { GlassProductCard } from "@/components/glass-product-card";
+import { IllustratedEmptyState } from "@/components/illustrated-empty-state";
 
 type ProductWithMedia = Product & {
   images?: ProductImage[];
@@ -16,12 +17,16 @@ export function SkuListGrid({
   emptySubtitle,
   emptyCtaLabel,
   emptyCtaHref,
+  emptyImageSrc,
+  emptyImageAlt,
 }: {
   skus: number[];
   emptyTitle: string;
   emptySubtitle: string;
   emptyCtaLabel: string;
   emptyCtaHref: string;
+  emptyImageSrc?: string;
+  emptyImageAlt?: string;
 }) {
   const [products, setProducts] = useState<ProductWithMedia[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +63,19 @@ export function SkuListGrid({
   }, [skuKey]);
 
   if (skus.length === 0) {
+    if (emptyImageSrc) {
+      return (
+        <IllustratedEmptyState
+          imageSrc={emptyImageSrc}
+          imageAlt={emptyImageAlt ?? ""}
+          title={emptyTitle}
+          subtitle={emptySubtitle}
+          ctaLabel={emptyCtaLabel}
+          ctaHref={emptyCtaHref}
+        />
+      );
+    }
+
     return (
       <div className="glass" style={{ padding: 48, textAlign: "center", borderRadius: 28 }}>
         <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text)" }}>{emptyTitle}</h1>

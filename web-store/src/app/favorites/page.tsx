@@ -38,6 +38,8 @@ export default function FavoritesPage() {
         emptySubtitle="Нажимайте на сердечко в карточке, чтобы сохранить интересные товары и вернуться к ним позже."
         emptyCtaLabel="В каталог"
         emptyCtaHref="/catalog"
+        emptyImageSrc="/static/section-visuals/empty-favorites.png"
+        emptyImageAlt="Пустое стеклянное сердце избранного"
       />
     </>
   );

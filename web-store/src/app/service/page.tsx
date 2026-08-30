@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   CookingPot,
@@ -127,6 +128,31 @@ export default function ServicePage() {
           </div>
         </div>
       </div>
+
+      <section className="glass service-visual-hero">
+        <div className="service-visual-copy">
+          <span className="service-visual-kicker">
+            <Wrench size={15} aria-hidden /> Свои мастера по всему Крыму
+          </span>
+          <h2>Установим и настроим технику</h2>
+          <p>
+            Выезд в течение 24 часов после заявки. Выполним монтаж аккуратно и дадим гарантию на работы 12 месяцев.
+          </p>
+          <CallbackButton variant="inline" className="btn btn-primary">
+            Заказать установку
+          </CallbackButton>
+        </div>
+        <div className="service-visual-media">
+          <Image
+            src="/static/section-visuals/service-installation.png"
+            alt="Мастер устанавливает и обслуживает кондиционер"
+            width={1672}
+            height={941}
+            priority
+            sizes="(max-width: 760px) 92vw, 54vw"
+          />
+        </div>
+      </section>
 
       {/* === Гарантия === */}
       <section className="glass" style={sectionStyle}>

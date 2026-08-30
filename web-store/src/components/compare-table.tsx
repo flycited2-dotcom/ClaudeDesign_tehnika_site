@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { addCartItem } from "@/lib/cart-storage";
+import { IllustratedEmptyState } from "@/components/illustrated-empty-state";
 import { decimalToNumber } from "@/lib/catalog";
 import { buildCompareRows, type CompareProduct } from "@/lib/compare-table-data";
 import { formatRub } from "@/lib/format";
@@ -73,16 +74,14 @@ export function CompareTable({ skus }: { skus: number[] }) {
 
   if (skus.length === 0) {
     return (
-      <div className="glass" style={{ padding: 48, textAlign: "center", borderRadius: 28 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 900, color: "var(--text)" }}>Сравнивать пока нечего</h1>
-        <p style={{ marginTop: 12, color: "var(--text-mute)", maxWidth: 540, margin: "12px auto 0", lineHeight: 1.5 }}>
-          Нажимайте на иконку сравнения в карточке товара. Добавьте от 2 до 4 товаров — здесь появится таблица с
-          подсветкой отличий.
-        </p>
-        <Link href="/catalog" className="btn btn-primary" style={{ marginTop: 24, display: "inline-flex" }}>
-          В каталог
-        </Link>
-      </div>
+      <IllustratedEmptyState
+        imageSrc="/static/section-visuals/empty-compare.png"
+        imageAlt="Две пустые витрины для сравнения товаров"
+        title="Сравнивать пока нечего"
+        subtitle="Добавьте от 2 до 4 товаров через значок сравнения — здесь появится таблица с подсветкой отличий."
+        ctaLabel="В каталог"
+        ctaHref="/catalog"
+      />
     );
   }
 

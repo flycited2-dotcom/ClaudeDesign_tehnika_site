@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { ArrowRight, FileText, Phone } from "lucide-react";
 import Link from "next/link";
 import { AccountShell } from "@/components/account-shell";
@@ -60,8 +61,8 @@ export default async function GovPage() {
 
   return (
     <>
-      <div className="b2b-banner gov-banner">
-        <div>
+      <div className="b2b-banner gov-banner b2b-banner-illustrated">
+        <div className="b2b-banner-copy">
           <span className="b2b-pill">
             <FileText size={14} aria-hidden /> Госзакупки · 44-ФЗ / 223-ФЗ
           </span>
@@ -74,8 +75,18 @@ export default async function GovPage() {
             Работаем с заказчиками по 44-ФЗ и 223-ФЗ. Подбираем аналоги по ТЗ, готовим КП в течение
             рабочего дня, поставляем с УПД и СФ. Бюджетная отсрочка по согласованию.
           </p>
+          <div className="b2b-banner-action">{heroCTA}</div>
         </div>
-        {heroCTA}
+        <div className="b2b-banner-media">
+          <Image
+            src="/static/section-visuals/government-procurement.png"
+            alt="Техника и документы для государственных закупок"
+            width={1672}
+            height={941}
+            priority
+            sizes="(max-width: 760px) 92vw, 46vw"
+          />
+        </div>
       </div>
 
       <AccountShell

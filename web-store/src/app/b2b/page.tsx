@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { ArrowRight, Building2, FileText, Phone } from "lucide-react";
 import Link from "next/link";
 import { AccountShell } from "@/components/account-shell";
@@ -61,8 +62,8 @@ export default async function B2BPage() {
 
   return (
     <>
-      <div className="b2b-banner">
-        <div>
+      <div className="b2b-banner b2b-banner-illustrated">
+        <div className="b2b-banner-copy">
           <span className="b2b-pill">
             <Building2 size={14} aria-hidden /> B2B · Оптовое направление
           </span>
@@ -75,8 +76,18 @@ export default async function B2BPage() {
             Оптовые цены при заказе от {pricing.b2bMinQuantity} шт., доступ к прайс-листам, формирование КП за минуты,
             отсрочка платежа по договору. Персональный менеджер на всех этапах сделки.
           </p>
+          <div className="b2b-banner-action">{heroCTA}</div>
         </div>
-        {heroCTA}
+        <div className="b2b-banner-media">
+          <Image
+            src="/static/section-visuals/b2b-wholesale.png"
+            alt="Оптовая поставка бытовой техники для бизнеса"
+            width={1536}
+            height={1024}
+            priority
+            sizes="(max-width: 760px) 92vw, 46vw"
+          />
+        </div>
       </div>
 
       <AccountShell
