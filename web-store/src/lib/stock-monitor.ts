@@ -1,7 +1,7 @@
 import type { ItpActiveProduct } from "@/lib/itp/types";
 
 export const DEFAULT_STOCK_ALERT_REPEAT_MINUTES = 15;
-export const DEFAULT_STOCK_STATUS_REPEAT_MINUTES = 60;
+export const DEFAULT_STOCK_STATUS_REPEAT_MINUTES = 6 * 60;
 export const DEFAULT_STOCK_UNAVAILABLE_CONFIRMATIONS = 2;
 
 export type StockMonitorProduct = {
