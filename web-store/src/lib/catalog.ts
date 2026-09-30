@@ -24,6 +24,7 @@ import { pruneFacetValues, removeSpecDuplicatedAttributeKeys } from "@/lib/catal
 import { buildCatalogBrandFilterOptions } from "@/lib/catalog-brand-filters";
 import { buildCategoryPath, buildCategoryTree, collectDescendantCategoryIds, type CategoryTreeItem, type FlatCategory } from "@/lib/catalog-tree";
 import { interleaveByTopCategory } from "@/lib/catalog-interleave";
+import { catalogProductOrderBy } from "@/lib/catalog-order";
 import { hasCatalogFacetContext, normalizeCatalogBrandValues, type CatalogSort } from "@/lib/catalog-query";
 import {
   attachCatalogSpecFilterCounts,
@@ -245,47 +246,6 @@ const getCatalogBrands = unstable_cache(async (where: Prisma.ProductWhereInput) 
     .sort((a, b) => (b._count._all ?? 0) - (a._count._all ?? 0))
     .slice(0, 120);
 }, ["catalog-brands"], { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] });
-
-function catalogProductOrderBy(sort: CatalogSort = "popular"): Prisma.ProductOrderByWithRelationInput[] {
-  if (sort === "price_asc") {
-    return [
-      { isAvailable: "desc" },
-      { retailPrice: { sort: "asc", nulls: "last" } },
-      { hasImage: "desc" },
-      { updatedAt: "desc" },
-    ];
-  }
-
-  if (sort === "price_desc") {
-    return [
-      { isAvailable: "desc" },
-      { retailPrice: { sort: "desc", nulls: "last" } },
-      { hasImage: "desc" },
-      { updatedAt: "desc" },
-    ];
-  }
-
-  if (sort === "new") {
-    return [{ updatedAt: "desc" }, { hasImage: "desc" }, { isAvailable: "desc" }, { retailPrice: "desc" }];
-  }
-
-  // "popular" default for retail storefront. We don't have sales data, so we
-  // proxy "what a typical visitor wants to see":
-  //   1. Has a real image (placeholders look broken).
-  //   2. Available right now (no point teasing out-of-stock first).
-  //   3. Price is in mass-market band — neither niche B2B kit priced in
-  //      millions nor sub-100 ₽ stationery commodities. Prisma can't do a
-  //      CASE WHEN in orderBy, so we sort by absolute distance from a
-  //      target price (75 000 ₽) using raw SQL via Prisma sortOrder.
-  //      But orderBy doesn't take expressions — fall back to a simple
-  //      compromise: sort by updatedAt so freshly synced goods float up.
-  //      Categories with extreme prices have their dedicated category pages.
-  return [
-    { hasImage: "desc" },
-    { isAvailable: "desc" },
-    { updatedAt: "desc" },
-  ];
-}
 
 function toProductWhereArray(value: Prisma.ProductWhereInput["AND"]): Prisma.ProductWhereInput[] {
   if (!value) {

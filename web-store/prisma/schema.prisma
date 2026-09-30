@@ -138,7 +138,11 @@ model Product {
   deliveryDays       Int            @default(0)
   multiplicity       Int            @default(1)
   hasImage           Boolean        @default(false)
-  warranty           String?
+  // Truthful "has a non-deleted ProductImage row" — hasImage is only the
+  // supplier's claim and lies for ~3% of products. Kept in sync by
+  // refreshHasRealImage (lib/product-real-image.ts); used for catalog ordering.
+  hasRealImage       Boolean        @default(false)
+  warranty         String?
   weight             Float?
   volume             Float?
   isActive           Boolean        @default(true)
@@ -160,6 +164,7 @@ model Product {
   @@index([slug])
   @@index([sku])
   @@index([isAvailable, retailPrice])
+  @@index([isAvailable, hasRealImage])
 }
 
 model ProductAttribute {

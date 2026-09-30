@@ -57,13 +57,20 @@ const CATEGORY_ART_BY_SLUG: Record<string, string> = {
   "oborudovanie-13597": "/static/category-cards/oborudovanie.png",
 };
 
-const SECOND_CATEGORY_ROW_SLUGS = [
+// Порядок карточек «Каталог по категориям» на главной (задан владельцем).
+const FEATURED_CATEGORY_SLUGS = [
+  "bytovaya-tehnika-9839",
+  "kompyuternaya-tehnika-9975",
+  "televizory-9758",
+  "elektronika-9756",
+  "oborudovanie-13597",
   "stroitelstvo-i-remont-10118",
+  "dacha-sad-i-ogorod-11038",
   "tovary-dlya-doma-10754",
   "tovary-dlya-avto-i-moto-9629",
-  "elektronika-9756",
-  "televizory-9758",
-  "oborudovanie-13597",
+  "detskie-tovary-11173",
+  "dosug-i-razvlecheniya-11714",
+  "zapchasti-12719",
 ] as const;
 
 type HomeCategory = Awaited<ReturnType<typeof getHomeSnapshot>>["categories"][number];
@@ -90,12 +97,9 @@ function pickRecommended<T>(pool: T[], count: number): T[] {
 
 export default async function Home() {
   const { categories, products } = await loadHome();
-  const featuredCategories = [
-    ...categories.slice(0, 6),
-    ...SECOND_CATEGORY_ROW_SLUGS.map((slug) => findCategoryBySlug(categories, slug)).filter(
-      (category): category is HomeCategory => Boolean(category),
-    ),
-  ];
+  const featuredCategories = FEATURED_CATEGORY_SLUGS.map((slug) => findCategoryBySlug(categories, slug)).filter(
+    (category): category is HomeCategory => Boolean(category),
+  );
   const recommendedProducts = pickRecommended(products, RECOMMENDED_COUNT);
 
   return (

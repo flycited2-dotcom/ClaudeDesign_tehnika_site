@@ -21,6 +21,7 @@
 import { prisma } from "@/lib/db";
 import { itpRpc } from "@/lib/itp/client";
 import { sleep } from "@/lib/itp/utils";
+import { refreshHasRealImage } from "@/lib/product-real-image";
 import type { ItpProductImage } from "@/lib/itp/types";
 
 function supplierImageUrl(path: string): string {
@@ -100,6 +101,7 @@ async function main() {
       });
       upserted++;
     }
+    await refreshHasRealImage(batch.map((p) => p.id));
     if (scanned % 1000 === 0)
       console.log(
         `[${Math.round((Date.now() - t0) / 1000)}s] scanned=${scanned} upserted=${upserted} withImg=${withImages} noImg=${noImages} failed=${failed}`,

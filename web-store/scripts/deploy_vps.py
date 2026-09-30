@@ -100,6 +100,9 @@ def build_remote_deploy_script(
         install.rstrip(),
         "npx prisma generate",
         "npx prisma db push --skip-generate",
+        # Idempotent: aligns Product.hasRealImage (catalog photo ordering) with
+        # the actual ProductImage rows; cheap no-op once in sync.
+        "npm run backfill:real-image",
     ]
 
     if full_clean:

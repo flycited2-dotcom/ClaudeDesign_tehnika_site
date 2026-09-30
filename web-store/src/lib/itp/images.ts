@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { itpRpc } from "@/lib/itp/client";
 import { sleep } from "@/lib/itp/utils";
+import { refreshHasRealImage } from "@/lib/product-real-image";
 import type { ItpProductImage } from "@/lib/itp/types";
 import { finishSyncLog, sanitizePayload, startSyncLog, updateSyncLogProgress } from "@/lib/sync-log";
 
@@ -185,6 +186,10 @@ export async function syncItpImages(limit: number | null = null) {
         });
         processedImages += 1;
       }
+
+      // Keep the truthful photo flag (catalog ordering) in step with the rows
+      // just written — also for products that came back with no images at all.
+      await refreshHasRealImage(products.map((product) => product.id));
 
       if (scanned % 1000 === 0 || scanned >= total) {
         await updateSyncLogProgress(log.id, {
