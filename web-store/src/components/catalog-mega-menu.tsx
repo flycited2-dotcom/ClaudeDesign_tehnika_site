@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, ChevronDown, LayoutGrid, Package, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { CatalogMenuItem } from "@/lib/catalog-menu";
@@ -142,7 +143,10 @@ export function CatalogMegaMenu() {
                   const inner = (
                     <>
                       <div className={`mega-art${category.image?.startsWith("/api/") ? " photo" : ""}`}>
-                        {category.image ? (
+                        {category.image?.startsWith("/static/") ? (
+                          <Image src={category.image} alt="" fill sizes="220px" />
+                        ) : category.image ? (
+                          // Product photos are already web-sized; served by /api/product-images.
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={category.image} alt="" loading="lazy" />
                         ) : (
