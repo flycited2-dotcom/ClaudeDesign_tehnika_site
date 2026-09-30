@@ -9,14 +9,12 @@ import {
   Phone,
   Play,
   Shield,
-  ShoppingCart,
   Sparkles,
   Truck,
   Wrench,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { Coffee } from "@/components/art/coffee";
 import { CallbackButton } from "@/components/callback-button";
 import { GlassProductCard } from "@/components/glass-product-card";
 import { CATEGORY_ART_BY_SLUG } from "@/lib/category-art";
@@ -201,32 +199,28 @@ export default async function Home() {
       </div>
 
       <div className="promo-grid">
-        <div className="promo-card promo-weekly">
+        <div className="promo-card promo-weekly promo-photographic">
+          <div className="promo-copy">
           <span className="badge">Выбор недели</span>
-          <h3>Кофемашина DeLonghi Dinamica Plus</h3>
+          <h3>Кофемашины для любимых напитков</h3>
           <ul className="feat-list">
             <li>Идеальный эспрессо и капучино</li>
             <li>Сенсорное управление</li>
             <li>Автоматическая очистка</li>
           </ul>
-          <div className="price-row">
-            <span className="price">79 990 ₽</span>
-            <span className="old">94 990 ₽</span>
-          </div>
           <div className="promo-cta">
-            <Link href="/catalog" className="btn btn-soft btn-sm">
-              Подробнее
-            </Link>
-            <Link href="/cart" className="cta-soft" aria-label="В корзину">
-              <ShoppingCart size={18} aria-hidden />
+            <Link href="/catalog/kofevarki-i-kofemashiny-15437?q=%D0%BA%D0%BE%D1%84%D0%B5%D0%BC%D0%B0%D1%88%D0%B8%D0%BD%D0%B0" className="btn btn-soft btn-sm">
+              Выбрать кофемашину <ArrowRight size={16} aria-hidden />
             </Link>
           </div>
-          <div className="weekly-art">
-            <Coffee size={210} />
+          </div>
+          <div className="promo-photo">
+            <Image src="/static/section-visuals/home-coffee-drinks.png" alt="Автоматическая кофемашина с эспрессо, капучино, латте и холодным кофе" width={1448} height={1086} sizes="(max-width: 620px) 90vw, (max-width: 1100px) 60vw, 30vw" />
           </div>
         </div>
 
-        <div className="promo-card promo-smart">
+        <div className="promo-card promo-smart promo-photographic">
+          <div className="promo-copy">
           <span className="badge">Умный дом</span>
           <h3>
             Умный дом
@@ -244,23 +238,13 @@ export default async function Home() {
             Управляйте техникой со смартфона из любой точки мира
           </p>
           <div className="promo-cta">
-            <Link href="/catalog" className="btn btn-soft btn-sm">
+            <Link href="/catalog/komplekty-umnogo-doma-9936" className="btn btn-soft btn-sm">
               Подробнее
             </Link>
           </div>
-          <div className="smart-phone">
-            <div className="sp-screen">
-              <div className="head">
-                <span>Мой дом</span>
-                <span>3 устр.</span>
-              </div>
-              <div className="sp-tile" />
-              <div className="sp-tile" />
-              <div className="sp-tile" />
-              <div className="sp-tile" />
-              <div className="sp-tile" />
-              <div className="sp-tile" />
-            </div>
+          </div>
+          <div className="promo-photo">
+            <Image src="/static/section-visuals/home-smart-devices.png" alt="Робот-пылесос, умная колонка, пульт управления климатом, камера и датчик качества воздуха" width={1448} height={1086} sizes="(max-width: 620px) 90vw, (max-width: 1100px) 60vw, 30vw" />
           </div>
         </div>
       </div>
