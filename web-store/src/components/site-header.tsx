@@ -1,11 +1,8 @@
 "use client";
 
 import {
-  ArrowLeft,
   ArrowLeftRight,
   Bot,
-  ChevronDown,
-  ChevronRight,
   Heart,
   Landmark,
   LayoutGrid,
@@ -17,7 +14,8 @@ import {
   Wrench,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { CatalogMegaMenu } from "@/components/catalog-mega-menu";
 import { CallbackButton } from "@/components/callback-button";
 import { HeaderSearchControl } from "@/components/header-search-control";
 import { useCompare, useFavorites } from "@/lib/sku-list-storage";
@@ -30,16 +28,6 @@ import {
   useStorefrontRoleSetter,
 } from "@/lib/use-role";
 
-type MenuCategory = {
-  id: string;
-  slug: string;
-  name: string;
-  productCount: number;
-  hasChildren: boolean;
-};
-
-const ROOT_PARENT_KEY = "root";
-
 type SiteHeaderProps = {
   popularSearchQueries: readonly string[];
 };
@@ -51,63 +39,7 @@ export function SiteHeader({ popularSearchQueries }: SiteHeaderProps) {
   const favorites = useFavorites();
   const compare = useCompare();
   const [mobOpen, setMobOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [menuPath, setMenuPath] = useState<MenuCategory[]>([]);
-  const [menuCache, setMenuCache] = useState<Record<string, MenuCategory[] | "loading">>({});
-  const menuRef = useRef<HTMLDivElement>(null);
   const cartCount = useCart().reduce((sum, item) => sum + item.quantity, 0);
-
-  function fetchLevel(parentKey: string) {
-    setMenuCache((cache) => {
-      if (cache[parentKey]) return cache;
-      return { ...cache, [parentKey]: "loading" };
-    });
-    const query = parentKey === ROOT_PARENT_KEY ? "" : `?parent=${encodeURIComponent(parentKey)}`;
-    fetch(`/api/catalog/categories${query}`)
-      .then((response) => (response.ok ? response.json() : { categories: [] }))
-      .then((data: { categories?: MenuCategory[] }) => {
-        setMenuCache((cache) => ({ ...cache, [parentKey]: data.categories ?? [] }));
-      })
-      .catch(() => {
-        setMenuCache((cache) => ({ ...cache, [parentKey]: [] }));
-      });
-  }
-
-  function openMenu() {
-    const willOpen = !menuOpen;
-    setMenuOpen(willOpen);
-    if (willOpen) {
-      setMenuPath([]);
-      if (!menuCache[ROOT_PARENT_KEY]) fetchLevel(ROOT_PARENT_KEY);
-    }
-  }
-
-  function pushMenuPath(category: MenuCategory) {
-    setMenuPath((current) => [...current, category]);
-    if (!menuCache[category.id]) fetchLevel(category.id);
-  }
-
-  function popMenuPath() {
-    setMenuPath((current) => current.slice(0, -1));
-  }
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
 
   return (
     <>
@@ -183,204 +115,7 @@ export function SiteHeader({ popularSearchQueries }: SiteHeaderProps) {
           </div>
         </Link>
 
-        <div ref={menuRef} className="hdr-mega-trigger" style={{ position: "relative" }}>
-          <button
-            type="button"
-            className="cat-btn"
-            onClick={openMenu}
-            aria-expanded={menuOpen}
-          >
-            <Package size={18} aria-hidden />
-            Каталог товаров
-            <ChevronDown size={16} aria-hidden style={{ transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-          </button>
-          {menuOpen && (() => {
-            const currentParentKey = menuPath.length === 0 ? ROOT_PARENT_KEY : menuPath[menuPath.length - 1].id;
-            const currentLevel = menuCache[currentParentKey];
-            const currentNode = menuPath[menuPath.length - 1];
-            return (
-              <div
-                role="dialog"
-                aria-label="Каталог по категориям"
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: "calc(100% + 14px)",
-                  width: "min(880px, 90vw)",
-                  maxHeight: "70vh",
-                  overflowY: "auto",
-                  zIndex: 60,
-                  padding: 20,
-                  borderRadius: 22,
-                  background: "var(--glass-bg-3)",
-                  backdropFilter: "blur(28px)",
-                  WebkitBackdropFilter: "blur(28px)",
-                  border: "1px solid var(--glass-stroke-2)",
-                  boxShadow: "var(--shadow-soft)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 10,
-                    marginBottom: 14,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-                    {menuPath.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={popMenuPath}
-                        className="btn btn-soft btn-sm"
-                        aria-label="Назад"
-                        style={{ padding: "0 10px" }}
-                      >
-                        <ArrowLeft size={14} aria-hidden />
-                      </button>
-                    )}
-                    <h3
-                      style={{
-                        fontSize: 16,
-                        fontWeight: 800,
-                        color: "var(--text)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                      title={currentNode?.name ?? "Каталог по категориям"}
-                    >
-                      {currentNode?.name ?? "Каталог по категориям"}
-                    </h3>
-                  </div>
-                  <div style={{ display: "inline-flex", gap: 8 }}>
-                    {currentNode && (
-                      <Link
-                        href={`/catalog/${currentNode.slug}`}
-                        className="btn btn-soft btn-sm"
-                        onClick={() => setMenuOpen(false)}
-                      >
-                        Все в разделе
-                      </Link>
-                    )}
-                    <Link
-                      href="/catalog"
-                      className="btn btn-soft btn-sm"
-                      onClick={() => setMenuOpen(false)}
-                    >
-                      Весь каталог
-                    </Link>
-                  </div>
-                </div>
-
-                {menuPath.length > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 6,
-                      marginBottom: 12,
-                      fontSize: 12,
-                      color: "var(--text-mute)",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setMenuPath([])}
-                      style={{ background: 0, border: 0, padding: 0, cursor: "pointer", color: "var(--accent-2)", fontWeight: 700 }}
-                    >
-                      Каталог
-                    </button>
-                    {menuPath.map((node, index) => (
-                      <span key={node.id} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ color: "var(--text-soft)" }}>›</span>
-                        <button
-                          type="button"
-                          onClick={() => setMenuPath((current) => current.slice(0, index + 1))}
-                          style={{
-                            background: 0,
-                            border: 0,
-                            padding: 0,
-                            cursor: "pointer",
-                            color: index === menuPath.length - 1 ? "var(--text)" : "var(--accent-2)",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {node.name}
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {currentLevel === undefined || currentLevel === "loading" ? (
-                  <p style={{ color: "var(--text-mute)" }}>Загружаем категории…</p>
-                ) : currentLevel.length === 0 ? (
-                  <p style={{ color: "var(--text-mute)" }}>
-                    {currentNode
-                      ? "Подкатегорий нет. Откройте все товары раздела."
-                      : "Категории недоступны. Откройте каталог."}
-                  </p>
-                ) : (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                      gap: 8,
-                    }}
-                  >
-                    {currentLevel.map((category) =>
-                      category.hasChildren ? (
-                        <button
-                          key={category.id}
-                          type="button"
-                          onClick={() => pushMenuPath(category)}
-                          className="f-row"
-                          style={{
-                            margin: 0,
-                            padding: "10px 12px",
-                            borderRadius: 12,
-                            background: "rgba(255,255,255,0.7)",
-                            border: "1px solid rgba(33,52,108,0.22)",
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                        >
-                          <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>{category.name}</span>
-                          {category.productCount > 0 && (
-                            <span className="cnt">{category.productCount.toLocaleString("ru-RU")}</span>
-                          )}
-                          <ChevronRight size={14} aria-hidden style={{ color: "var(--text-soft)" }} />
-                        </button>
-                      ) : (
-                        <Link
-                          key={category.id}
-                          href={`/catalog/${category.slug}`}
-                          onClick={() => setMenuOpen(false)}
-                          className="f-row"
-                          style={{
-                            margin: 0,
-                            padding: "10px 12px",
-                            borderRadius: 12,
-                            background: "rgba(255,255,255,0.7)",
-                            border: "1px solid rgba(33,52,108,0.22)",
-                          }}
-                        >
-                          <span style={{ flex: 1, minWidth: 0, fontWeight: 600 }}>{category.name}</span>
-                          {category.productCount > 0 && (
-                            <span className="cnt">{category.productCount.toLocaleString("ru-RU")}</span>
-                          )}
-                        </Link>
-                      ),
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-        </div>
+        <CatalogMegaMenu />
 
         <HeaderSearchControl popularSearchQueries={popularSearchQueries} />
 

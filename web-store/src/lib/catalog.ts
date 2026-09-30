@@ -24,6 +24,7 @@ import { pruneFacetValues, removeSpecDuplicatedAttributeKeys } from "@/lib/catal
 import { buildCatalogBrandFilterOptions } from "@/lib/catalog-brand-filters";
 import { buildCategoryPath, buildCategoryTree, collectDescendantCategoryIds, type CategoryTreeItem, type FlatCategory } from "@/lib/catalog-tree";
 import { interleaveByTopCategory } from "@/lib/catalog-interleave";
+import { buildCatalogMenuItems, findCategoryTreeNode, type CatalogMenuItem } from "@/lib/catalog-menu";
 import { catalogProductOrderBy } from "@/lib/catalog-order";
 import { hasCatalogFacetContext, normalizeCatalogBrandValues, type CatalogSort } from "@/lib/catalog-query";
 import {
@@ -33,7 +34,9 @@ import {
   type CatalogSpecFilterOption,
   type CatalogSpecFilterValue,
 } from "@/lib/catalog-spec-filters";
+import { CATEGORY_ART_BY_SLUG } from "@/lib/category-art";
 import { prisma } from "@/lib/db";
+import { productImageSrc } from "@/lib/product-images";
 import { isAccessoryProductName, isAccessorySearchQuery, isDegradedRetailName, normalRetailNameWhere } from "@/lib/retail-products";
 
 const PRODUCTS_PER_PAGE = 24;
@@ -226,6 +229,56 @@ export const getHomeSnapshot = unstable_cache(async () => {
   );
   return { categories, products: pool };
 }, ["home-snapshot"], { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] });
+
+const MENU_IMAGE_CONCURRENCY = 4;
+
+// Real photo of an in-stock product from the category subtree — the menu card
+// picture for categories that have no hand-made illustration.
+async function findCategoryMenuImage(allCategories: FlatCategory[], categoryId: string): Promise<string | null> {
+  try {
+    const product = await prisma.product.findFirst({
+      where: {
+        categoryId: { in: collectDescendantCategoryIds(allCategories, categoryId) },
+        isActive: true,
+        isVisible: true,
+        isAvailable: true,
+        hasRealImage: true,
+        retailPrice: { gt: 0 },
+      },
+      select: {
+        images: { where: { deleted: false }, orderBy: { priority: "asc" }, take: 1, select: { id: true } },
+      },
+    });
+    return productImageSrc(product?.images[0]);
+  } catch {
+    return null;
+  }
+}
+
+// One level of the header mega-menu ("root" or a category id): subtree product
+// counts, a short description from the child names and a picture per card.
+export const getCatalogMenuLevel = unstable_cache(async (parentKey: string): Promise<CatalogMenuItem[]> => {
+  if (!process.env.DATABASE_URL) {
+    return [];
+  }
+
+  const allCategories = await getActiveCategories();
+  const tree = await getCatalogCategoryTree(allCategories);
+  const level = parentKey === "root" ? tree : (findCategoryTreeNode(tree, parentKey)?.children ?? []);
+  const items = buildCatalogMenuItems(level);
+  const result: CatalogMenuItem[] = [];
+
+  // Small batches: the production Prisma pool is intentionally small.
+  for (let index = 0; index < items.length; index += MENU_IMAGE_CONCURRENCY) {
+    const batch = items.slice(index, index + MENU_IMAGE_CONCURRENCY);
+    const images = await Promise.all(
+      batch.map((item) => CATEGORY_ART_BY_SLUG[item.slug] ?? findCategoryMenuImage(allCategories, item.id)),
+    );
+    batch.forEach((item, position) => result.push({ ...item, image: images[position] ?? null }));
+  }
+
+  return result;
+}, ["catalog-menu-level"], { revalidate: STOREFRONT_CACHE_SECONDS, tags: ["catalog", "products"] });
 
 const getCatalogBrands = unstable_cache(async (where: Prisma.ProductWhereInput) => {
   // Fetch up to 500 vendors then sort by count desc in JS so the brand
