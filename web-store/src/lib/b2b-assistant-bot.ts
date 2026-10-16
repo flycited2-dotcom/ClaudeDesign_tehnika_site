@@ -48,6 +48,7 @@ import {
 import { productImageSrc } from "@/lib/product-images";
 import { buildStockOrderLink } from "@/lib/stock-order-link";
 import { escapeTelegramHtml } from "@/lib/telegram";
+import { processPurchaseImport } from "@/lib/telegram-purchase-import";
 
 const CUSTOM_MARKUP_PROMPT = "Своя наценка для SKU:";
 
@@ -104,6 +105,7 @@ async function sendWelcome(chatId: number): Promise<void> {
       "🤖 <b>Мобильный B2B-ассистент</b>",
       "━━━━━━━━━━━━━━━━",
       "Пришлите название, модель, артикул, штрихкод или SKU.",
+      "Для закупки списком пришлите .xlsx или CSV: артикул поставщика, название, количество. Категория товара любая.",
       "",
       "Например:",
       "<code>ExeGate AVS-8000</code>",
@@ -458,6 +460,12 @@ async function handleInlineQuery(query: TelegramInlineQuery): Promise<void> {
 }
 
 export async function processB2bAssistantUpdate(update: TelegramUpdate): Promise<void> {
+  if (await processPurchaseImport(update, {
+    botKey: "b2b", token: b2bAssistantToken,
+    allowed: (userId, chatId) => userIsAllowed(userId) && (update.message?.chat.type ?? update.callback_query?.message?.chat.type) === "private" && chatId === userId,
+    send: sendB2bTelegramMessage,
+    answer: (id, text) => answerB2bCallbackQuery(id, text),
+  })) return;
   if (update.inline_query) await handleInlineQuery(update.inline_query);
   else if (update.callback_query) await handleCallbackQuery(update.callback_query);
   else if (update.message) await handleMessage(update.message);

@@ -1,9 +1,70 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createOrUpdateTelegramItpOrder, getItpActiveProduct, type ItpRpc } from "@/lib/itp/orders";
+import { createOrUpdateTelegramItpOrder, createOrUpdateTelegramItpBatchOrder, getItpActiveProduct, type ItpRpc } from "@/lib/itp/orders";
 
 afterEach(() => {
   delete process.env.STOCK_ORDER_LOGISTIC_CENTER_ID;
   delete process.env.STOCK_ORDER_DELIVERY_ADDRESS_ID;
+});
+
+describe("complete file orders", () => {
+  function supplier({ partial = false, confirmed = false } = {}) {
+    let saved: Array<{ id: number; doc_id: number; sku: number; qty: number }> = [];
+    const rpcMock = vi.fn(async (payload: Record<string, unknown>) => {
+      const request = payload.request as { model: string; method: string };
+      if (request.model === "orders") return { success: true, data: { orders: [{ id: 77, confirmed, without_reserve: true }], total: 1 } };
+      if (request.model === "order_items" && request.method === "read") return { success: true, data: { order_items: saved, total: saved.length } };
+      if (request.model === "order_items" && request.method === "client_update") {
+        const data = payload.data as { update: Array<{ sku: number; qty: number }> };
+        saved = data.update.slice(0, partial ? 1 : undefined).map((item, index) => ({ ...item, id: index + 1, doc_id: 77 }));
+        return { success: true, data: { order_items: saved, total: saved.length } };
+      }
+      throw new Error("Unexpected RPC request");
+    });
+    return { rpc: rpcMock as unknown as ItpRpc, mock: rpcMock };
+  }
+
+  const lines = [{ sku: 123, quantity: 500 }, { sku: 456, quantity: 195, supplierPrice: 10 }];
+
+  it("creates one unreserved order with all quantities, even without prices or stock", async () => {
+    const { rpc, mock } = supplier();
+    const resolved = vi.fn(async () => undefined);
+    const result = await createOrUpdateTelegramItpBatchOrder({ lines, withoutReserve: true, onOrderResolved: resolved, rpc });
+    expect(result.items.map((item) => item.qty)).toEqual([500, 195]);
+    expect(resolved).toHaveBeenCalledWith(expect.objectContaining({ id: 77 }));
+    expect(mock).toHaveBeenCalledWith(expect.objectContaining({
+      request: { method: "create", model: "orders", module: "platform" },
+      data: [expect.objectContaining({ without_reserve: true })],
+    }));
+    expect(mock).toHaveBeenCalledWith(expect.objectContaining({
+      data: { doc_id: 77, destroy: [], update: [
+        { sku: 123, qty: 500, wish_price_comment: "Телеграм" },
+        { sku: 456, qty: 195, wish_price: 10, wish_price_comment: "Телеграм" },
+      ] },
+    }));
+    expect(mock.mock.calls.filter(([payload]) => (payload.request as { method: string }).method === "create")).toHaveLength(1);
+  });
+
+  it("reports incomplete acceptance after preserving the supplier order number", async () => {
+    const { rpc } = supplier({ partial: true });
+    const resolved = vi.fn(async () => undefined);
+    await expect(createOrUpdateTelegramItpBatchOrder({ lines, withoutReserve: true, onOrderResolved: resolved, rpc })).rejects.toThrow("SKU: 456");
+    expect(resolved).toHaveBeenCalledWith(expect.objectContaining({ id: 77 }));
+  });
+
+  it("reuses the same order on retry and refuses changing a confirmed order", async () => {
+    const { rpc, mock } = supplier();
+    await createOrUpdateTelegramItpBatchOrder({ lines, existingOrderId: 77, withoutReserve: true, rpc });
+    expect(mock.mock.calls.some(([payload]) => (payload.request as { method: string }).method === "create")).toBe(false);
+    const locked = supplier({ confirmed: true });
+    await expect(createOrUpdateTelegramItpBatchOrder({ lines, existingOrderId: 77, withoutReserve: true, rpc: locked.rpc })).rejects.toThrow("подтверждён");
+    expect(locked.mock.mock.calls.some(([payload]) => ["update", "client_update"].includes((payload.request as { method: string }).method))).toBe(false);
+  });
+
+  it("validates duplicate SKUs and quantities before contacting the supplier", async () => {
+    const { rpc, mock } = supplier();
+    await expect(createOrUpdateTelegramItpBatchOrder({ lines: [{ sku: 1, quantity: 2 }, { sku: 1, quantity: 3 }], rpc })).rejects.toThrow("повтор");
+    expect(mock).not.toHaveBeenCalled();
+  });
 });
 
 describe("I-T-P orders", () => {

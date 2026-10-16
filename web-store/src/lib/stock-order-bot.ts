@@ -9,6 +9,7 @@ import {
 } from "@/lib/stock-monitor";
 import { clampTelegramText, escapeTelegramHtml } from "@/lib/telegram";
 import { createIdempotentTelegramStockOrder } from "@/lib/stock-order-service";
+import { processPurchaseImport, type PurchaseDocument } from "@/lib/telegram-purchase-import";
 
 const START_CALLBACK_PREFIX = "itpo:s:";
 const CONFIRM_CALLBACK_PREFIX = "itpo:c:";
@@ -30,6 +31,7 @@ type TelegramMessage = {
   chat: { id: number; type?: string };
   from?: TelegramUser;
   text?: string;
+  document?: PurchaseDocument;
   reply_to_message?: TelegramMessage;
 };
 
@@ -496,6 +498,11 @@ async function reportUpdateError(update: TelegramUpdate, error: unknown): Promis
 
 export async function processStockOrderUpdate(update: TelegramUpdate): Promise<void> {
   try {
+    if (await processPurchaseImport(update, {
+      botKey: "stock", token: telegramToken,
+      allowed: (userId, chatId) => String(chatId) === allowedChatId() && userIsAllowed(userId),
+      send: sendMessage, answer: answerCallbackQuery,
+    })) return;
     if (update.callback_query) await handleCallbackQuery(update.callback_query);
     else if (update.message) await handleMessage(update.message);
   } catch (error) {

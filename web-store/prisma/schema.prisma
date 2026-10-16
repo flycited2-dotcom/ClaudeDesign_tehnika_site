@@ -326,6 +326,28 @@ model TelegramSearchSession {
   @@index([expiresAt])
 }
 
+/// One uploaded purchasing workbook and one supplier order. Persist both the
+/// chosen sheet and order ID so webhook retries/restarts cannot duplicate it.
+model TelegramPurchaseImport {
+  id                String   @id @db.VarChar(12)
+  sourceKey         String   @unique
+  botKey            String
+  telegramUserId    String
+  chatId            String
+  fileName          String
+  sheets            Json
+  selectedSheet     Int?
+  lines             Json?
+  status            String   @default("uploaded")
+  supplierOrderId   Int?
+  error             String?
+  expiresAt         DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([telegramUserId, expiresAt])
+}
+
 enum LeadType {
   CALLBACK     @map("callback")
   QUOTE        @map("quote")

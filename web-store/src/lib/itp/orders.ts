@@ -94,7 +94,7 @@ function configuredPositiveInteger(name: string): number | undefined {
   return parsed;
 }
 
-function configuredDelivery() {
+function configuredDelivery(withoutReserve = false) {
   const logisticCenter = configuredPositiveInteger("STOCK_ORDER_LOGISTIC_CENTER_ID");
   const deliveryAddress = configuredPositiveInteger("STOCK_ORDER_DELIVERY_ADDRESS_ID");
   return {
@@ -107,17 +107,17 @@ function configuredDelivery() {
         }
       : {}),
     ...(logisticCenter ? { logistic_center: logisticCenter } : {}),
-    without_reserve: false,
+    without_reserve: withoutReserve,
   };
 }
 
-async function ensureConfiguredDelivery(order: ItpOrder, rpc: ItpRpc): Promise<ItpOrder> {
-  const configured = configuredDelivery();
+async function ensureConfiguredDelivery(order: ItpOrder, rpc: ItpRpc, withoutReserve = false): Promise<ItpOrder> {
+  const configured = configuredDelivery(withoutReserve);
   const matches =
     (!configured.logisticCenter || order.logistic_center === configured.logisticCenter) &&
     (!configured.deliveryAddress ||
       (order.delivery_type === 2 && order.delivery_address === configured.deliveryAddress)) &&
-    order.without_reserve !== true;
+    Boolean(order.without_reserve) === withoutReserve;
   if (matches) return order;
 
   const response = await rpc<OrdersResponse>({
@@ -131,7 +131,7 @@ async function ensureConfiguredDelivery(order: ItpOrder, rpc: ItpRpc): Promise<I
               delivery_address: configured.delivery_address,
             }
           : {}),
-        without_reserve: false,
+        without_reserve: withoutReserve,
       },
     ],
     request: { method: "update", model: "orders", module: "platform" },
@@ -148,8 +148,8 @@ async function ensureConfiguredDelivery(order: ItpOrder, rpc: ItpRpc): Promise<I
   ) {
     throw new Error(`I-T-P не установил адрес доставки для заказа №${order.id}.`);
   }
-  if (verified.without_reserve === true) {
-    throw new Error(`I-T-P создал заказ №${order.id} без резервирования.`);
+  if (Boolean(verified.without_reserve) !== withoutReserve) {
+    throw new Error(`I-T-P не установил режим резервирования заказа №${order.id}.`);
   }
   return verified;
 }
@@ -171,6 +171,51 @@ export async function createOrUpdateTelegramItpOrder({
   onOrderResolved?: (order: ItpOrder) => Promise<void>;
   rpc?: ItpRpc;
 }) {
+  const result = await createOrUpdateTelegramItpBatchOrder({
+    lines: [{ sku, quantity, supplierPrice }], existingOrderId, partnerComment, onOrderResolved, rpc,
+  });
+  return { order: result.order, item: result.items[0], created: result.created, duplicatePrevented: result.duplicatePrevented };
+}
+
+export type ItpBatchOrderLine = { sku: number; quantity: number; supplierPrice?: number };
+
+export async function getItpActiveProducts(skus: number[], rpc: ItpRpc = itpRpc): Promise<ItpActiveProduct[]> {
+  if (!skus.length) return [];
+  const response = await rpc<ActiveProductsResponse>({
+    request: { method: "get_active_products", model: "client_api", module: "platform" },
+    filter: [{ property: "sku", operator: "IN", value: [...new Set(skus)] }],
+  });
+  return requireSuccess(response, "I-T-P не вернул актуальные остатки.").products;
+}
+
+/** Full requested quantities, optionally without reservation. Availability is
+ * advisory for file imports; the supplier must still accept every exact line. */
+export async function createOrUpdateTelegramItpBatchOrder({
+  lines,
+  existingOrderId,
+  partnerComment = "Телеграм: импорт файла",
+  withoutReserve = false,
+  onCreateStarted,
+  onOrderResolved,
+  rpc = itpRpc,
+}: {
+  lines: ItpBatchOrderLine[];
+  existingOrderId?: number | null;
+  partnerComment?: string;
+  withoutReserve?: boolean;
+  onCreateStarted?: () => Promise<void>;
+  onOrderResolved?: (order: ItpOrder) => Promise<void>;
+  rpc?: ItpRpc;
+}) {
+  if (!lines.length || lines.length > 500) throw new Error("Заказ должен содержать от 1 до 500 артикулов.");
+  const skus = new Set<number>();
+  for (const line of lines) {
+    if (!Number.isSafeInteger(line.sku) || line.sku <= 0 || !Number.isSafeInteger(line.quantity) || line.quantity <= 0 || line.quantity > 10_000 || skus.has(line.sku)) {
+      throw new Error("Некорректный SKU, количество или повтор артикула в заказе.");
+    }
+    if (line.supplierPrice !== undefined && (!Number.isFinite(line.supplierPrice) || line.supplierPrice <= 0)) throw new Error("Некорректная цена поставщика.");
+    skus.add(line.sku);
+  }
   const safeComment = partnerComment.replace(/[\r\n]+/g, " ").trim().slice(0, 80) || "Телеграм";
   let order = existingOrderId ? await readOrder(existingOrderId, rpc) : null;
   const created = !existingOrderId;
@@ -180,7 +225,8 @@ export async function createOrUpdateTelegramItpOrder({
   }
 
   if (!order) {
-    const delivery = configuredDelivery();
+    const delivery = configuredDelivery(withoutReserve);
+    await onCreateStarted?.();
     const response = await rpc<OrdersResponse>({
       request: { method: "create", model: "orders", module: "platform" },
       data: [
@@ -193,7 +239,7 @@ export async function createOrUpdateTelegramItpOrder({
                 delivery_address: delivery.delivery_address,
               }
             : {}),
-          without_reserve: false,
+          without_reserve: withoutReserve,
         },
       ],
     });
@@ -203,28 +249,28 @@ export async function createOrUpdateTelegramItpOrder({
   }
 
   await onOrderResolved?.(order);
-  order = await ensureConfiguredDelivery(order, rpc);
-
   const existingItems = await readOrderItems(order.id, rpc);
-  const existingItem = existingItems.find((item) => item.sku === sku);
-
-  if (order.confirmed && (!existingItem || Number(existingItem.qty) !== quantity)) {
+  const changed = lines.filter((line) => {
+    const existing = existingItems.filter((item) => item.sku === line.sku);
+    return existing.length !== 1 || Number(existing[0].qty) !== line.quantity;
+  });
+  if (order.confirmed && changed.length) {
     throw new Error(`Заказ I-T-P №${order.id} уже подтверждён и не может быть изменён.`);
   }
+  // Never change delivery/reservation on an already confirmed order.
+  if (!order.confirmed) order = await ensureConfiguredDelivery(order, rpc, withoutReserve);
 
-  if (!existingItem || Number(existingItem.qty) !== quantity) {
+  if (changed.length) {
     const response = await rpc<OrderItemsResponse>({
       data: {
         doc_id: order.id,
         destroy: [],
-        update: [
-          {
-            sku,
-            qty: quantity,
-            wish_price: supplierPrice,
+        update: changed.map((line) => ({
+            sku: line.sku,
+            qty: line.quantity,
+            ...(line.supplierPrice !== undefined ? { wish_price: line.supplierPrice } : {}),
             wish_price_comment: "Телеграм",
-          },
-        ],
+        })),
       },
       request: {
         method: "client_update",
@@ -232,18 +278,21 @@ export async function createOrUpdateTelegramItpOrder({
         module: "platform",
       },
     });
-    requireSuccess(response, `I-T-P создал заказ №${order.id}, но не добавил товар.`);
+    requireSuccess(response, `I-T-P создал заказ №${order.id}, но не добавил все товары.`);
   }
 
   const verifiedItems = await readOrderItems(order.id, rpc);
-  const verifiedItem = verifiedItems.find((item) => item.sku === sku);
-  if (!verifiedItem || Number(verifiedItem.qty) !== quantity) {
-    throw new Error(`В заказе I-T-P №${order.id} не удалось подтвердить позицию SKU ${sku}.`);
+  const incomplete = lines.filter((line) => {
+    const items = verifiedItems.filter((item) => item.sku === line.sku);
+    return items.length !== 1 || Number(items[0].qty) !== line.quantity;
+  });
+  if (incomplete.length) {
+    throw new Error(`Заказ I-T-P №${order.id} заполнен не полностью. Проверьте SKU: ${incomplete.map((line) => line.sku).join(", ")}. Исходные количества не уменьшены.`);
   }
 
   return {
     order,
-    item: verifiedItem,
+    items: lines.map((line) => verifiedItems.find((item) => item.sku === line.sku)!),
     created,
     duplicatePrevented: !created,
   };

@@ -1,5 +1,6 @@
 import { b2bAssistantToken } from "@/lib/b2b-assistant-config";
 import { clampTelegramText } from "@/lib/telegram";
+import type { PurchaseDocument } from "@/lib/telegram-purchase-import";
 
 export type TelegramUser = {
   id: number;
@@ -19,6 +20,7 @@ export type TelegramMessage = {
   chat: TelegramChat;
   from?: TelegramUser;
   text?: string;
+  document?: PurchaseDocument;
   reply_to_message?: TelegramMessage;
 };
 
