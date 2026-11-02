@@ -1,5 +1,5 @@
 import type { Product, ProductAttribute, ProductImage } from "@prisma/client";
-import { Check, Search } from "lucide-react";
+import { CatalogSidebarNavigation } from "@/components/catalog-sidebar-navigation";
 import Link from "next/link";
 import { CatalogPager } from "@/components/catalog-pager";
 import { CatalogSortSelect } from "@/components/catalog-sort-select";
@@ -75,109 +75,6 @@ function removeAttributeRangeBound(
     const next = { ...filter, [bound]: undefined };
     return next.min !== undefined || next.max !== undefined ? [next] : [];
   });
-}
-
-function hasActiveCategory(category: CategoryTreeItem, currentCategorySlug?: string): boolean {
-  return category.slug === currentCategorySlug || category.children.some((child) => hasActiveCategory(child, currentCategorySlug));
-}
-
-function CategoryBranch({
-  category,
-  currentCategorySlug,
-  level = 0,
-}: {
-  category: CategoryTreeItem;
-  currentCategorySlug?: string;
-  level?: number;
-}) {
-  const active = category.slug === currentCategorySlug;
-  const expanded = currentCategorySlug ? hasActiveCategory(category, currentCategorySlug) : false;
-
-  return (
-    <div>
-      <Link
-        href={`/catalog/${category.slug}`}
-        aria-current={active ? "page" : undefined}
-        className={"f-row " + (active ? "on" : "")}
-        style={{ paddingLeft: `${10 + level * 14}px` }}
-      >
-        <span className="box">{active && <Check size={12} aria-hidden />}</span>
-        <span style={{ flex: 1, minWidth: 0 }}>{category.name}</span>
-        <span className="cnt">{category.productCount.toLocaleString("ru-RU")}</span>
-      </Link>
-      {expanded && category.children.length > 0 ? (
-        <div>
-          {category.children.map((child) => (
-            <CategoryBranch key={child.id} category={child} currentCategorySlug={currentCategorySlug} level={level + 1} />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function SearchSection({ basePath, currentQuery }: { basePath: string; currentQuery?: string }) {
-  return (
-    <form action={basePath} className="f-section" style={{ paddingTop: 0, borderTop: 0 }}>
-      <h4>Поиск</h4>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          background: "rgba(255,255,255,0.56)",
-          border: "1px solid var(--glass-stroke)",
-          borderRadius: 14,
-          height: 44,
-          padding: "0 14px",
-        }}
-      >
-        <Search size={16} aria-hidden style={{ opacity: 0.6 }} />
-        <input
-          name="q"
-          defaultValue={currentQuery}
-          placeholder="Название, SKU, бренд"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            border: 0,
-            background: "transparent",
-            outline: "none",
-            fontSize: 14,
-          }}
-        />
-      </div>
-    </form>
-  );
-}
-
-function CategoriesSection({
-  categories,
-  currentCategorySlug,
-}: {
-  categories: CategoryTreeItem[];
-  currentCategorySlug?: string;
-}) {
-  const totalCount = categories.reduce((sum, category) => sum + category.productCount, 0);
-  return (
-    <div className="f-section">
-      <h4>Категории</h4>
-      <div style={{ maxHeight: "40vh", overflow: "auto" }}>
-        <Link
-          href="/catalog"
-          aria-current={!currentCategorySlug ? "page" : undefined}
-          className={"f-row " + (!currentCategorySlug ? "on" : "")}
-        >
-          <span className="box">{!currentCategorySlug && <Check size={12} aria-hidden />}</span>
-          <span style={{ flex: 1, minWidth: 0 }}>Все товары</span>
-          <span className="cnt">{totalCount.toLocaleString("ru-RU")}</span>
-        </Link>
-        {categories.map((category) => (
-          <CategoryBranch key={category.id} category={category} currentCategorySlug={currentCategorySlug} />
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function CatalogSortBar({
@@ -444,8 +341,8 @@ export function CatalogView({
           className="filters"
           style={{ maxHeight: "calc(100vh - 160px)", overflowY: "auto" }}
         >
-          <SearchSection basePath={basePath} currentQuery={currentQuery} />
-          <CategoriesSection categories={categories} currentCategorySlug={currentCategorySlug} />
+          <CatalogSidebarNavigation key={`${basePath}:${currentQuery ?? ""}`} basePath={basePath} currentQuery={currentQuery} categories={categories} currentCategorySlug={currentCategorySlug} />
+
           <FiltersPanel
             basePath={basePath}
             brands={brands}
@@ -467,11 +364,11 @@ export function CatalogView({
         </aside>
 
         <div>
-          {/* Mobile-only drill-down hub: shows children of the current
-              category as big tap-cards; hidden on desktop via CSS.
+          {/* Illustrated drill-down hub: shows children of the current
+              category on desktop and mobile.
               Suppressed on search — a query wants the matching PRODUCTS shown
               straight away, not a category drill-down above them. */}
-          {!currentQuery?.trim() && <MobileCatalogHub parentId={currentCategoryId} />}
+          {!currentQuery?.trim() && <MobileCatalogHub key={currentCategoryId ?? "root"} parentId={currentCategoryId} />}
           {/* Mobile-only filter trigger button (hidden on desktop where the
               left sidebar provides the same filters). */}
           <MobileFilterSheet
@@ -510,6 +407,8 @@ export function CatalogView({
               {error}
             </div>
           ) : null}
+
+          <CatalogPager page={page} totalPages={totalPages} buildHref={pageHref} />
 
           {products.length > 0 ? (
             <div className="product-grid">

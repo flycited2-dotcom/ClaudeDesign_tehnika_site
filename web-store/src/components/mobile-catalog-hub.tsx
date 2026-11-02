@@ -1,16 +1,12 @@
 "use client";
 
 import { ChevronRight, Folder } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ruPlural, type CatalogMenuItem } from "@/lib/catalog-menu";
 
-type MenuCategory = {
-  id: string;
-  slug: string;
-  name: string;
-  productCount: number;
-  hasChildren: boolean;
-};
+type MenuCategory = CatalogMenuItem;
 
 type Props = {
   /** Parent category id. `null` or `undefined` = root (top-level categories). */
@@ -19,7 +15,8 @@ type Props = {
 
 // Module-level cache survives unmount/remount of the hub between navigations,
 // so drilling up/down stays instant within a session.
-const HUB_CACHE = new Map<string, MenuCategory[] | "loading">();
+const HUB_CACHE = new Map<string, MenuCategory[]>();
+const HUB_REQUESTS = new Map<string, Promise<MenuCategory[]>>();
 
 function cacheKey(parentId?: string | null): string {
   return parentId ?? "root";
@@ -43,35 +40,30 @@ export function MobileCatalogHub({ parentId }: Props) {
       return () => window.clearTimeout(t);
     }
 
-    if (cached === "loading") {
-      // Another mount is fetching; poll cache until it lands.
-      const id = window.setInterval(() => {
-        const next = HUB_CACHE.get(key);
-        if (Array.isArray(next)) {
-          setItems(next);
-          window.clearInterval(id);
-        }
-      }, 80);
-      return () => window.clearInterval(id);
-    }
-
-    HUB_CACHE.set(key, "loading");
-    const controller = new AbortController();
     const url = key === "root"
-      ? "/api/catalog/categories"
-      : `/api/catalog/categories?parent=${encodeURIComponent(key)}`;
-    fetch(url, { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : { categories: [] }))
-      .then((data: { categories?: MenuCategory[] }) => {
-        const next = data.categories ?? [];
-        HUB_CACHE.set(key, next);
-        setItems(next);
-      })
-      .catch(() => {
-        HUB_CACHE.delete(key); // allow retry on remount
-        setItems([]);
-      });
-    return () => controller.abort();
+      ? "/api/catalog/menu"
+      : `/api/catalog/menu?parent=${encodeURIComponent(key)}`;
+    let request = HUB_REQUESTS.get(key);
+    if (!request) {
+      request = fetch(url)
+        .then((response) => {
+          if (!response.ok) throw new Error("Category images unavailable");
+          return response.json();
+        })
+        .then((data: { categories?: MenuCategory[] }) => {
+          const next = data.categories ?? [];
+          HUB_CACHE.set(key, next);
+          return next;
+        })
+        .finally(() => HUB_REQUESTS.delete(key));
+      HUB_REQUESTS.set(key, request);
+    }
+    // A shared request can finish after navigation or Strict Mode remounting.
+    // Keep its cache result; only the current subscriber updates its state.
+    let active = true;
+    request.then((next) => { if (active) setItems(next); })
+      .catch(() => { if (active) setItems([]); });
+    return () => { active = false; };
   }, [key]);
 
   if (items === undefined || items === "loading") {
@@ -95,13 +87,17 @@ export function MobileCatalogHub({ parentId }: Props) {
       {items.map((item) => (
         <Link key={item.id} href={`/catalog/${item.slug}`} className="cat-hub-tile">
           <span className="cat-hub-ic" aria-hidden>
-            <Folder size={20} strokeWidth={1.75} />
+            {item.image?.startsWith("/static/category-cards/") ? (
+              <Image src={item.image} alt="" fill sizes="(max-width: 760px) 64px, 220px" />
+            ) : (
+              <Folder size={20} strokeWidth={1.75} />
+            )}
           </span>
           <span className="cat-hub-body">
             <span className="cat-hub-name">{item.name}</span>
             {item.productCount > 0 && (
               <span className="cat-hub-meta">
-                {item.productCount.toLocaleString("ru-RU")} товаров
+                {item.productCount.toLocaleString("ru-RU")} {ruPlural(item.productCount, "товар", "товара", "товаров")}
               </span>
             )}
           </span>

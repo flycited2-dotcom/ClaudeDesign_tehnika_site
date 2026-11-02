@@ -43,6 +43,7 @@ export function CatalogPager({
 
   return (
     <nav className="pager" aria-label="Пагинация каталога">
+      <span className="pager-status">Страница {page.toLocaleString("ru-RU")} из {totalPages.toLocaleString("ru-RU")}</span>
       {page > 1 ? (
         <Link href={buildHref(page - 1)} className="pager-link" aria-label="Предыдущая страница">
           <ChevronLeft size={14} aria-hidden /> Назад

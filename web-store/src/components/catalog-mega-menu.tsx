@@ -53,12 +53,18 @@ export function CatalogMegaMenu() {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
+      if (event.key === "Backspace" && !event.defaultPrevented && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey &&
+        !(event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])"))) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setPath((nodes) => nodes.slice(0, -1));
+      }
     };
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
       document.body.style.overflow = previousOverflow;
     };
   }, [open]);
@@ -143,12 +149,8 @@ export function CatalogMegaMenu() {
                   const inner = (
                     <>
                       <div className={`mega-art${category.image?.startsWith("/api/") ? " photo" : ""}`}>
-                        {category.image?.startsWith("/static/") ? (
+                        {category.image?.startsWith("/static/category-cards/") ? (
                           <Image src={category.image} alt="" fill sizes="220px" />
-                        ) : category.image ? (
-                          // Product photos are already web-sized; served by /api/product-images.
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={category.image} alt="" loading="lazy" />
                         ) : (
                           <LayoutGrid size={34} aria-hidden />
                         )}
