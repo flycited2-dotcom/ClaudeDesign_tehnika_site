@@ -1,0 +1,9 @@
+{
+  "version": "3.0",
+  "api_version": 3,
+  "layout": {
+    "logo": "https://climat-simf.ru/static/brand/browser-tableau-v3.png",
+    "color": "#4263EB",
+    "show_title": false
+  }
+}

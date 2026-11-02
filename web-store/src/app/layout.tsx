@@ -18,6 +18,12 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://climat-simf.ru"),
+  applicationName: "БытТехОпт",
+  other: {
+    "yandex-tableau-widget": "logo=https://climat-simf.ru/static/brand/browser-tableau-v3.png, color=#4263EB",
+    "msapplication-TileColor": "#4263EB",
+    "msapplication-TileImage": "/static/brand/browser-icon-v3-192.png",
+  },
   title: {
     default: "БытТехОпт - техника, электроника и товары для дома под заказ",
     template: "%s | БытТехОпт",
@@ -62,6 +68,9 @@ export default async function RootLayout({
   const headerSearchQueries = buildHeaderSearchQueries(popularSearches, 5);
   return (
     <html lang="ru" className={`${inter.variable} antialiased`}>
+      <head>
+        <link rel="yandex-tableau-widget" href="/yandex-tableau-v3.json" />
+      </head>
       <body className="app">
         <RoleProvider
           initialRole={roleContext.role}
